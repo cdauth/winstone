@@ -167,13 +167,13 @@ public class StaticResourceServlet extends HttpServlet
         if (delim != remainder.length() - 1)
           end = Integer.parseInt(remainder.substring(delim + 1));
         response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-        response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
         response.addHeader(CONTENT_RANGE_HEADER, "bytes " + start + "-" + end + "/" + res.length());
       }
       else
         response.setStatus(HttpServletResponse.SC_OK);
 
       response.setContentLength(end - start);
+      response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
       response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
       OutputStream out = response.getOutputStream();
       byte buffer[] = new byte[1024];
