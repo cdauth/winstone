@@ -568,7 +568,7 @@ public class WinstoneResponse implements HttpServletResponse
           }
           catch (Throwable err2) 
           	{Logger.log(Logger.WARNING, this.resources, "WinstoneResponse.ErrorInErrorPage",
-                  new String[] {errorPage, "" + 500}, err);}
+                  new String[] {errorPage, "" + 500}, err2);}
         }
       }
     }
