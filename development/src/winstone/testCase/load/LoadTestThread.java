@@ -74,11 +74,16 @@ public class LoadTestThread implements Runnable
       if (responseCode >= 400)
         throw new IOException("Failed with status " + responseCode);
       InputStream inContent = wresp.getInputStream();
-      int contentLength = wresp.getContentLength() == -1 ? inContent.available() : wresp.getContentLength();
-      byte content[] = new byte[contentLength];
+      int contentLength = wresp.getContentLength();
+      byte content[] = new byte[contentLength == -1 ? 100 * 1024 : contentLength];
       int position = 0;
-      while (position < contentLength)
-        position += inContent.read(content, position, contentLength - position);
+      int value = inContent.read();
+      while ((value != -1) &&
+             (((contentLength >= 0) && (position < contentLength)) || (contentLength < 0)))
+      {
+        content[position++] = (byte) value;
+        value = inContent.read();
+      }
       inContent.close();
 
       // Confirm the result is the same size the content-length said it was
