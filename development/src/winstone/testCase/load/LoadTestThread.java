@@ -46,7 +46,7 @@ public class LoadTestThread implements Runnable
     this.loadTest = loadTest;
     this.webConv = webConv;
     this.delayBeforeStarting = 1000 * delayedThreads;
-    this.interrupted = true;
+    this.interrupted = false;
     this.thread = new Thread(this);
     this.thread.setDaemon(true);
     this.thread.start();
@@ -105,7 +105,7 @@ public class LoadTestThread implements Runnable
   
   public void destroy() 
   {
-    this.interrupted = false;
+    this.interrupted = true;
     this.thread.interrupt();
     if (this.next != null)
       this.next.destroy();
