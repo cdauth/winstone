@@ -144,8 +144,9 @@ public class WinstoneResponse implements HttpServletResponse
       else
         sb.append(clause).append(";");
     }
-    String header = sb.toString().substring(0, sb.length() - 1) +
-                   ";charset=" + getCharacterEncoding();
+    String header = sb.toString().substring(0, sb.length() - 1);
+    if (header.startsWith("text/"))
+      header += ";charset=" + getCharacterEncoding();
     setHeader(CONTENT_TYPE_HEADER, header);
   }
 
