@@ -200,7 +200,7 @@ public class RequestHandlerThread implements Runnable
   {
     try
     {
-      javax.servlet.RequestDispatcher rd = this.webAppConfig.getInitialDispatcher(path);
+      javax.servlet.RequestDispatcher rd = this.webAppConfig.getInitialDispatcher(path, req);
       if (rd != null)
       {
         Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.HandlingRD") + ((RequestDispatcher) rd).getName());

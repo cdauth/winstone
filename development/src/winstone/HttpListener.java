@@ -257,7 +257,6 @@ public class HttpListener implements Listener, Runnable
     if (spacePos == -1)
       throw new WinstoneException(resources.getString("HttpListener.ErrorUriLine") + uriLine);
     String method = uriLine.substring(0, spacePos).toUpperCase();
-    String servletURI = null;
     String fullURI = null;
 
     // URI
@@ -273,21 +272,10 @@ public class HttpListener implements Listener, Runnable
       fullURI = trimHostName(remainder.substring(0, spacePos).trim());
       req.setProtocol(remainder.substring(spacePos + 1).trim().toUpperCase());
     }
-    int questionPos = fullURI.indexOf('?');
-    if ((questionPos != -1) && (method != null))
-    {
-      servletURI = fullURI.substring(0, questionPos);
-      String queryString = fullURI.substring(questionPos + 1);
-      req.setQueryString(queryString);
-      req.getParameters().putAll(req.extractParameters(queryString));
-    }
-    else
-      servletURI = fullURI;
 
     req.setMethod(method);
-    req.setRequestURI(servletURI);
-    //req.setServletPath(servletURI);
-    return servletURI;
+    //req.setRequestURI(fullURI);
+    return fullURI;
   }
   
   private String trimHostName(String input)

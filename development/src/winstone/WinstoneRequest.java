@@ -60,6 +60,7 @@ public class WinstoneRequest implements HttpServletRequest
   protected String serverName;
   protected String requestURI;
   protected String servletPath;
+  protected String pathInfo;
   protected String queryString;
   protected String protocol;
   protected int contentLength;
@@ -122,6 +123,7 @@ public class WinstoneRequest implements HttpServletRequest
     this.serverName = null;
     this.requestURI = null;
     this.servletPath = null;
+    this.pathInfo = null;
     this.queryString = null;
     this.protocol = null;
     this.contentLength = -1;
@@ -195,6 +197,7 @@ public class WinstoneRequest implements HttpServletRequest
   public void setRequestURI(String requestURI)    {this.requestURI = requestURI;}
   public void setScheme(String scheme)            {this.scheme = scheme;}
   public void setServletPath(String servletPath)  {this.servletPath = servletPath;}
+  public void setPathInfo(String pathInfo)        {this.pathInfo = pathInfo;}
   public void setProtocol(String protocolString)  {this.protocol = protocolString;}
   public void setRemoteUser(AuthenticationPrincipal user) {this.authenticatedUser = user;}
 
@@ -484,7 +487,11 @@ public class WinstoneRequest implements HttpServletRequest
   public Object getAttribute(String name)         {return this.attributes.get(name);}
   public Enumeration getAttributeNames()          {return Collections.enumeration(this.attributes.keySet());}
   public void removeAttribute(String name)        {this.attributes.remove(name);}
-  public void setAttribute(String name, Object o) {this.attributes.put(name, o);}
+  public void setAttribute(String name, Object o) 
+  {
+    if ((name != null) && (o != null))
+    	this.attributes.put(name, o);
+  }
 
   public String getCharacterEncoding()  {return this.encoding;}
   public void setCharacterEncoding(String encoding) {this.encoding = encoding;}
@@ -601,8 +608,8 @@ public class WinstoneRequest implements HttpServletRequest
   public Enumeration getHeaders(String name)    {return null;}
   public int getIntHeader(String name)          {return Integer.parseInt(getHeader(name));}
   public String getMethod()                     {return this.method;}
-  public String getPathInfo()                   {return null;}
-  public String getPathTranslated()             {return null;}
+  public String getPathInfo()                   {return this.pathInfo;}
+  public String getPathTranslated()             {return this.webappConfig.getRealPath(this.pathInfo);}
   public String getQueryString()                {return this.queryString;}
   public String getRequestURI()                 {return this.requestURI;}
   public String getServletPath()                {return this.servletPath;}

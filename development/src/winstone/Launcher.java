@@ -63,7 +63,6 @@ public class Launcher implements EntityResolver, Runnable
 
   private int CONTROL_TIMEOUT = 10; // wait 5s for control connection
   private int DEFAULT_CONTROL_PORT = -1;
-  private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
   private WinstoneResourceBundle resources;
   private int controlPort;
@@ -315,37 +314,13 @@ public class Launcher implements EntityResolver, Runnable
       }
     }
 
-    // Get generic options
-    String dirLists = (String) this.args.get("directoryListings");
-    String useJasper = (String) this.args.get("useJasper");
-    String useWCL = (String) this.args.get("useWinstoneClassLoader");
-    String reloadable = (String) this.args.get("useServletReloading");
-    String useInvoker = (String) this.args.get("useInvoker");
-    String useJNDI = (String) this.args.get("useJNDI");
-    String invokerPrefix = (String) (this.args.get("invokerPrefix") == null
-                                                ? DEFAULT_INVOKER_PREFIX
-                                                : this.args.get("invokerPrefix"));
-
-    // Build switch values
-    boolean switchOnDirLists  = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
-    boolean switchOnJasper    = (useJasper != null)  && (useJasper.equalsIgnoreCase("true")  || useJasper.equalsIgnoreCase("yes"));
-    boolean switchOnWCL       = (useWCL == null)     || (useWCL.equalsIgnoreCase("true")     || useWCL.equalsIgnoreCase("yes"));
-    boolean switchOnInvoker   = (useInvoker != null) && (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
-    boolean switchOnReloading = (reloadable != null) && (reloadable.equalsIgnoreCase("true") || reloadable.equalsIgnoreCase("yes"));
-    boolean switchOnJNDI      = (useJNDI != null)    && (useJNDI.equalsIgnoreCase("true")    || useJNDI.equalsIgnoreCase("yes"));
-
     // Instantiate the webAppConfig
     this.webAppConfig = new WebAppConfiguration(this,
                                                 webRoot.getCanonicalPath(),
                                                 prefix,
-                                                switchOnDirLists,
-                                                switchOnJasper,
-                                                switchOnWCL,
-                                                switchOnReloading,
-                                                switchOnInvoker ? invokerPrefix : null,
-                                                switchOnJNDI,
-                                                webXMLParentNode,
+                                                this.objectPool,
                                                 args,
+                                                webXMLParentNode,
                                                 this.resources);
   }
 
@@ -383,6 +358,7 @@ public class Launcher implements EntityResolver, Runnable
   public InputSource resolveEntity(String publicName, String url)
     throws SAXException, IOException
   {
+    Logger.log(Logger.FULL_DEBUG, "Resolving entity - public=" + publicName + ", url=" + url);
     if (publicName == null)
       return null;
     else if (publicName.equals(DTD_2_2_PUBLIC))

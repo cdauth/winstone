@@ -18,9 +18,12 @@
 package winstone;
 
 import java.util.*;
-import org.w3c.dom.Node;
 
-import javax.servlet.*;
+import javax.servlet.Servlet;
+import javax.servlet.ServletContext;
+import javax.servlet.UnavailableException;
+
+import org.w3c.dom.Node;
 
 /**
  * This is the one that keeps a specific servlet instance's config, as
@@ -134,7 +137,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     if ((this.jspFile != null) && (this.classFile == null))
     {
       this.classFile = WebAppConfiguration.JSP_SERVLET_CLASS;
-      webAppConfig.setupJspServletParams(this.initParameters);
+      WebAppConfiguration.addJspServletParams(this.initParameters);
     }
     Logger.log(Logger.FULL_DEBUG, resources.getString("ServletConfiguration.DeployedInstance",
         "[#name]", this.servletName, "[#class]", this.classFile));
@@ -143,11 +146,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   /**
    * Implements the first-time-init of an instance, and wraps it in a dispatcher.
    */
-  public RequestDispatcher getRequestDispatcher(String requestedPath,
-                                                Map filters,
-                                                String forwardFilterPatterns[],
-                                                String includeFilterPatterns[],
-                                                AuthenticationHandler authHandler)
+  public RequestDispatcher getRequestDispatcher(Map filters)
   {
     synchronized (this.servletSemaphore)
     {
@@ -185,10 +184,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     }
 
     // Build filter chain
-    return new RequestDispatcher(this, this.instance, this.servletName, this.loader,
-        this.servletSemaphore, requestedPath, this.resources, filters, 
-        forwardFilterPatterns, includeFilterPatterns, authHandler, //this.prefix, 
-				this.jspFile == null ? requestedPath : this.jspFile);
+    return new RequestDispatcher(this, this.instance, this.servletName, 
+        this.loader, this.servletSemaphore, this.prefix, this.jspFile, 
+        filters, this.resources);
   }
 
   public int getLoadOnStartup()               {return this.loadOnStartup;}

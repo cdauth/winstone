@@ -54,6 +54,7 @@ public class CachedRequest extends WinstoneRequest
     this.serverName = request.getServerName();
     this.requestURI = request.getRequestURI();
     this.servletPath = request.getServletPath();
+    this.pathInfo = request.getPathInfo();
     this.queryString = request.getQueryString();
     this.protocol = request.getProtocol();
     this.contentLength = request.getContentLength();
@@ -94,6 +95,7 @@ public class CachedRequest extends WinstoneRequest
     request.setServerName(this.serverName);
     request.setRequestURI(this.requestURI);
     request.setServletPath(this.servletPath);
+    request.setPathInfo(this.pathInfo);
     request.setQueryString(this.queryString);
     request.setProtocol(this.protocol);
     request.setContentLength(this.contentLength);

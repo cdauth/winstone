@@ -46,7 +46,7 @@ public class SecurityConstraint
 
   private String displayName;
   private String methodSets[];
-  private String urlPatterns[];
+  private Mapping urlPatterns[];
   private String rolesAllowed[];
   private boolean needsSSL;
 
@@ -55,9 +55,10 @@ public class SecurityConstraint
   /**
    * Constructor
    */
-  public SecurityConstraint(Node elm, WinstoneResourceBundle resources, int counter)
+  public SecurityConstraint(Node elm, WinstoneResourceBundle mainResources, 
+      WinstoneResourceBundle localResources, int counter)
   {
-    this.resources = resources;
+    this.resources = localResources;
     this.needsSSL = false;
     List localUrlPatternList = new ArrayList();
     List localMethodSetList = new ArrayList();
@@ -82,7 +83,7 @@ public class SecurityConstraint
             continue;
           String resourceChildNodeName = resourceChild.getNodeName();
           if (resourceChildNodeName.equals(ELEM_URL_PATTERN))
-            localUrlPatternList.add(resourceChild.getFirstChild().getNodeValue().trim());
+            localUrlPatternList.add(Mapping.createFromURL("Security", resourceChild.getFirstChild().getNodeValue().trim(), mainResources));
           else if (resourceChildNodeName.equals(ELEM_HTTP_METHOD))
             methodSet = (methodSet == null ? "." : methodSet) +
                         resourceChild.getFirstChild().getNodeValue().trim() + ".";
@@ -112,7 +113,7 @@ public class SecurityConstraint
         }
       }
     }
-    this.urlPatterns  = (String []) localUrlPatternList.toArray(new String[localUrlPatternList.size()]);
+    this.urlPatterns  = (Mapping []) localUrlPatternList.toArray(new Mapping[localUrlPatternList.size()]);
     this.methodSets   = (String []) localMethodSetList.toArray(new String[localMethodSetList.size()]);
     this.rolesAllowed = (String []) localRolesAllowed.toArray(new String[localRolesAllowed.size()]);
 
@@ -144,7 +145,7 @@ public class SecurityConstraint
   public boolean isApplicable(String url, String method)
   {
     for (int n = 0; n < this.urlPatterns.length; n++)
-      if (WebAppConfiguration.wildcardMatch(this.urlPatterns[n], url) && 
+      if (this.urlPatterns[n].match(url, null, null) && 
           methodCheck(method, this.methodSets[n]))
         return true;
 

@@ -63,7 +63,7 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
     // Build security constraints
     this.constraints = new SecurityConstraint[constraintNodes.size()]; 
     for (int n = 0; n < constraints.length; n++)
-      this.constraints[n] = new SecurityConstraint((Node) constraintNodes.get(n), resources, n);
+      this.constraints[n] = new SecurityConstraint((Node) constraintNodes.get(n), resources, this.resources, n);
   }
 
   /**

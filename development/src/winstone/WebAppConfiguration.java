@@ -24,7 +24,6 @@ import java.lang.reflect.*;
 
 import org.w3c.dom.Node;
 
-import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContextAttributeEvent;
 import javax.servlet.ServletContextAttributeListener;
 import javax.servlet.ServletContextListener;
@@ -54,7 +53,7 @@ public class WebAppConfiguration implements ServletContext
   static final String ELEM_FILTER              = "filter";
   static final String ELEM_FILTER_MAPPING      = "filter-mapping";
   static final String ELEM_FILTER_NAME         = "filter-name";
-  static final String ELEM_DISPATCHER					= "dispatcher";
+  static final String ELEM_DISPATCHER					 = "dispatcher";
   static final String ELEM_URL_PATTERN         = "url-pattern";
   static final String ELEM_WELCOME_FILES       = "welcome-file-list";
   static final String ELEM_WELCOME_FILE        = "welcome-file";
@@ -84,8 +83,6 @@ public class WebAppConfiguration implements ServletContext
   static final String DISPATCHER_INCLUDE = "INCLUDE";
   static final String DISPATCHER_ERROR   = "ERROR";
   
-  static final String STAR = "*";
-  static final String SLASH = "/";
   static final String WEBAPP_LOGSTREAM = "WebApp";
   
   static final String JSP_SERVLET_NAME       = "JspServlet";
@@ -95,6 +92,7 @@ public class WebAppConfiguration implements ServletContext
 
   static final String INVOKER_SERVLET_NAME   = "invoker";
   static final String INVOKER_SERVLET_CLASS  = "winstone.InvokerServlet";
+  static final String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
   static final String DEFAULT_SERVLET_NAME    = "default";
   static final String DEFAULT_SERVLET_CLASS   = "winstone.StaticResourceServlet";
@@ -130,15 +128,12 @@ public class WebAppConfiguration implements ServletContext
   private List sessionListeners;
 
   private Map exactServletMatchMounts;
-  private String servletFolderPatterns[];
-  private String servletFolderPatternMounts[];
-  private String servletExtensionPatterns[];
-  private String servletExtensionPatternMounts[];
+  private Mapping patternMatches[];
 
-  private String fpRequest[];
-  private String fpForward[];
-  private String fpInclude[];
-  private String fpError[];
+  private Mapping filterPatternsRequest[];
+  private Mapping filterPatternsForward[];
+  private Mapping filterPatternsInclude[];
+  private Mapping filterPatternsError[];
 
   private AuthenticationHandler authenticationHandler;
   private AuthenticationRealm authenticationRealm;
@@ -151,22 +146,30 @@ public class WebAppConfiguration implements ServletContext
   private Map errorPagesByCode;
 
   //private ServletConfiguration staticResourceProcessor;
+  private String defaultServletName;
   private JNDIManager jndiManager;
 
+  private static boolean booleanArg(Map args, String name, boolean defaultTrue) 
+  {
+    String value = (String) args.get(name);
+    if (defaultTrue)
+      return (value == null) || (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes"));
+    else
+      return (value != null) && (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes"));
+  }
+
+  private static String stringArg(Map args, String name, String defaultValue)
+  	{return (String) (args.get(name) == null ? defaultValue : args.get(name));}
+  
   /**
    * Constructor. This parses the xml and sets up for basic routing
    */
   public WebAppConfiguration(Launcher launcher,
                              String webRoot,
                              String prefix,
-                             boolean directoryListings,
-                             boolean useJasper,
-                             boolean useWinstoneClassLoader,
-                             boolean servletReloading,
-                             String invokerPrefix,
-                             boolean useJNDI,
+                             ObjectPool objectPool,
+                             Map startupArgs,
                              Node elm,
-                             Map argsForSecurityJNDI,
                              WinstoneResourceBundle resources)
   {
     this.launcher = launcher;
@@ -175,8 +178,16 @@ public class WebAppConfiguration implements ServletContext
     this.prefix = (prefix != null ? prefix : "");
     this.contextName = WEBAPP_LOGSTREAM;
 
+    // Build switch values
+    boolean useDirLists  = booleanArg(startupArgs, "directoryListings", true);
+    boolean useJasper  	 = booleanArg(startupArgs, "useJasper", false);
+    boolean useWCL  	 	 = booleanArg(startupArgs, "useWinstoneClassLoader", true);
+    boolean useReloading = booleanArg(startupArgs, "useServletReloading", false);
+    boolean useInvoker   = booleanArg(startupArgs, "useInvoker", false);
+    boolean useJNDI      = booleanArg(startupArgs, "useJNDI", false);
+    
     // Try to set up the reloading class loader, and if we fail, use the normal one
-    if (useWinstoneClassLoader && servletReloading)
+    if (useWCL && useReloading)
     try
     {
       Class reloaderClass = Class.forName(RELOADING_CL_CLASS);
@@ -189,7 +200,7 @@ public class WebAppConfiguration implements ServletContext
       {Logger.log(Logger.ERROR, "Erroring setting class loader", err);}
 
     if (this.loader == null)
-      this.loader = (useWinstoneClassLoader
+      this.loader = (useWCL
         ? new WinstoneClassLoader(this, this.getClass().getClassLoader(), this.resources)
         : this.getClass().getClassLoader());
 
@@ -214,19 +225,12 @@ public class WebAppConfiguration implements ServletContext
 
     this.exactServletMatchMounts = new Hashtable();
     List localFolderPatterns = new ArrayList();
-    List localFolderPatternMounts = new ArrayList();
     List localExtensionPatterns = new ArrayList();
-    List localExtensionPatternMounts = new ArrayList();
 
-    List lfpNameRequest = new ArrayList();
-    List lfpNameForward = new ArrayList();
-    List lfpNameInclude = new ArrayList();
-    List lfpNameError   = new ArrayList();
-
-    List lfpURLRequest = new ArrayList();
-    List lfpURLForward = new ArrayList();
-    List lfpURLInclude = new ArrayList();
-    List lfpURLError   = new ArrayList();
+    List lfpRequest = new ArrayList();
+    List lfpForward = new ArrayList();
+    List lfpInclude = new ArrayList();
+    List lfpError   = new ArrayList();
 
     List localWelcomeFiles = new ArrayList();
     List startupServlets = new ArrayList();
@@ -235,42 +239,6 @@ public class WebAppConfiguration implements ServletContext
     List constraintNodes = new ArrayList();
     List envEntryNodes = new ArrayList();
     Node loginConfigNode = null;
-
-    // Initialise jasper servlet if requested
-    if (useJasper)
-    {
-      setAttribute("org.apache.catalina.classloader", this.loader);
-      //Logger.log(Logger.DEBUG, "Setting JSP classpath: " +  this.loader.getClasspath());
-      if (useWinstoneClassLoader)
-        setAttribute("org.apache.catalina.jsp_classpath",
-                        ((WinstoneClassLoader) this.loader).getClasspath());
-
-      Map jspParams = new HashMap();
-      setupJspServletParams(jspParams);
-      ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
-        this.prefix, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
-      this.servletInstances.put(JSP_SERVLET_NAME, sc);
-      startupServlets.add(sc);
-      processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, 
-          this.exactServletMatchMounts, 
-          localFolderPatterns, localFolderPatternMounts,
-          localExtensionPatterns, localExtensionPatternMounts);
-    }
-
-    // Initialise invoker servlet if requested
-    if (invokerPrefix != null)
-    {
-      Map invokerParams = new HashMap();
-      invokerParams.put("prefix", this.prefix);
-      invokerParams.put("invokerPrefix", invokerPrefix);
-      ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
-          this.prefix, INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams, 3);
-      this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
-      processMapping(INVOKER_SERVLET_NAME, invokerPrefix + STAR, 
-          this.exactServletMatchMounts, 
-          localFolderPatterns, localFolderPatternMounts,
-          localExtensionPatterns, localExtensionPatternMounts);
-    }
 
     // init mimeTypes set
     this.mimeTypes = new Hashtable();
@@ -408,8 +376,7 @@ public class WebAppConfiguration implements ServletContext
               pattern = mapChild.getFirstChild().getNodeValue().trim();
           }
           processMapping(name, pattern, this.exactServletMatchMounts, 
-              localFolderPatterns, localFolderPatternMounts,
-              localExtensionPatterns, localExtensionPatternMounts);
+              localFolderPatterns, localExtensionPatterns);
         }
 
         // Process the filter mappings
@@ -451,22 +418,19 @@ public class WebAppConfiguration implements ServletContext
           }
           if (!onRequest && !onInclude && !onForward && !onError)
           	onRequest = true;
-          if (servletName != null)
-          {
-          	String mapping = "S:[" + servletName + "] F:[" + filterName + "]";
-          	if (onRequest) lfpNameRequest.add(mapping);
-          	if (onForward) lfpNameForward.add(mapping);
-          	if (onInclude) lfpNameInclude.add(mapping);
-          	if (onError)   lfpNameError.add(mapping);
-          }
+          
+        	Mapping mapping = null;
+        	if (servletName != null)
+          	mapping = Mapping.createFromLink(filterName, servletName, resources);
           else if (urlPattern != null)
-          {
-          	String mapping = "U:[" + urlPattern + "] F:[" + filterName + "]";
-          	if (onRequest) lfpURLRequest.add(mapping);
-          	if (onForward) lfpURLForward.add(mapping);
-          	if (onInclude) lfpURLInclude.add(mapping);
-          	if (onError)   lfpURLError.add(mapping);
-          }
+          	mapping = Mapping.createFromURL(filterName, urlPattern, resources);
+          else
+            throw new WinstoneException("Error in filter mapping - no pattern and no servlet name");
+
+        	if (onRequest) lfpRequest.add(mapping);
+         	if (onForward) lfpForward.add(mapping);
+         	if (onInclude) lfpInclude.add(mapping);
+         	if (onError)   lfpError.add(mapping);
         }
 
         // Process the list of welcome files
@@ -564,7 +528,7 @@ public class WebAppConfiguration implements ServletContext
         authMethod = "BASIC";
       else
         authMethod = WinstoneResourceBundle.globalReplace(authMethod, "-", "");
-      String realmClassName = argsForSecurityJNDI.get("realmClass") == null ? DEFAULT_REALM_CLASS : (String) argsForSecurityJNDI.get("realmClass");
+      String realmClassName = stringArg(startupArgs, "realmClass", DEFAULT_REALM_CLASS);
       String authClassName = "winstone.auth." + 
                              authMethod.substring(0, 1).toUpperCase() + 
                              authMethod.substring(1).toLowerCase() + "AuthenticationHandler";
@@ -573,7 +537,7 @@ public class WebAppConfiguration implements ServletContext
         // Build the realm
         Class realmClass = Class.forName(realmClassName);
         Constructor realmConstr = realmClass.getConstructor(new Class[] {WinstoneResourceBundle.class, Map.class});
-        this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, argsForSecurityJNDI});
+        this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, startupArgs});
 
         // Build the authentication handler
         Class authClass = Class.forName(authClassName);
@@ -590,15 +554,14 @@ public class WebAppConfiguration implements ServletContext
     }
 
     // Instantiate the JNDI manager
-    String jndiMgrClassName = (argsForSecurityJNDI.get("jndiClassName") == null ?
-      DEFAULT_JNDI_MGR_CLASS : (String) argsForSecurityJNDI.get("jndiClassName"));
+    String jndiMgrClassName = stringArg(startupArgs, "jndiClassName", DEFAULT_JNDI_MGR_CLASS);
     if (useJNDI)
     try
     {
       // Build the realm
       Class jndiMgrClass = Class.forName(jndiMgrClassName, true, this.loader);
       Constructor jndiMgrConstr = jndiMgrClass.getConstructor(new Class[] {Map.class, List.class, ClassLoader.class});
-      this.jndiManager = (JNDIManager) jndiMgrConstr.newInstance(new Object[] {argsForSecurityJNDI, envEntryNodes, this.loader});
+      this.jndiManager = (JNDIManager) jndiMgrConstr.newInstance(new Object[] {startupArgs, envEntryNodes, this.loader});
       if (this.jndiManager != null)
         this.jndiManager.setup();
     }
@@ -608,7 +571,6 @@ public class WebAppConfiguration implements ServletContext
       {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfig.JNDIError", 
         "[#jndiClassName]", jndiMgrClassName), err);}
 
-    
     // Add the default index.html welcomeFile if none are supplied
     if (localWelcomeFiles.isEmpty())
     {
@@ -617,45 +579,83 @@ public class WebAppConfiguration implements ServletContext
       localWelcomeFiles.add("index.html");
     }
 
-    // Take the elements out of the lists and build arrays
-    this.welcomeFiles = (String []) localWelcomeFiles.toArray(
-                                    new String[localWelcomeFiles.size()]);
-    this.servletFolderPatterns = (String []) localFolderPatterns.toArray(
-                                    new String[localFolderPatterns.size()]);
-    this.servletFolderPatternMounts = (String []) localFolderPatternMounts.toArray(
-                                    new String[localFolderPatternMounts.size()]);
-    this.servletExtensionPatterns = (String []) localExtensionPatterns.toArray(
-        														new String[localExtensionPatterns.size()]);
-    this.servletExtensionPatternMounts = (String []) localExtensionPatternMounts.toArray(
-        														new String[localExtensionPatternMounts.size()]);
-
-    // Put the name filters after the url filters, then convert to string arrays
-    lfpURLRequest.addAll(lfpNameRequest);
-    lfpURLForward.addAll(lfpNameForward);
-    lfpURLInclude.addAll(lfpNameInclude);
-    lfpURLError.addAll(lfpNameError);
+    // Sort the folder patterns so the longest paths are first
+    localFolderPatterns.addAll(localExtensionPatterns);
+    this.patternMatches = (Mapping []) localFolderPatterns.toArray(
+				new Mapping[localFolderPatterns.size()]);
+    this.welcomeFiles 	= (String []) localWelcomeFiles.toArray(
+        new String[localWelcomeFiles.size()]);
+    if (this.patternMatches.length > 0)
+      Arrays.sort(this.patternMatches, (Comparator) this.patternMatches[0]);
     
-    this.fpRequest = (String []) lfpURLRequest.toArray(new String[lfpURLRequest.size()]);
-    this.fpForward = (String []) lfpURLForward.toArray(new String[lfpURLForward.size()]);
-    this.fpInclude = (String []) lfpURLInclude.toArray(new String[lfpURLInclude.size()]);
-    this.fpError   = (String []) lfpURLError.toArray(new String[lfpURLError.size()]);
+    // Put the name filters after the url filters, then convert to string arrays
+    this.filterPatternsRequest = (Mapping []) lfpRequest.toArray(new Mapping[lfpRequest.size()]);
+    this.filterPatternsForward = (Mapping []) lfpForward.toArray(new Mapping[lfpForward.size()]);
+    this.filterPatternsInclude = (Mapping []) lfpInclude.toArray(new Mapping[lfpInclude.size()]);
+    this.filterPatternsError   = (Mapping []) lfpError.toArray(new Mapping[lfpError.size()]);
+    
+    if (this.filterPatternsRequest.length > 0)
+      Arrays.sort(this.filterPatternsRequest, (Comparator) this.filterPatternsRequest[0]);
+    if (this.filterPatternsForward.length > 0)
+      Arrays.sort(this.filterPatternsForward, (Comparator) this.filterPatternsForward[0]);
+    if (this.filterPatternsInclude.length > 0)
+      Arrays.sort(this.filterPatternsInclude, (Comparator) this.filterPatternsInclude[0]);
+    if (this.filterPatternsError.length > 0)
+      Arrays.sort(this.filterPatternsError, (Comparator) this.filterPatternsError[0]);
+    
+    // If we haven't explicitly mapped the default servlet, map it here
+    if (this.defaultServletName == null)
+      this.defaultServletName = DEFAULT_SERVLET_NAME;
 
-    // Initialise static processor
-    if (this.servletInstances.get(DEFAULT_SERVLET_NAME) == null)
+    // If we don't have an instance of the default servlet, mount the inbuilt one
+    if (this.servletInstances.get(this.defaultServletName) == null)
     {
     	Map staticParams = new Hashtable();
     	staticParams.put("webRoot", this.webRoot);
     	staticParams.put("prefix", this.prefix);
-    	staticParams.put("directoryList", "" + directoryListings);
+    	staticParams.put("directoryList", "" + useDirLists);
     	staticParams.put("welcomeFileCount", "" + this.welcomeFiles.length);
     	for (int n = 0; n < this.welcomeFiles.length; n++)
     		staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
     	ServletConfiguration defaultServlet = new ServletConfiguration(this, this.loader,
-    		this.resources, this.prefix, DEFAULT_SERVLET_NAME, DEFAULT_SERVLET_CLASS, staticParams, 0);
-    	defaultServlet.getRequestDispatcher(null, this.filterInstances,
-    		this.fpForward, this.fpInclude, this.authenticationHandler);
-    	this.servletInstances.put(DEFAULT_SERVLET_NAME, defaultServlet);
+    		this.resources, this.prefix, this.defaultServletName, DEFAULT_SERVLET_CLASS, staticParams, 0);
+    	defaultServlet.getRequestDispatcher(this.filterInstances);
+    	this.servletInstances.put(this.defaultServletName, defaultServlet);
     	startupServlets.add(defaultServlet);
+    }
+
+    // Initialise jasper servlet if requested
+    if (useJasper)
+    {
+      setAttribute("org.apache.catalina.classloader", this.loader);
+      //Logger.log(Logger.DEBUG, "Setting JSP classpath: " +  this.loader.getClasspath());
+      if (useWCL)
+        setAttribute("org.apache.catalina.jsp_classpath",
+                        ((WinstoneClassLoader) this.loader).getClasspath());
+
+      Map jspParams = new HashMap();
+      addJspServletParams(jspParams);
+      ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
+        this.prefix, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
+      this.servletInstances.put(JSP_SERVLET_NAME, sc);
+      startupServlets.add(sc);
+      processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, this.exactServletMatchMounts, 
+          localFolderPatterns, localExtensionPatterns);
+    }
+
+    // Initialise invoker servlet if requested
+    if (useInvoker)
+    {
+      // Get generic options
+      String invokerPrefix = stringArg(startupArgs, "invokerPrefix", DEFAULT_INVOKER_PREFIX);
+      Map invokerParams = new HashMap();
+      invokerParams.put("prefix", this.prefix);
+      invokerParams.put("invokerPrefix", invokerPrefix);
+      ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
+          this.prefix, INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams, 3);
+      this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
+      processMapping(INVOKER_SERVLET_NAME, invokerPrefix + Mapping.STAR, this.exactServletMatchMounts, 
+          localFolderPatterns, localExtensionPatterns);
     }
     
     // Send init notifies
@@ -666,8 +666,7 @@ public class WebAppConfiguration implements ServletContext
     Object autoStarters[] = startupServlets.toArray();
     Arrays.sort(autoStarters);
     for (int n = 0; n < autoStarters.length; n++)
-      ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null,
-                  this.filterInstances, this.fpForward, this.fpInclude, this.authenticationHandler);
+      ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(this.filterInstances);
   }
 
   public String getPrefix()             {return this.prefix;}
@@ -677,7 +676,7 @@ public class WebAppConfiguration implements ServletContext
   public String[] getWelcomeFiles()     {return this.welcomeFiles;}
   public boolean isDistributable()      {return this.distributable;}
 
-  public void setupJspServletParams(Map jspParams)
+  public static void addJspServletParams(Map jspParams)
   {
     jspParams.put("logVerbosityLevel", JSP_SERVLET_LOG_LEVEL);
     jspParams.put("fork", "false");
@@ -736,72 +735,39 @@ public class WebAppConfiguration implements ServletContext
   }
 
   /**
-   * Here we process url patterns into the exactMatch and patternMatch list
-   * Ideally we want to share this with so it can be called for both servlets and
-   * filters.
+   * Here we process url patterns into the exactMatch and patternMatch lists
    */
-  private void processMapping(String name, String pattern,
-      Map exactPatterns, List folderPatterns, List folderPatternMounts,
-      List extensionPatterns, List extensionPatternMounts)
+  private void processMapping(String name, String pattern, Map exactPatterns, 
+      List folderPatterns, List extensionPatterns)
   {
-    // If pattern contains asterisk, goes in pattern match, otherwise exact
-    if ((pattern == null) || (name == null))
+    Mapping urlPattern = null;
+    try 
+    	{urlPattern = Mapping.createFromURL(name, pattern, resources);}
+    catch (WinstoneException err)
     {
-      Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidMount",
-                                          	"[#name]", name, "[#pattern]", pattern));
-    	return;
+      Logger.log(Logger.WARNING, err.getMessage());
+      return;
     }
     
-    // exact mount
-    int firstStarPos = pattern.indexOf(STAR);
-    if (firstStarPos == -1)
-    {
-      exactPatterns.put(pattern, name);
-    	Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.MappedPattern",
-        "[#name]", name, "[#pattern]", pattern));
-    	return;
-    }
-    
-    // > 1 star = error
-    int patternLength = pattern.length();
-    int lastStarPos = pattern.lastIndexOf(STAR);
-    if (firstStarPos != lastStarPos)
+    // put the pattern in the correct list
+    if (urlPattern.getPatternType() == Mapping.EXACT_PATTERN)
+      exactPatterns.put(urlPattern.getUrlPattern(), name);
+    else if (urlPattern.getPatternType() == Mapping.FOLDER_PATTERN)
+      folderPatterns.add(urlPattern);
+    else if (urlPattern.getPatternType() == Mapping.EXTENSION_PATTERN)
+      extensionPatterns.add(urlPattern);
+    else if (urlPattern.getPatternType() == Mapping.DEFAULT_SERVLET)
+      this.defaultServletName = name;
+    else
       Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidMount",
           																	"[#name]", name, "[#pattern]", pattern));
-
-    // check for folder style mapping (ends in /*)
-    else if (pattern.indexOf(SLASH + STAR) == (patternLength - (SLASH + STAR).length()))
-    {
-      folderPatternMounts.add(name);
-      folderPatterns.add(pattern.substring(0, pattern.length() - 
-        																		(SLASH + STAR).length()));
-    }
-    // check for non-extension match
-    else if (pattern.indexOf(SLASH) != -1)
-      Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidMount",
-          	"[#name]", name, "[#pattern]", pattern));
-
-    // check for extension match at the beginning
-    else if (firstStarPos == 0)
-    {
-      extensionPatternMounts.add(name);
-      extensionPatterns.add(pattern.substring(STAR.length()));
-    }
-    else if (firstStarPos == (patternLength - STAR.length()))
-    {
-      extensionPatternMounts.add(name);
-      extensionPatterns.add(pattern.substring(0, patternLength - STAR.length()));
-    }
-      
-    Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.MappedPattern",
-                                          "[#name]", name, "[#pattern]", pattern));
   }
 
   /**
    * Execute the pattern match, and try to return a servlet that matches this
    * URL
    */
-  private ServletConfiguration urlMatch(String path)
+  private ServletConfiguration urlMatch(String path, StringBuffer servletPath, StringBuffer pathInfo)
   {
     Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.URLMatch",
                                           "[#path]", path));
@@ -809,48 +775,24 @@ public class WebAppConfiguration implements ServletContext
     // Check exact matches first
     String exact = (String) this.exactServletMatchMounts.get(path);
     if (exact != null)
+    {
+      servletPath.append(path);
+      // pathInfo.append(""); // a hack - empty becomes null later
       return (ServletConfiguration) this.servletInstances.get(exact);
-
-    // TODO: Make the folder check step through each dir to match
+    }
     
-    // Check folder pattern mounts
-    for (int n = 0; n < this.servletFolderPatterns.length; n++)
-      if (wildcardMatch(this.servletFolderPatterns[n], path))
-        return (ServletConfiguration) this.servletInstances.get(this.servletFolderPatternMounts[n]);
-
-    // TODO: Make the extension check match after last slash
-
-    // Check extension pattern mounts
-    for (int n = 0; n < this.servletExtensionPatterns.length; n++)
-      if (wildcardMatch(this.servletExtensionPatterns[n], path))
-        return (ServletConfiguration) this.servletInstances.get(this.servletExtensionPatternMounts[n]);
+    // Inexact mount check
+    for (int n = 0; n < this.patternMatches.length; n++)
+    {
+      Mapping urlPattern = (Mapping) this.patternMatches[n];
+      if (urlPattern.match(path, servletPath, pathInfo))
+        return (ServletConfiguration) this.servletInstances.get(urlPattern.getMappedTo());
+    }
 
     // return null, which indicates this should be handled by default servlet
-    return null;
-  }
-
-  /**
-   * Currently only processes simple-ish patterns (1 star at start, end, or middle,
-   * and anything between 2 stars
-   */
-  public static boolean wildcardMatch(String pattern, String path)
-  {
-    int first = pattern.indexOf(STAR);
-    int last = pattern.lastIndexOf(STAR);
-    if (pattern.equals(STAR))
-      return true;
-    else if (first == last)
-    {
-      if (first == (pattern.length() - 1))
-        return path.startsWith(pattern.substring(0, pattern.length() - STAR.length()));
-      else if (first == 0)
-        return path.endsWith(pattern.substring(STAR.length()));
-      else
-        return path.startsWith(pattern.substring(0, first)) &&
-               path.endsWith(pattern.substring(first + STAR.length()));
-    }
-    else
-      return (path.indexOf(pattern.substring(first, last)) != -1);
+    //servletPath.append("");  // unneeded
+    pathInfo.append(path);
+    return (ServletConfiguration) this.servletInstances.get(this.defaultServletName);
   }
 
   /**
@@ -979,59 +921,91 @@ public class WebAppConfiguration implements ServletContext
 
   /**
    * Named dispatcher - this basically gets us a simple exact dispatcher
-   * (no url matching and no request attributes)
+   * (no url matching, no request attributes and no security)
    */
   public javax.servlet.RequestDispatcher getNamedDispatcher(String name)
   {
     ServletConfiguration servlet = (ServletConfiguration) this.servletInstances.get(name);
-    return (servlet != null
-      ? servlet.getRequestDispatcher(null, this.filterInstances,
-                                    this.fpForward, this.fpInclude, this.authenticationHandler)
-      : null);
+    if (servlet != null)
+    {
+      RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
+      rd.setForNamedDispatcher(this.filterPatternsForward, this.filterPatternsInclude);
+      return rd;
+    }
+    else return null;
   }
 
   /**
-   * Gets a dispatcher, initialising the request attributes, etc
+   * Gets a dispatcher, which sets the request attributes, etc on a forward/include.
+   * Doesn't execute security though.
    */
-  public javax.servlet.RequestDispatcher getRequestDispatcher(String uri)
+  public javax.servlet.RequestDispatcher getRequestDispatcher(String uriInsideWebapp)
   {
-  	// Parse the url for query string, etc
+    if (!uriInsideWebapp.startsWith("/"))
+      return null;
   	
-  	// Get the path info, servlet path, and the name of the matched instance
-
-    // If none, use the default servlet
-  	
-  	// Get dispatcher and set its request attributes
+    // Parse the url for query string, etc 
+    String queryString = "";
+  	int questionPos = uriInsideWebapp.indexOf('?');
+  	if (questionPos != -1)
+  	{
+  	  if (questionPos != uriInsideWebapp.length() - 1)
+  	    queryString = uriInsideWebapp.substring(questionPos + 1);
+  	  uriInsideWebapp = uriInsideWebapp.substring(0, questionPos);
+  	}
   	
   	// Return the dispatcher
-  	
-    ServletConfiguration servlet = urlMatch(uri);
+  	StringBuffer servletPath = new StringBuffer();
+  	StringBuffer pathInfo = new StringBuffer();
+    ServletConfiguration servlet = urlMatch(uriInsideWebapp, servletPath, pathInfo);
     if (servlet != null)
-      return servlet.getRequestDispatcher(uri, this.filterInstances,
-      		this.fpForward, this.fpInclude, this.authenticationHandler);
-    else
-    	return null;
-    	//return this.staticResourceProcessor.getRequestDispatcher(path,
-      //      this.filterInstances, this.filterPatterns, this.authenticationHandler);
+    {
+      RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
+      rd.setForURLDispatcher(servletPath.toString(), 
+          pathInfo.equals("") ? null : pathInfo.toString(), queryString, uriInsideWebapp,
+          this.filterPatternsForward, this.filterPatternsInclude);
+      return rd;
+    }
+    else return null;
   }
 
   /**
    * Creates the dispatcher that corresponds to a request level dispatch (ie the initial
-   * entry point)
+   * entry point). The difference here is that we need to set up the dispatcher so 
+   * that on a forward, it executes the security checks and the request filters, while not
+   * setting any of the request attributes for a forward.
    */
-  public RequestDispatcher getInitialDispatcher(String nonPrefixURI)
+  public javax.servlet.RequestDispatcher getInitialDispatcher(String uriInsideWebapp,
+      WinstoneRequest request)
   {
-  	// Parse the url for query string, etc
+    if (!uriInsideWebapp.startsWith("/"))
+      return null;
   	
-  	// Get the path info, servlet path, and the name of the matched instance
-  	
-    // If none, use the default servlet
-  	
-  	// Get dispatcher and set its request attributes
+    // Parse the url for query string, etc 
+    String queryString = "";
+  	int questionPos = uriInsideWebapp.indexOf('?');
+  	if (questionPos != -1)
+  	{
+  	  if (questionPos != uriInsideWebapp.length() - 1)
+  	    queryString = uriInsideWebapp.substring(questionPos + 1);
+  	  uriInsideWebapp = uriInsideWebapp.substring(0, questionPos);
+  	}
   	
   	// Return the dispatcher
-  	
-    return null;
+  	StringBuffer servletPath = new StringBuffer();
+  	StringBuffer pathInfo = new StringBuffer();
+    ServletConfiguration servlet = urlMatch(uriInsideWebapp, servletPath, pathInfo);
+    if (servlet != null)
+    {
+      request.setQueryString(queryString);
+      request.setServletPath(servletPath.toString());
+      request.setPathInfo(pathInfo.equals("") ? null : pathInfo.toString());
+      RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
+      rd.setForInitialDispatcher(servletPath.toString(), this.filterPatternsRequest, 
+          this.authenticationHandler);
+      return rd;
+    }
+    else return null;
   }
 
   // Getting resources via the classloader
