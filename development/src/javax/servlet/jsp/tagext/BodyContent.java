@@ -26,10 +26,6 @@ import java.io.IOException;
  */
 public abstract class BodyContent extends JspWriter
 {
-  public static final int NESTED = 0;
-  public static final int AT_BEGIN = 1;
-  public static final int AT_END = 2;
-
   private JspWriter enclosingWriter;
   protected BodyContent(JspWriter e) 
   {
@@ -45,6 +41,6 @@ public abstract class BodyContent extends JspWriter
     {throw new IOException("Flush is illegal");} 
   public JspWriter getEnclosingWriter() {return this.enclosingWriter;}
   public abstract java.io.Reader getReader();
-  public abstract  java.lang.String getString();
-  public abstract  void writeOut(java.io.Writer out) throws IOException;
+  public abstract java.lang.String getString();
+  public abstract void writeOut(java.io.Writer out) throws IOException;
 }

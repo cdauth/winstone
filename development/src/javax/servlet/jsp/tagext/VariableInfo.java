@@ -23,6 +23,10 @@ package javax.servlet.jsp.tagext;
  */
 public class VariableInfo
 {
+  public static final int NESTED = 0;
+  public static final int AT_BEGIN = 1;
+  public static final int AT_END = 2;
+
   private String varName;
   private String className;
   private boolean declare;
