@@ -42,14 +42,21 @@ import org.xml.sax.SAXException;
 public class Launcher implements EntityResolver, Runnable
 {
   static final String DTD_2_2_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN";
-  static final String DTD_2_2_URL    = "javax/servlet/resources/web-app_2_2.dtd";
-
   static final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
-  static final String DTD_2_3_URL    = "javax/servlet/resources/web-app_2_3.dtd";
-
-  static final String XSD_2_4_PUBLIC = "-//Sun Microsystems, Inc.//XSD Web Application 2.4//EN";
-  static final String XSD_2_4_URL    = "javax/servlet/resources/web-app_2_4.xsd";
-
+  static final String XSD_2_4_URL    = "http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd";
+  static final String XSD_XML_URL    = "http://www.w3.org/2001/xml.xsd";
+  static final String XSD_DTD_PUBLIC = "-//W3C//DTD XMLSCHEMA 200102//EN";
+  static final String DATATYPES_URL  = "http://www.w3.org/2001/datatypes.dtd";
+  static final String WS_CLIENT_URL  = "http://www.ibm.com/webservices/xsd/j2ee_web_services_client_1_1.xsd";
+  
+  static final String DTD_2_2_LOCAL   = "javax/servlet/resources/web-app_2_2.dtd";
+  static final String DTD_2_3_LOCAL   = "javax/servlet/resources/web-app_2_3.dtd";
+  static final String XSD_2_4_LOCAL   = "javax/servlet/resources/web-app_2_4.xsd";
+  static final String XSD_XML_LOCAL   = "javax/servlet/resources/xml.xsd";
+  static final String XSD_DTD_LOCAL   = "javax/servlet/resources/XMLSchema.dtd";
+  static final String DATATYPES_LOCAL = "javax/servlet/resources/datatypes.dtd";
+  static final String WS_CLIENT_LOCAL = "javax/servlet/resources/j2ee_web_services_client_1_1.xsd";
+  
   static final String HTTP_LISTENER_CLASS = "winstone.HttpListener";
   static final String AJP_LISTENER_CLASS  = "winstone.ajp13.Ajp13Listener";
   static final String CLUSTER_CLASS       = "winstone.cluster.SimpleCluster";
@@ -358,7 +365,7 @@ public class Launcher implements EntityResolver, Runnable
       factory.setIgnoringElementContentWhitespace(true);
 
       // If we have (and can parse) the 2.4 xsd, set to redirect locally to use it
-      if ((getClass().getClassLoader().getResource(XSD_2_4_URL) != null) &&
+      if ((getClass().getClassLoader().getResource(XSD_2_4_LOCAL) != null) &&
           !factory.getClass().getName().startsWith(CRIMSON_PREFIX))
       {
         factory.setAttribute(
@@ -366,7 +373,7 @@ public class Launcher implements EntityResolver, Runnable
             "http://www.w3.org/2001/XMLSchema");
         factory.setAttribute(
             "http://java.sun.com/xml/jaxp/properties/schemaSource",
-            getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
+            getClass().getClassLoader().getResource(XSD_2_4_LOCAL).toString());
       }
 
       DocumentBuilder builder = factory.newDocumentBuilder();
@@ -385,17 +392,39 @@ public class Launcher implements EntityResolver, Runnable
   public InputSource resolveEntity(String publicName, String url)
     throws SAXException, IOException
   {
-    Logger.log(Logger.FULL_DEBUG, "Resolving entity - public=" + publicName + ", url=" + url);
-    if (publicName == null)
-      return null;
-    else if (publicName.equals(DTD_2_2_PUBLIC))
-      return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_2_URL));
-    else if (publicName.equals(DTD_2_3_PUBLIC))
-      return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_3_URL));
-    else if (publicName.equals(XSD_2_4_PUBLIC))
-      return new InputSource(getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
+    Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.ResolvingEntity", 
+          "[#public]", publicName, "[#url]", url));
+    if ((publicName != null) && publicName.equals(DTD_2_2_PUBLIC))
+      return getLocalResource(url, DTD_2_2_LOCAL);
+    else if ((publicName != null) && publicName.equals(DTD_2_3_PUBLIC))
+      return getLocalResource(url, DTD_2_3_LOCAL);
+    else if ((url != null) && url.equals(XSD_2_4_URL))
+      return getLocalResource(url, XSD_2_4_LOCAL);
+    else if ((url != null) && url.equals(XSD_XML_URL))
+      return getLocalResource(url, XSD_XML_LOCAL);
+    else if ((publicName != null) && publicName.equals(XSD_DTD_PUBLIC))
+      return getLocalResource(url, XSD_DTD_LOCAL);
+    else if ((url != null) && url.equals(DATATYPES_URL))
+      return getLocalResource(url, DATATYPES_LOCAL);
+    else if ((url != null) && url.equals(WS_CLIENT_URL))
+      return getLocalResource(url, WS_CLIENT_LOCAL);
+    else if ((url != null) && url.startsWith("jar:"))
+      return getLocalResource(url, url.substring(url.indexOf("!/") + 2));
     else
+    {
+      Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.NoLocalResource", "[#url]", url));
       return new InputSource(url);
+    }
+  }
+  
+  private InputSource getLocalResource(String url, String local)
+  {
+    ClassLoader cl = getClass().getClassLoader();
+    if (cl.getResource(local) == null)
+      return new InputSource(url);
+    InputSource is = new InputSource(cl.getResourceAsStream(local));
+    is.setSystemId(url);
+    return is;
   }
 
   public static WinstoneResourceBundle getResourceBundle()
