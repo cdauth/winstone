@@ -706,7 +706,10 @@ public class WinstoneRequest implements HttpServletRequest
     if (!((getServerPort() == 80) && getScheme().equals("http")) &&
         !((getServerPort() == 443) && getScheme().equals("https")))
       url.append(':').append(getServerPort());
-    url.append(getRequestURI());
+    url.append(this.webappConfig.getPrefix());
+    url.append(getServletPath());
+    if (getPathInfo() != null)
+      url.append(getPathInfo());
     return url;
   }
 

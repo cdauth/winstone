@@ -145,7 +145,7 @@ public class WinstoneResponse implements HttpServletResponse
         sb.append(clause).append(";");
     }
     String header = sb.toString().substring(0, sb.length() - 1) +
-                   (this.encoding == null ? "" : ";charset=" + this.encoding);
+                   ";charset=" + getCharacterEncoding();
     setHeader(CONTENT_TYPE_HEADER, header);
   }
 
@@ -337,18 +337,18 @@ public class WinstoneResponse implements HttpServletResponse
 
   public PrintWriter getWriter() throws IOException
   {
+    String encoding = getCharacterEncoding();
     if (this.outWriter != null)
       return new PrintWriter(this.outWriter, true);
     else try
     {
-      String encoding = getCharacterEncoding();
       this.outWriter = new OutputStreamWriter(getOutputStream(), encoding);
       return new PrintWriter(this.outWriter, true);
     }
     catch (UnsupportedEncodingException err)
     {
       throw new WinstoneException(resources.getString("WinstoneResponse.WriterError") +
-                                      this.encoding, err);
+                                      encoding, err);
     }
   }
 
@@ -452,10 +452,7 @@ public class WinstoneResponse implements HttpServletResponse
           (msg == null ? "" : msg),
           resources.getString("ServerVersion"),
           "" + new Date()});
-      if (this.encoding == null)
-        setContentLength(output.getBytes().length);
-      else
-        setContentLength(output.getBytes(encoding).length);
+      setContentLength(output.getBytes(getCharacterEncoding()).length);
       Writer out = getWriter();
       out.write(output);
       out.close();
