@@ -3,7 +3,7 @@
   <title>Winstone Servlet Container</title>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.5</h1></center>
+<center><h1>Winstone Servlet Container v0.6</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
   <hr width="90%" size="1" noshade="true"/>
@@ -49,7 +49,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.5.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.6.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -58,11 +58,11 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.5.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.5.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p>The winstone.jar file will be in the winstone/dist directory after the build is complete.</p>
 
@@ -70,7 +70,7 @@
 
   <pre>
 Syntax:
-  java -jar winstone_v0.5.jar [--option=value] [--option=value] etc
+  java -jar winstone_v0.6.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile
    --webroot                = set document root folder.
@@ -357,9 +357,9 @@ channel=channel.socket:localhost:8009
           role list. Passwords are added with <code>--argumentsRealm.passwd.&lt;username&gt;=&lt;password&gt;</code>, 
           and roles are added with <code>--argumentsRealm.roles.&lt;username&gt;=&lt;role1&gt;,&lt;role2&gt;</code></li>
         <li><b>FileRealm:</b> This is the same as the Tomcat <code>tomcat-users.xml</code> file. 
-          Pass in the command line arguments <code>--realmClass=com.rickknowles.winstone.realm.FileRealm 
+          Pass in the command line arguments <code>--realmClass=winstone.realm.FileRealm 
           --fileRealm.configFile=&lt;filename&gt;</code>, and it should work exactly the way Tomcat does by default.</li>
-        <li><b>Write your own:</b> You just have to extend the <code>com.rickknowles.winstone.AuthenticationRealm</code> class,
+        <li><b>Write your own:</b> You just have to extend the <code>winstone.AuthenticationRealm</code> class,
           and override the appropriate methods (as the File and Arguments Realms do), and specify the class name in
           <code>--realmClass</code>.</li>
       </ol>

@@ -13,7 +13,7 @@ Long-term
        - security / authentication
        - cluster resilience
        - ajp13 connector
-     - More complete manual/documentation, especially
+     - More complete manual/documentation
      - Publish apidocs
      - Create my own jsp api classes
      - Add a JSP compiler ?
