@@ -166,7 +166,7 @@ public class Logger
           PrintWriter pw = new PrintWriter(sw);
           error.printStackTrace(pw);
           pw.flush();
-          fullMessage.append(sw.toString());
+          fullMessage.append('\n').append(sw.toString());
         }
         stream.println(fullMessage.toString());
         stream.flush();
