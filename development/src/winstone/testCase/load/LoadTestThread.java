@@ -87,7 +87,7 @@ public class LoadTestThread implements Runnable
       inContent.close();
 
       // Confirm the result is the same size the content-length said it was
-      if (position == contentLength)
+      if ((position == contentLength) || (contentLength == -1)) 
       {
         this.loadTest.incTimeTotal(System.currentTimeMillis() - startTime);
         this.loadTest.incSuccessCount();
