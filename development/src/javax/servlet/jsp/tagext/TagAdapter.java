@@ -28,7 +28,12 @@ public class TagAdapter implements Tag
   private SimpleTag adaptee;
   private Tag parent;
   
-  public TagAdapter(SimpleTag adaptee) {this.adaptee = adaptee;}
+  public TagAdapter(SimpleTag adaptee) 
+  {
+    if (adaptee == null)
+      throw new IllegalArgumentException("Null adaptee tag");
+    this.adaptee = adaptee;
+  }
   public int doEndTag() throws JspException 
     {throw new UnsupportedOperationException();}
   public int doStartTag() throws JspException 
@@ -41,7 +46,7 @@ public class TagAdapter implements Tag
       JspTag adapteesParent = adaptee.getParent();
       if (adapteesParent instanceof Tag) 
         this.parent = (Tag) adapteesParent;
-      else
+      else if (adapteesParent != null)
         this.parent = new TagAdapter((SimpleTag) adapteesParent);
     }
     return this.parent;
