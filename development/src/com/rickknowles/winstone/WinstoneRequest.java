@@ -43,6 +43,8 @@ public class WinstoneRequest implements HttpServletRequest
   private String headers[];
   private Cookie cookies[];
   private String method;
+  private String scheme;
+  private String serverName;
   private String requestURI;
   private String servletPath;
   private String queryString;
@@ -54,7 +56,7 @@ public class WinstoneRequest implements HttpServletRequest
   private ServletConfiguration servletConfig;
   private WebAppConfiguration webappConfig;
   private HttpProtocol protocolClass;
-  private String serverName;
+  private Listener listener;
   private int serverPort;
   private String remoteIP;
   private String remoteName;
@@ -62,26 +64,26 @@ public class WinstoneRequest implements HttpServletRequest
   private String sessionCookie;
   private List locales;
   private String authorization;
+  private boolean isSecure;
 
   private WinstoneResourceBundle resources;
 
   /**
    * InputStream factory method.
    */
-  public WinstoneRequest(WinstoneInputStream inData,
-                         HttpProtocol protocolClass,
-                         WebAppConfiguration webappConfig,
+  public WinstoneRequest(HttpProtocol protocolClass,
+                         Listener listener,
                          WinstoneResourceBundle resources)
     throws IOException
   {
     this.resources = resources;
-    this.webappConfig = webappConfig;
-    this.inputData = inData;
     this.protocolClass = protocolClass;
+    this.listener = listener;
     this.attributes = new Hashtable();
     this.parameters = new Hashtable();
     this.locales = new ArrayList();
     this.contentLength = -1;
+    this.isSecure = false;
   }
 
   /**
@@ -107,27 +109,33 @@ public class WinstoneRequest implements HttpServletRequest
     return headerNames;
   }
 
-  public Map getParameters() {return this.parameters;}
-  public String getSessionCookie() {return this.sessionCookie;}
-  public WebAppConfiguration getWebAppConfig() {return this.webappConfig;}
+  public Map getParameters()                    {return this.parameters;}
+  public String getSessionCookie()              {return this.sessionCookie;}
+  public WebAppConfiguration getWebAppConfig()  {return this.webappConfig;}
 
-  public void setServerPort(int port) {this.serverPort = port;}
+  public void setInputStream(WinstoneInputStream inputData) {this.inputData = inputData;}
+  public void setWebAppConfig(WebAppConfiguration webappConfig)  {this.webappConfig = webappConfig;}
+
+  public void setServerPort(int port)       {this.serverPort = port;}
   public void setRemoteIP(String remoteIP)  {this.remoteIP = remoteIP;}
-  public void setRemoteName(String remoteName) {this.remoteName = remoteName;}
+  public void setRemoteName(String name)    {this.remoteName = name;}
 
-  public void setMethod(String method) {this.method = method;}
-  public void setQueryString(String queryString) {this.queryString = queryString;}
-  public void setRequestURI(String requestURI) {this.requestURI = requestURI;}
-  public void setServletPath(String servletPath) {this.servletPath = servletPath;}
-  public void setProtocol(String protocol) {this.protocol = protocol;}
+  public void setMethod(String method)            {this.method = method;}
+  public void setIsSecure(boolean isSecure)       {this.isSecure = isSecure;}
+  public void setQueryString(String queryString)  {this.queryString = queryString;}
+  public void setServerName(String name)          {this.serverName = name;}
+  public void setRequestURI(String requestURI)    {this.requestURI = requestURI;}
+  public void setScheme(String scheme)            {this.scheme = scheme;}
+  public void setServletPath(String servletPath)  {this.servletPath = servletPath;}
+  public void setProtocol(String protocolString)  {this.protocol = protocolString;}
 
-  public void setHeaders(String headers[]) {this.headers = headers;}
-  public void setCookies(Cookie cookies[]) {this.cookies = cookies;}
-  public void setContentLength(int len) {this.contentLength = len;}
-  public void setContentType(String type) {this.contentType = type;}
+  public void setHeaders(String headers[])  {this.headers = headers;}
+  public void setCookies(Cookie cookies[])  {this.cookies = cookies;}
+  public void setContentLength(int len)     {this.contentLength = len;}
+  public void setContentType(String type)   {this.contentType = type;}
   public void setAuthorization(String auth) {this.authorization = authorization;}
-  public void setLocales(List locales) {this.locales = locales;}
-  public void setSessionCookie(String sessionCookie) {this.sessionCookie = sessionCookie;}
+  public void setLocales(List locales)      {this.locales = locales;}
+  public void setSessionCookie(String sc)   {this.sessionCookie = sc;}
 
   // Implementation methods for the servlet request stuff
   public Object getAttribute(String name)         {return this.attributes.get(name);}
@@ -147,8 +155,8 @@ public class WinstoneRequest implements HttpServletRequest
   public Enumeration getLocales() {return Collections.enumeration(this.locales);}
 
   public String getProtocol()             {return this.protocol;}
-  public String getScheme()               {return this.protocolClass.getScheme();}
-  public boolean isSecure()               {return false;}
+  public String getScheme()               {return this.scheme;}
+  public boolean isSecure()               {return this.isSecure;}
 
   public BufferedReader getReader() throws IOException
   {

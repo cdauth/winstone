@@ -31,21 +31,26 @@ import javax.servlet.http.*;
  */
 public class RequestHandlerThread implements Runnable
 {
-  final static int KEEP_ALIVE_TIMEOUT   = 10000;
-  final static int KEEP_ALIVE_SLEEP     = 20;
-  final static int KEEP_ALIVE_SLEEP_MAX = 500;
-
-  final static int CONNECTION_TIMEOUT = 60000;
-
-  private Socket socket;
-  private boolean killMe;
+  //private Socket socket;
+  private boolean interrupted;
+  private Thread thread;
 
   private WebAppConfiguration webAppConfig;
   private Launcher launcher;
   private String prefix;
-  private HttpProtocol protocol;
 
+  private HttpProtocol protocol;
+  private WinstoneInputStream inData;
+  private WinstoneOutputStream outData;
+  private WinstoneRequest req;
+  private WinstoneResponse rsp;
+  private Listener listener;
+  private Socket socket;
+  private String threadName;
   private WinstoneResourceBundle resources;
+
+  public Object startupMonitor = new Boolean(true);
+  private Object processingMonitor = new Boolean(true);
 
   /**
    * Constructor - this is called by the handler pool, and just sets up
@@ -58,69 +63,51 @@ public class RequestHandlerThread implements Runnable
     this.webAppConfig = webAppConfig;
     this.prefix = webAppConfig.getPrefix();
     this.launcher = launcher;
-    this.killMe = false;
+    this.interrupted = false;
+    this.threadName = resources.getString("RequestHandlerThread.ThreadName", "[#threadNo]", "" + threadIndex);
 
     // allocate a thread to run on this object
-    Thread thread = new Thread(this, resources.getString("RequestHandlerThread.ThreadName", "[#threadNo]", "" + threadIndex));
-    thread.setDaemon(true);
-    thread.start();
+    this.thread = new Thread(this, threadName);
+    this.thread.setDaemon(true);
   }
 
   /**
-   * The main thread execution code. This will
+   * The main thread execution code.
    */
   public void run()
   {
-    while (!this.killMe)
+    while (!interrupted)
     {
-      Logger.log(Logger.FULL_DEBUG, this.resources.getString("RequestHandlerThread.EnterWaitState", "[#threadName]", Thread.currentThread().getName()));
-
-      // Suspend this thread until we get assigned and woken up
-      try
-        {synchronized(this) {wait();}}
-      catch (Throwable err) {}
-      Logger.log(Logger.FULL_DEBUG, this.resources.getString("RequestHandlerThread.WakingUp", "[#threadName]", Thread.currentThread().getName()));
-
-      // Check for thread destroy
-      if (this.killMe) break;
-
       // Start request processing
-      int thisPort = this.socket.getPort();
+      InputStream inSocket = null;
+      OutputStream outSocket = null;
+      boolean iAmFirst = true;
       try
       {
-        Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.OpenedPort") + thisPort);
-
-        // Set the stream time out, so that if the client hangs, we don't lock up too
-        this.socket.setSoTimeout(CONNECTION_TIMEOUT);
-        InputStream in = this.socket.getInputStream();
-        OutputStream out = this.socket.getOutputStream();
+        // Get input/output streams
+        inSocket = socket.getInputStream();
+        outSocket = socket.getOutputStream();
 
         boolean continueFlag = true;
-        while (continueFlag)
+        while (continueFlag && !interrupted)
         {
           try
           {
             long requestId = System.currentTimeMillis();
-            Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.StartRequest") + requestId);
+            this.listener.allocateRequestResponse(socket, inSocket, outSocket, this, iAmFirst);
+            if (this.req == null)
+            {
+              // Dead request - happens sometimes with ajp13  - discard
+              this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
+              continue;
+            }
+            String servletURI = this.listener.parseURI(this.req, this.inData, this.socket, iAmFirst);
+            iAmFirst = false;
 
-            // Actually process the request
-            WinstoneInputStream inData = new WinstoneInputStream(in, this.resources);
-            byte uriBuffer[] = inData.readLine();
-            String uriLine = new String(uriBuffer);
+            Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.StartRequest",
+              "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
 
-            // Make request / response
-            WinstoneRequest req = new WinstoneRequest(inData, this.protocol, this.webAppConfig, this.resources);
-            WinstoneResponse rsp = new WinstoneResponse(req, out, this.protocol, resources);
-
-            this.protocol.parseSocketInfo(this.socket, req);
-            String servletURI = this.protocol.parseURILine(uriLine, req);
-            this.protocol.parseHeaders(req, inData);
-
-            int contentLength = req.getContentLength();
-            if (contentLength != -1)
-              inData.setContentLength(contentLength);
-
-            // Get the URI from the servlet, check for prefix, then match it to a
+            // Get the URI from the request, check for prefix, then match it to a
             // requestDispatcher
             String path = null;
             if (this.prefix.equals(""))
@@ -138,27 +125,27 @@ public class RequestHandlerThread implements Runnable
                                                 "[#url]", servletURI));
               rsp.flushBuffer();
               rsp.verifyContentLength();
-              continueFlag = false;
+
+              // Process keep-alive
+              continueFlag = this.listener.processKeepAlive(req, rsp, inSocket, this.protocol);
+              this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
+              Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.FinishRequest",
+                "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
               continue;
             }
 
-            // Handle with the dispatcher we found
+            // Lookup a dispatcher, then process with it
+            req.setWebAppConfig(this.webAppConfig);
             processRequest(req, rsp, path);
+            this.outData.finishResponse();
+            this.inData.finishRequest();
 
-            Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.StartRequest") + requestId);
-            continueFlag = !protocol.closeAfterRequest(req, rsp);
+            Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.FinishRequest",
+              "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
 
-            // Try keep alive if allowed
-            if (continueFlag)
-            {
-              // Wait for some input
-              long lastRequestDate = System.currentTimeMillis();
-              while ((in.available() == 0) &&
-                    (System.currentTimeMillis() < lastRequestDate + KEEP_ALIVE_TIMEOUT))
-                Thread.currentThread().sleep(KEEP_ALIVE_SLEEP);
-              if (in.available() == 0)
-                continueFlag = false;
-            }
+            // Process keep-alive
+            continueFlag = this.listener.processKeepAlive(req, rsp, inSocket, this.protocol);
+            this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
           }
           catch (InterruptedIOException errIO)
           {
@@ -167,18 +154,27 @@ public class RequestHandlerThread implements Runnable
           }
           catch (SocketException errIO) {continueFlag = false;}
         }
-        in.close();
-        out.close();
-        this.socket.close();
+        this.listener.releaseSocket(this.socket, inSocket, outSocket); //shut sockets
       }
       catch (Throwable err)
       {
-        try {this.socket.close();} catch (IOException errIO) {}
+        try {this.listener.releaseSocket(this.socket, inSocket, outSocket);} //shut sockets
+        catch (Throwable errClose) {}
         Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.RequestError"), err);
       }
-      Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.ClosedPort") + thisPort);
-      this.socket = null;
+
       this.launcher.releaseRequestHandler(this);
+
+      // Suspend this thread until we get assigned and woken up
+      Logger.log(Logger.FULL_DEBUG, this.resources.getString("RequestHandlerThread.EnterWaitState", "[#threadName]", Thread.currentThread().getName()));
+      try
+        {synchronized(this.processingMonitor) {this.processingMonitor.wait();}}
+      catch (Throwable err) {}
+      Logger.log(Logger.FULL_DEBUG, this.resources.getString("RequestHandlerThread.WakingUp", "[#threadName]", Thread.currentThread().getName()));
+
+      // Check for thread destroy
+      if (interrupted) break;
+
     }
     Logger.log(Logger.FULL_DEBUG, this.resources.getString("RequestHandlerThread.ThreadExit", "[#threadName]", Thread.currentThread().getName()));
   }
@@ -219,20 +215,33 @@ public class RequestHandlerThread implements Runnable
   /**
    * Assign a socket to the handler
    */
-  public void commenceRequestHandling(Socket socket, HttpProtocol protocol)
+  public void commenceRequestHandling(Socket socket,
+                                      Listener listener,
+                                      HttpProtocol protocol)
   {
-    this.socket = socket;
+    this.listener = listener;
     this.protocol = protocol;
-    synchronized (this) {notifyAll();}
+    this.socket = socket;
+    if (this.thread.isAlive())
+      synchronized (this.processingMonitor) {this.processingMonitor.notifyAll();}
+    else
+      this.thread.start();
   }
+
+  public void setRequest(WinstoneRequest request)     {this.req = request;}
+  public void setResponse(WinstoneResponse response)  {this.rsp = response;}
+
+  public void setInStream(WinstoneInputStream inStream)    {this.inData  = inStream;}
+  public void setOutStream(WinstoneOutputStream outStream) {this.outData = outStream;}
 
   /**
    * Trigger the thread destruction for this handler
    */
   public void destroy()
   {
-    this.killMe = true;
-    synchronized (this) {notifyAll();}
+    this.interrupted = true;
+    if (this.thread.isAlive())
+      synchronized (this.processingMonitor) {this.processingMonitor.notifyAll();}
   }
 }
 

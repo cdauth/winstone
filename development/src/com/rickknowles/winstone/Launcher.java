@@ -21,6 +21,9 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.jar.*;
+import java.lang.reflect.*;
+import javax.servlet.UnavailableException;
+
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -45,19 +48,21 @@ public class Launcher implements EntityResolver, Runnable
   final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
   final String DTD_2_3_URL    = "javax/servlet/resources/web-app_2_3.dtd";
 
-  static final String RESOURCE_FILE    = "com.rickknowles.winstone.LocalStrings";
+  final String HTTP_LISTENER_CLASS = "com.rickknowles.winstone.HttpListener";
+  final String AJP_LISTENER_CLASS  = "com.rickknowles.winstone.ajp13.Ajp13Listener";
 
-  private int CONTROL_TIMEOUT = 1; // wait 10ms for control connection
+  static final String RESOURCE_FILE    = "com.rickknowles.winstone.LocalStrings";
+  static final String WEB_ROOT = "webroot";
+  static final String WEB_INF  = "WEB-INF";
+  static final String WEB_XML  = "web.xml";
+
+  private int CONTROL_TIMEOUT = 500; // wait 500ms for control connection
   private int DEFAULT_CONTROL_PORT = -1;
   private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
-  private int MIN_IDLE_REQUEST_HANDLERS_IN_POOL = 2;
-  private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 10;
+  private int STARTUP_REQUEST_HANDLERS_IN_POOL = 2;
+  private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 5;
   private int MAX_REQUEST_HANDLERS_IN_POOL = 100;
-
-  private String WEB_ROOT = "webroot";
-  private String WEB_INF  = "WEB-INF";
-  private String WEB_XML  = "web.xml";
 
   private WinstoneResourceBundle resources;
   private int controlPort;
@@ -68,8 +73,9 @@ public class Launcher implements EntityResolver, Runnable
   private Object requestHandlerSemaphore = new Boolean(true);
   private int threadIndex = 0;
 
-  private HttpListener httpListener;
-  
+  private List listeners;
+  private boolean interrupted;
+
   /**
    * Constructor
    */
@@ -82,7 +88,7 @@ public class Launcher implements EntityResolver, Runnable
                        Integer.parseInt((String) args.get("controlPort")));
 
     // Get the parsed webapp xml deployment descriptor
-    File webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"));
+    File webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"), resources);
     if (!webRoot.exists())
       throw new WinstoneException(resources.getString("Launcher.NoWebRoot") + webRoot);
 
@@ -129,24 +135,47 @@ public class Launcher implements EntityResolver, Runnable
     this.unusedRequestHandlerThreads = new Vector();
     this.usedRequestHandlerThreads = new Vector();
 
-    // If we're short an idle request handler
-    while ((this.unusedRequestHandlerThreads.size() < MIN_IDLE_REQUEST_HANDLERS_IN_POOL) &&
-           (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL - MIN_IDLE_REQUEST_HANDLERS_IN_POOL))
-      this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
+    // Start the base set of handler threads
+    synchronized (this.requestHandlerSemaphore)
+    {
+      while (this.unusedRequestHandlerThreads.size() < STARTUP_REQUEST_HANDLERS_IN_POOL)
+        this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
+    }
 
-    // Create connector
-    this.httpListener = new HttpListener(args, resources, this);
+    // Create connectors (http and ajp)
+    this.listeners = new ArrayList();
+    try
+    {
+      Class httpClass = Class.forName(HTTP_LISTENER_CLASS);
+      Constructor httpConstructor = httpClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, Launcher.class});
+      Listener httpListener = (Listener) httpConstructor.newInstance(new Object[] {args, resources, this});
+      this.listeners.add(httpListener);
+    }
+    catch (Throwable err)
+      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"));}
+    try
+    {
+      Class ajpClass = Class.forName(AJP_LISTENER_CLASS);
+      Constructor ajpConstructor = ajpClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, Launcher.class});
+      Listener ajpListener = (Listener) ajpConstructor.newInstance(new Object[] {args, resources, this});
+      this.listeners.add(ajpListener);
+    }
+    catch (Throwable err)
+      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.AJPNotFound"));}
   }
+
+  public WebAppConfiguration getWebAppConfig() {return this.webAppConfig;}
 
   /**
    * Setup the webroot. If a warfile is supplied, extract any files that the
-   * war file is newer than. If none is supplied, use the default.
+   * war file is newer than. If none is supplied, use the default temp directory.
    */
-  private File getWebRoot(String webroot, String warfile) throws IOException
+  protected static File getWebRoot(String webroot, String warfile,
+                                   WinstoneResourceBundle resources) throws IOException
   {
     if (warfile != null)
     {
-      Logger.log(Logger.INFO, this.resources.getString("Launcher.BeginningWarExtraction"));
+      Logger.log(Logger.INFO, resources.getString("Launcher.BeginningWarExtraction"));
 
       // open the war file
       File warfileRef = new File(warfile);
@@ -181,7 +210,7 @@ public class Launcher implements EntityResolver, Runnable
           continue;
 
         outFile.getParentFile().mkdirs();
-        byte buffer[] = new byte[1000];
+        byte buffer[] = new byte[8192];
 
         // Copy out the extracted file
         InputStream inContent = warArchive.getInputStream(element);
@@ -208,7 +237,7 @@ public class Launcher implements EntityResolver, Runnable
    */
   public void run()
   {
-    boolean interrupted = false;
+    interrupted = false;
     try
     {
       ServerSocket controlSocket = null;
@@ -230,9 +259,13 @@ public class Launcher implements EntityResolver, Runnable
         // Check max idle requestHandler count
         synchronized (this.requestHandlerSemaphore)
         {
-          // If we're short an idle request handler
+          // If we have too many idle request handlers
           while (this.unusedRequestHandlerThreads.size() > MAX_IDLE_REQUEST_HANDLERS_IN_POOL)
-            this.unusedRequestHandlerThreads.remove(0);
+          {
+            RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
+            rh.destroy();
+            this.unusedRequestHandlerThreads.remove(rh);
+          }
         }
 
         // Check for control request
@@ -246,41 +279,39 @@ public class Launcher implements EntityResolver, Runnable
           }
         }
         catch (InterruptedIOException err) {}
-        Thread.currentThread().yield();
       }
 
       // Close server socket
       controlSocket.close();
 
       // Release all listeners/handlers/webapps
-      if (this.httpListener != null) this.httpListener.destroy();
+      for (Iterator i = this.listeners.iterator(); i.hasNext(); )
+        ((Listener) i.next()).destroy();
       for (Iterator i = this.usedRequestHandlerThreads.iterator(); i.hasNext(); )
         releaseRequestHandler((RequestHandlerThread) i.next());
       for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
         ((RequestHandlerThread) i.next()).destroy();
       this.webAppConfig.destroy();
+
+      Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownOK"));
     }
     catch (Throwable err)
       {Logger.log(Logger.ERROR, resources.getString("Launcher.ShutdownError"), err);}
-
-    Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownOK"));
   }
+
+  public void shutdown() {this.interrupted = true;}
 
   /**
    * Once the socket request comes in, this method is called. It reserves a
    * request handler, then delegates the socket to that class. When it finishes,
    * the handler is released back into the pool.
    */
-  public void handleRequest(Socket s, HttpProtocol protocol) throws IOException
+  public void handleRequest(Socket socket, Listener listener, HttpProtocol protocol)
+    throws IOException, UnavailableException, InterruptedException
   {
-    // If we have any spare, get it from the pool
     synchronized (this.requestHandlerSemaphore)
     {
-      // If we're short an idle request handler
-      while ((this.unusedRequestHandlerThreads.size() < MIN_IDLE_REQUEST_HANDLERS_IN_POOL) &&
-             (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL - MIN_IDLE_REQUEST_HANDLERS_IN_POOL))
-        this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
-
+      // If we have any spare, get it from the pool
       if (this.unusedRequestHandlerThreads.size() > 0)
       {
         RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
@@ -289,26 +320,30 @@ public class Launcher implements EntityResolver, Runnable
         Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.UsingRHPoolThread",
             "[#used]", "" + this.usedRequestHandlerThreads.size(),
             "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
-        rh.commenceRequestHandling(s, protocol);
+        rh.commenceRequestHandling(socket, listener, protocol);
       }
 
       // If we are out (and not over our limit), allocate a new one
       else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL)
       {
+        // XXX This is scary, cause we should make sure the thread is completely
+        // in the wait state before requesting it to start
         RequestHandlerThread rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
         Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.NewRHPoolThread",
             "[#used]", "" + this.usedRequestHandlerThreads.size(),
             "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
-        rh.commenceRequestHandling(s, protocol);
+        rh.commenceRequestHandling(socket, listener, protocol);
       }
 
       // otherwise throw fail message - we've blown our limit
       else
       {
-        s.close();
-        Logger.log(Logger.ERROR, resources.getString("Launcher.NoRHPoolThreads"));
+        // Possibly insert a second chance here ? Delay and one retry ?
+        // Remember to release the lock first
+        socket.close();
+        //throw new UnavailableException("NoHandlersAvailable");
       }
     }
   }
@@ -333,7 +368,11 @@ public class Launcher implements EntityResolver, Runnable
     }
   }
 
-  public Document parseStreamToXML(InputStream in)
+  /**
+   * Get a parsed XML DOM from the given inputstream. Used to process the web.xml
+   * application deployment descriptors.
+   */
+  protected Document parseStreamToXML(InputStream in)
   {
     try
     {
@@ -353,6 +392,11 @@ public class Launcher implements EntityResolver, Runnable
       {throw new WinstoneException(resources.getString("Launcher.WebXMLParseError"), errParser);}
   }
 
+  /**
+   * Implements the EntityResolver interface. This allows us to redirect any
+   * requests by the parser for webapp DTDs to local copies. It's faster and
+   * it means you can run winstone without being web-connected.
+   */
   public InputSource resolveEntity(String publicName, String url)
     throws SAXException, IOException
   {
@@ -366,13 +410,18 @@ public class Launcher implements EntityResolver, Runnable
       return new InputSource(url);
   }
 
+  public static WinstoneResourceBundle getResourceBundle()
+  {
+    return new WinstoneResourceBundle(RESOURCE_FILE);
+  }
+
   /**
    * Main method. This basically just accepts a few args, then initialises the
    * listener thread. For now, just shut it down with a control-C.
    */
   public static void main(String argv[]) throws IOException
   {
-    WinstoneResourceBundle resources = new WinstoneResourceBundle(RESOURCE_FILE);
+    WinstoneResourceBundle resources = getResourceBundle();
 
     // Get command line args
     String configFilename = resources.getString("Launcher.DefaultPropertyFile");
@@ -430,6 +479,7 @@ public class Launcher implements EntityResolver, Runnable
       {
         Launcher launcher = new Launcher(args, resources);
         Thread th = new Thread(launcher);
+        th.setDaemon(false);
         th.start();
       }
       catch (WinstoneException err) {System.err.println(err.getMessage()); err.printStackTrace();}

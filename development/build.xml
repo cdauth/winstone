@@ -10,7 +10,7 @@ Authors:
    
 ==================================================================== -->
 
-<project name="winstone" default="main" basedir=".">
+<project name="winstone" default="compile" basedir=".">
   
   <!-- ==================== Initialization properties ===================== -->
   <property name="debug" value="on"/>
@@ -21,7 +21,13 @@ Authors:
   <property name="winstone.build" value="../build"/>
   <property name="winstone.apidoc" value="../doc"/>
   <property name="winstone.dist" value="../dist"/>
-  <property name="packages" value="com.rickknowles.winstone.*"/>
+  <property name="junit.jar" value="c:/java/junit/junit.jar"/>
+  <property name="httpunit.jar" value="c:/java/junit/httpunit.jar"/>
+  <property name="xml-apis.jar" value="c:/java/junit/xml-apis.jar"/>
+  <property name="xerces.jar" value="c:/java/junit/xercesImpl.jar"/>
+  <property name="nekohtml.jar" value="c:/java/junit/nekohtml.jar"/>
+  <property name="junit.runner" value="junit.textui.TestRunner"/>
+  <property name="packages" value="com.rickknowles.winstone.*,com.rickknowles.winstone.ajp13.*,java.servlet.**"/>
 
   <target name="timestamp">
     <tstamp/>
@@ -29,24 +35,17 @@ Authors:
 
   <!-- ======================== Copy static files ========================= -->
   <target name="prepare" depends="timestamp">
-
     <!-- Create destination directories -->
     <mkdir dir="${winstone.build}"/>
     <mkdir dir="${winstone.build}/classes"/>
-    <mkdir dir="${winstone.build}/lib"/>
-
-    <!-- libs -->
-    <copy todir="${winstone.build}/lib">
-      <fileset dir="lib" includes="**/*.jar,**/*.zip" excludes="**/build-*.jar,**/build-*.zip"/>
-    </copy>   
-
   </target>
 
   <!-- ==================== Main build target  ======================= -->
 
-  <target name="main" depends="prepare">
+  <target name="compile" depends="prepare">
   <!-- Compile the standard server components -->
     <javac srcdir="src"
+           includes="com/rickknowles/winstone/*,com/rickknowles/winstone/ajp13/*,javax/servlet/**"
            destdir="${winstone.build}/classes"
            debug="${debug}" 
            optimize="${optimize}"
@@ -64,18 +63,38 @@ Authors:
     </copy>   
   </target>
 
+  <target name="compile-tests" depends="prepare">
+    <mkdir dir="${winstone.build}/test"/>
+
+    <!-- Compile the junit tests -->
+    <javac srcdir="src"
+           includes="com/rickknowles/winstone/test/*"
+           destdir="${winstone.build}/test"
+           debug="${debug}" 
+           optimize="${optimize}"
+           deprecation="off" >
+      <classpath>
+        <pathelement location="${java.home}/lib/tools.jar"/>
+        <pathelement location="${java.home}/lib/dt.jar"/>
+        <pathelement location="${java.home}/jre/lib/rt.jar"/>
+        <pathelement location="${httpunit.jar}"/>
+        <pathelement location="${junit.jar}"/>
+        <pathelement location="${winstone.build}/classes"/>
+        <fileset dir="lib" includes="**/*.jar,**/*.zip"/>
+     </classpath>
+    </javac>
+  </target>
+
   <!-- ==================== Administrative targets  ======================= -->
   <target name="clean">
     <delete dir="${winstone.build}"/>
   </target>
 
-  <target name="dist" depends="clean,main">
+  <target name="dist" depends="clean,compile">
     <mkdir dir="${winstone.dist}" />
-    <!-- <unjar src="lib/servlet.jar" dest="${winstone.build}/classes"/> -->
     <jar   jarfile="${winstone.dist}/winstone.jar"
            basedir="${winstone.build}/classes"
            includes="**" manifest="manifest.winstone"/> 
-    <!--<delete dir="${winstone.build}/classes/javax"/>-->
   </target>
 
   <target name="backup" depends="timestamp">
@@ -85,7 +104,7 @@ Authors:
     <delete file="${backup.dir}/winstone_${DSTAMP}${TSTAMP}.tar"/>
   </target>
 
-  <target name="all" depends="clean,main,javadoc"/>
+  <target name="all" depends="dist,javadoc"/>
 
   <!-- ==================== Creates the API documentation  ================ -->
   <target name="javadoc">
@@ -152,4 +171,23 @@ Authors:
       <fileset file="${release.dir}/winstone_src_${release.name}.tar.gz"/>
     </ftp>
   </target>
+
+  <path id="test.classpath">
+    <pathelement location="${junit.jar}" />
+    <pathelement location="${httpunit.jar}" />
+    <pathelement location="${xerces.jar}" />
+    <pathelement location="${xml-apis.jar}" />
+    <pathelement location="${nekohtml.jar}" />
+    <pathelement location="${winstone.build}/test" />
+    <pathelement location="${winstone.build}/classes" />
+  </path>
+
+  <target name="run-tests">
+    <echo message="Running HttpConnectorTest"/>
+    <java classname="${junit.runner}" fork="yes" failonerror="true">
+      <arg value="com.rickknowles.winstone.test.HttpConnectorTest"/>
+      <classpath refid="test.classpath"/>
+    </java>
+  </target>
+
 </project>

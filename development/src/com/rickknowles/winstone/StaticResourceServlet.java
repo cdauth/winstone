@@ -24,7 +24,7 @@ import java.util.*;
 import java.text.*;
 
 /**
- * Servlet to handle static resources. Simply finds an sends them, or
+ * Servlet to handle static resources. Simply finds and sends them, or
  * dispatches to the error servlet.
  *
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>

@@ -18,7 +18,8 @@
 package com.rickknowles.winstone;
 
 import java.io.*;
-import java.util.List;
+import java.util.*;
+import javax.servlet.http.Cookie;
 
 /**
  * Matches the socket output stream to the servlet output.
@@ -30,32 +31,34 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
 {
   final int DEFAULT_BUFFER_SIZE = 8192;
 
-  private OutputStream socketOut;
-  private int bufferSize;
-  private int bufferPosition;
-  private int bytesWritten;
-  private ByteArrayOutputStream buffer;
-  private boolean committed;
+  protected OutputStream outStream;
+  protected int bufferSize;
+  protected int bufferPosition;
+  protected int bytesWritten;
+  protected ByteArrayOutputStream buffer;
+  protected boolean committed;
   //private boolean headersWritten;
-  private WinstoneResourceBundle resources;
-  private WinstoneResponse owner;
+  protected WinstoneResourceBundle resources;
+  protected WinstoneResponse owner;
+  protected HttpProtocol protocolClass;
 
   /**
    * Constructor
    */
   public WinstoneOutputStream(OutputStream out,
                               WinstoneResourceBundle resources,
-                              WinstoneResponse owner)
+                              HttpProtocol protocolClass)
   {
     this.resources = resources;
-    this.socketOut = out;
+    this.outStream = out;
     setBufferSize(DEFAULT_BUFFER_SIZE);
     this.committed = false;
     //this.headersWritten = false;
-    this.owner = owner;
+    this.protocolClass = protocolClass;
     this.buffer = new ByteArrayOutputStream();
   }
 
+  public void setResponse(WinstoneResponse response) {this.owner = response;}
   public int getBufferSize()  {return this.bufferSize;}
   public void setBufferSize(int bufferSize) {this.bufferSize = bufferSize;}
 
@@ -77,13 +80,46 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
 
   public void commit() throws IOException
   {
-    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.CommittedBytes", "[#postHeaderBytes]", "" + this.bytesWritten));
     this.buffer.flush();
 
     // If we haven't written the headers yet, write them out
     if (!this.committed)
-      this.owner.writeHeaders(new PrintStream(this.socketOut, true));
-    this.buffer.writeTo(this.socketOut);
+    {
+      this.protocolClass.validateHeaders(this.owner);
+
+      PrintStream headerStream = new PrintStream(this.outStream, true);
+      String statusLine = this.owner.getProtocol() + " " + this.owner.getStatus();
+      headerStream.println(statusLine);
+      Logger.log(Logger.FULL_DEBUG, "Response: " + statusLine);
+
+      // Write headers and cookies
+      for (Iterator i = this.owner.getHeaders().iterator(); i.hasNext(); )
+      {
+        String header = (String) i.next();
+        headerStream.println(header);
+        Logger.log(Logger.FULL_DEBUG, "Header: " + header);
+      }
+
+      if (!this.owner.getHeaders().isEmpty())
+      {
+        for (Iterator i = this.owner.getCookies().iterator(); i.hasNext(); )
+        {
+          Cookie cookie = (Cookie) i.next();
+          String cookieText = this.protocolClass.writeCookie(cookie);
+          headerStream.println(cookieText);
+          Logger.log(Logger.FULL_DEBUG, "Header: " + cookieText);
+        }
+      }
+      headerStream.println();
+      headerStream.flush();
+      //Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.OutHeaders") + out.toString());
+    }
+    //byte content[] = this.buffer.toByteArray();
+    //com.rickknowles.winstone.ajp13.Ajp13Listener.packetDump(content, content.length);
+    this.buffer.writeTo(this.outStream);
+    this.outStream.flush();
+    
+    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.CommittedBytes", "[#postHeaderBytes]", "" + this.bytesWritten));
 
     this.committed = true;
     this.buffer.reset();
@@ -101,6 +137,12 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
       this.bufferPosition = 0;
       this.bytesWritten = 0;
     }
+  }
+
+  public void finishResponse() throws IOException
+  {
+    this.outStream.flush();
+    this.outStream = null;
   }
 }
 

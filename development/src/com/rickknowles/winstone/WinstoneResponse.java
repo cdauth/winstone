@@ -38,7 +38,6 @@ public class WinstoneResponse implements HttpServletResponse
   static  {df.setTimeZone(TimeZone.getTimeZone("GMT"));}
 
   private int statusCode;
-  private String protocol;
   private WinstoneRequest req;
   private HttpProtocol protocolClass;
   private WinstoneOutputStream outputStream;
@@ -49,29 +48,34 @@ public class WinstoneResponse implements HttpServletResponse
   private Writer outWriter;
 
   private WinstoneResourceBundle resources;
-  
+
   /**
    * Constructor
    */
-  protected WinstoneResponse(WinstoneRequest req,
-                             OutputStream out,
-                             HttpProtocol protocolClass,
-                             WinstoneResourceBundle resources)
+  public WinstoneResponse(WinstoneRequest req,
+                          HttpProtocol protocolClass,
+                          WinstoneResourceBundle resources)
   {
     this.resources = resources;
     this.req = req;
     this.protocolClass = protocolClass;
     this.headers = new ArrayList();
     this.cookies = new ArrayList();
-    this.encoding = req.getCharacterEncoding();
-    this.outputStream = new WinstoneOutputStream(out, resources, this);
+    this.encoding = null; // default
 
-    this.protocol = req.getProtocol();
     this.statusCode = SC_OK;
-    protocolClass.validateHeaders(req, this);
+    //protocolClass.validateHeaders(req, this);
     updateContentTypeHeader("text/html");
   }
 
+  public void setOutputStream(WinstoneOutputStream outData) {this.outputStream = outData;}
+
+  public String getProtocol()   {return this.req.getProtocol();}
+  public List   getHeaders()    {return this.headers;}
+  public List   getCookies()    {return this.cookies;}
+
+  public WinstoneRequest getRequest() {return this.req;}
+  
   public void updateContentTypeHeader(String type)
   {
     // Parse type to set encoding if needed
@@ -108,11 +112,28 @@ public class WinstoneResponse implements HttpServletResponse
     }
   }
 
-  public void writeHeaders(PrintStream writeTo) throws IOException
+  public void updateSessionCookie() throws IOException
+  {
+    // Write out the new session cookie if it's present
+    String sessionCookie = req.getSessionCookie();
+    if (sessionCookie != null)
+    {
+      WinstoneSession session = (WinstoneSession) req.getWebAppConfig().getSessions().get(sessionCookie);
+      if ((session != null) && session.isNew())
+      {
+        session.setIsNew(false);
+        Cookie cookie = new Cookie(this.protocolClass.SESSION_COOKIE_NAME, sessionCookie);
+        cookie.setMaxAge(-1);
+        cookie.setPath(req.getWebAppConfig().getPrefix() + "/");
+        addCookie(cookie);
+      }
+    }
+  }
+  /*public void writeHeaders(PrintStream writeTo) throws IOException
   {
     this.protocolClass.writeHeaders(this.req, this, this.req.getWebAppConfig().getPrefix(),
                                 writeTo, this.headers, this.cookies);
-  }
+  }*/
 
   // ServletResponse interface methods
   public void flushBuffer() throws IOException
@@ -213,7 +234,7 @@ public class WinstoneResponse implements HttpServletResponse
     Map params = new HashMap();
     params.put("[#statusCode]", sc + "");
     params.put("[#msg]", msg);
-    params.put("[#serverVersion]", req.getWebAppConfig().getServerInfo());
+    params.put("[#serverVersion]", resources.getString("ServerVersion"));
     params.put("[#date]", "" + new Date());
   
     String output = resources.getString("WinstoneResponse.ErrorPage", params);

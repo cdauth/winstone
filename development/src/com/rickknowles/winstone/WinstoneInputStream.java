@@ -33,6 +33,7 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream
   private Integer contentLength;
   private int readSoFar;
   private WinstoneResourceBundle resources;
+  private ByteArrayOutputStream dump;
 
   /**
    * Constructor
@@ -42,7 +43,15 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream
     super();
     this.inData = inData;
     this.resources = resources;
+    this.dump = new ByteArrayOutputStream();
   }
+
+  public WinstoneInputStream(byte inData[], WinstoneResourceBundle resources)
+  {
+    this(new ByteArrayInputStream(inData), resources);
+  }
+
+  public InputStream getRawInputStream() {return this.inData;}
 
   public void setContentLength(int length)
   {
@@ -53,15 +62,29 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream
   public int read() throws IOException
   {
     if (this.contentLength == null)
-      return this.inData.read();
+    {
+      int data = this.inData.read();
+      this.dump.write(data);
+      return data;
+    }
     else if (this.contentLength.intValue() > this.readSoFar)
     {
       this.readSoFar++;
-      return this.inData.read();
+      int data = this.inData.read();
+      this.dump.write(data);
+      return data;
     }
     else
       return -1;
   }
+
+  public void finishRequest()
+  {
+    //this.inData = null;
+    //byte content[] = this.dump.toByteArray();
+    //com.rickknowles.winstone.ajp13.Ajp13Listener.packetDump(content, content.length);
+  }
+
   /*{
     int charRead = this.inData.read();
     System.out.println("Char: " + (char) charRead);

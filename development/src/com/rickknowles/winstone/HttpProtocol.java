@@ -34,7 +34,7 @@ public class HttpProtocol
 {
   final char CR = '\r';
   final char LF = '\n';
-  final String CR_LF = "\r\n";
+  public static final String CR_LF = "\r\n";
   final String specialCharacters = "()<>@,;:\\\"/[]?={} \t";
 
   // Request header constants
@@ -43,8 +43,10 @@ public class HttpProtocol
   final String CONTENT_TYPE_HEADER    = "Content-Type";
   final String AUTHORIZATION_HEADER   = "Authorization";
   final String LOCALE_HEADER          = "Accept-Language";
+  final String HOST_HEADER            = "Host";
 
-  final String IN_COOKIE_HEADER       = "Cookie";
+  final String IN_COOKIE_HEADER1      = "Cookie";
+  final String IN_COOKIE_HEADER2      = "Cookie2";
   final String METHOD_POST            = "POST";
   final String METHOD_HEAD            = "HEAD";
   final String POST_PARAMETERS        = "application/x-www-form-urlencoded";
@@ -56,32 +58,15 @@ public class HttpProtocol
   final String KEEP_ALIVE_CLOSE       = "Close";
   final String DATE_HEADER            = "Date";
   final String SERVER_HEADER          = "Server";
+  final String LOCATION_HEADER        = "Location";
   final String OUT_COOKIE_HEADER1     = "Set-Cookie";
   final String OUT_COOKIE_HEADER2     = "Set-Cookie2";
-  final String LOCATION_HEADER        = "Location";
 
-  private boolean doHostNameLookups;
   private WinstoneResourceBundle resources;
 
-  public HttpProtocol(WinstoneResourceBundle resources, boolean doHostNameLookups)
-  {
-    this.doHostNameLookups = doHostNameLookups;
-    this.resources = resources;
-  }
+  public HttpProtocol(WinstoneResourceBundle resources) {this.resources = resources;}
 
-  public String getScheme() {return "http";}
-  
-  public void parseSocketInfo(Socket socket, WinstoneRequest req)
-  {
-    req.setServerPort(socket.getLocalPort());
-    req.setRemoteIP(socket.getInetAddress().getHostAddress());
-    if (this.doHostNameLookups)
-      req.setRemoteName(socket.getInetAddress().getHostName());
-    else
-      req.setRemoteName(socket.getInetAddress().getHostAddress());
-  }
-
-  public String parseURILine(String uriLine, WinstoneRequest req) throws Exception
+  public String parseURILine(String uriLine, WinstoneRequest req)
   {
     // Method
     int spacePos = uriLine.indexOf(' ');
@@ -122,7 +107,8 @@ public class HttpProtocol
   }
 
   /**
-   * Go through all the headers and process them one by one until we hit an empty line
+   * Parse the incoming stream into a list of headers (stopping at the first
+   * blank line), then call the parseHeaders(req, list) method on that list.
    */
   public void parseHeaders(WinstoneRequest req, WinstoneInputStream inData) throws IOException
   {
@@ -137,13 +123,27 @@ public class HttpProtocol
       while (headerLine.trim().length() > 0)
       {
         if (headerLine.indexOf(':') != -1)
+        {
           headerList.add(headerLine);
+          Logger.log(Logger.FULL_DEBUG, "Header:" + headerLine.trim());
+        }
         headerBuffer = inData.readLine();
         headerLine = new String(headerBuffer);
       }
     }
 
+    // If no headers available, parse an empty list
+    parseHeaders(req, headerList);
+  }
+
+  /**
+   * Go through the list of headers, and build the headers/cookies arrays for
+   * the request object.
+   */
+  public void parseHeaders(WinstoneRequest req, List headerList)
+  {
     // Iterate through headers
+    List outHeaderList = new ArrayList();
     List cookieList = new ArrayList();
     for (Iterator i = headerList.iterator(); i.hasNext(); )
     {
@@ -151,6 +151,12 @@ public class HttpProtocol
       int colonPos = header.indexOf(':');
       String name = header.substring(0, colonPos);
       String value = header.substring(colonPos + 1).trim();
+      int nextColonPos = value.indexOf(':');
+
+      // Add it to out headers if it's not a cookie
+      if (!name.equalsIgnoreCase(IN_COOKIE_HEADER1) &&
+          !name.equalsIgnoreCase(IN_COOKIE_HEADER2))
+        outHeaderList.add(header);
 
       if (name.equalsIgnoreCase(AUTHORIZATION_HEADER))
         req.setAuthorization(value);
@@ -158,6 +164,8 @@ public class HttpProtocol
         req.setLocales(parseLocales(value));
       else if (name.equalsIgnoreCase(CONTENT_LENGTH_HEADER))
         req.setContentLength(Integer.parseInt(value));
+      else if (name.equalsIgnoreCase(HOST_HEADER))
+        req.setServerName(nextColonPos == -1 ? value : value.substring(0, nextColonPos));
       else if (name.equalsIgnoreCase(CONTENT_TYPE_HEADER))
       {
         req.setContentType(value);
@@ -169,7 +177,8 @@ public class HttpProtocol
             req.setCharacterEncoding(encodingClause.substring(8));
         }
       }
-      else if (name.equalsIgnoreCase(IN_COOKIE_HEADER))
+      else if (name.equalsIgnoreCase(IN_COOKIE_HEADER1) ||
+               name.equalsIgnoreCase(IN_COOKIE_HEADER2))
       {
         StringTokenizer st = new StringTokenizer(value, ";", false);
         while (st.hasMoreTokens())
@@ -180,6 +189,8 @@ public class HttpProtocol
           {
             Cookie thisCookie = new Cookie(cookieLine.substring(0, equalPos),
                                            cookieLine.substring(equalPos + 1));
+            thisCookie.setVersion(name.equals(IN_COOKIE_HEADER2) || req.isSecure() ? 1 : 0);
+            thisCookie.setSecure(req.isSecure());
             cookieList.add(thisCookie);
             Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.CookieFound",
                   "[#cookieName]", thisCookie.getName(), "[#cookieValue]", thisCookie.getValue()));
@@ -192,7 +203,7 @@ public class HttpProtocol
         }
       }
     }
-    req.setHeaders((String []) headerList.toArray(new String[headerList.size()]));
+    req.setHeaders((String []) outHeaderList.toArray(new String[outHeaderList.size()]));
     req.setCookies((Cookie []) cookieList.toArray(new Cookie[cookieList.size()]));
   }
 
@@ -264,9 +275,11 @@ public class HttpProtocol
     List outputLocaleList = new ArrayList();
     for (int n = 0; n < orderKeys.length; n++)
     {
-      if ((orderKeys[n].floatValue() <= 0) || (orderKeys[n].floatValue() > 1))
+      // Skip backwards through the list of maps and add to the output list
+      int reversedIndex = (orderKeys.length - 1) - n;
+      if ((orderKeys[reversedIndex].floatValue() <= 0) || (orderKeys[reversedIndex].floatValue() > 1))
         continue;
-      List localeList = (List) localeEntries.get(orderKeys[n]);
+      List localeList = (List) localeEntries.get(orderKeys[reversedIndex]);
       for (Iterator i = localeList.iterator(); i.hasNext(); )
         outputLocaleList.add(i.next());
     }
@@ -306,7 +319,7 @@ public class HttpProtocol
   /**
    * Gets parameters from the url encoded parameter string
    */
-  private Map extractParameters(String urlEncodedParams)
+  public Map extractParameters(String urlEncodedParams)
   {
     Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.ParsingParameters") + urlEncodedParams);
     Map params = new Hashtable();
@@ -417,6 +430,10 @@ public class HttpProtocol
       return parsedParameters;
   }
 
+  /**
+   * Based on request/response headers and the protocol, determine whether
+   * or not this connection should operate in keep-alive mode.
+   */
   public boolean closeAfterRequest(WinstoneRequest req, WinstoneResponse rsp)
   {
     String inKeepAliveHeader = req.getHeader(KEEP_ALIVE_HEADER);
@@ -425,11 +442,10 @@ public class HttpProtocol
       return true;
     else if ((inKeepAliveHeader == null) && (outKeepAliveHeader == null))
       return req.getProtocol().equals("HTTP/1.0") ? true : false;
-    else if ((outKeepAliveHeader != null) &&
-             outKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE))
-      return true;
-    else if (inKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE))
-      return true;
+    else if (outKeepAliveHeader != null)
+      return outKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE);
+    else if (inKeepAliveHeader != null)
+      return inKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE);
     else
       return false;
   }
@@ -437,23 +453,20 @@ public class HttpProtocol
   /**
    * This ensures the bare minimum correct http headers are present
    */
-  public void validateHeaders(WinstoneRequest req, WinstoneResponse rsp)
+  public void validateHeaders(WinstoneResponse rsp)
   {
-    //setHeader(ENCODING_HEADER, "chunked");
+    //rsp.setHeader(ENCODING_HEADER, "chunked");
     String contentLength = rsp.getHeader(CONTENT_LENGTH_HEADER);
     rsp.setHeader(KEEP_ALIVE_HEADER,
-                  (contentLength != null) && !closeAfterRequest(req, rsp) ? KEEP_ALIVE_OPEN :
-                                                                            KEEP_ALIVE_CLOSE);
+                  (contentLength != null) && !closeAfterRequest(rsp.getRequest(), rsp)
+                            ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
     if (rsp.getHeader(DATE_HEADER) == null)
       rsp.setDateHeader(DATE_HEADER, System.currentTimeMillis());
-  }
 
-  public void writeHeaders(WinstoneRequest req, WinstoneResponse rsp, String prefix,
-                           PrintStream outputStream, List headers, List cookies)
-    throws IOException
-  {
-    // Ensure bare minimum headers
-    validateHeaders(req, rsp);
+    // If we don't have a webappConfig, exit here, cause we definitely don't have a session
+    WinstoneRequest req = rsp.getRequest();
+    if (req.getWebAppConfig() == null)
+      return;
 
     // Write out the new session cookie if it's present
     String sessionCookie = req.getSessionCookie();
@@ -465,33 +478,24 @@ public class HttpProtocol
         session.setIsNew(false);
         Cookie cookie = new Cookie(SESSION_COOKIE_NAME, sessionCookie);
         cookie.setMaxAge(-1);
-        cookie.setPath(prefix + "/");
+        cookie.setSecure(req.isSecure());
+        cookie.setVersion(req.isSecure() ? 1 : 0);
+        cookie.setPath(req.getWebAppConfig().getPrefix());
         rsp.addCookie(cookie);
       }
     }
-
-    StringBuffer out = new StringBuffer();
-    out.append(req.getProtocol()).append(" ").append(rsp.getStatus()).append(CR_LF);
-
-    // Write headers and cookies
-    for (Iterator i = headers.iterator(); i.hasNext(); )
-      out.append((String) i.next()).append(CR_LF);
-    if (!cookies.isEmpty())
-    {
-      for (Iterator i = cookies.iterator(); i.hasNext(); )
-        writeCookie((Cookie) i.next(), out);
-    }
-    out.append(CR_LF);
-    Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.OutHeaders") + out.toString());
-    outputStream.print(out.toString());
   }
 
-  protected void writeCookie(Cookie cookie, StringBuffer out) throws IOException
+  /**
+   * Writes out the http header for a single cookie
+   */
+  public String writeCookie(Cookie cookie) throws IOException
   {
+    StringBuffer out = new StringBuffer();
     if (cookie.getVersion() == 1)
     {
-      out.append(OUT_COOKIE_HEADER2).append(": ")
-         .append(cookie.getName()).append("=");
+      out.append(OUT_COOKIE_HEADER2).append(": ");
+      out.append(cookie.getName()).append("=");
       quote(cookie.getValue(), out);
       out.append("; Version=1");
       if (cookie.getDomain() != null)
@@ -514,8 +518,8 @@ public class HttpProtocol
     }
     else
     {
-      out.append(OUT_COOKIE_HEADER1).append(": ")
-         .append(cookie.getName()).append("=").append(cookie.getValue());
+      out.append(OUT_COOKIE_HEADER1).append(": ");
+      out.append(cookie.getName()).append("=").append(cookie.getValue());
       if (cookie.getMaxAge() >= 0)
         out.append("; Max-Age=").append(cookie.getMaxAge());
       else
@@ -523,9 +527,13 @@ public class HttpProtocol
       if (cookie.getPath() != null)
         out.append("; Path=").append(cookie.getPath());
     }
-    out.append(CR_LF);
+    return out.toString();
   }
 
+  /**
+   * Quotes the necessary strings in a cookie header. The quoting is only
+   * applied if the string contains special characters.
+   */
   protected void quote(String value, StringBuffer out)
   {
     boolean containsSpecial = false;

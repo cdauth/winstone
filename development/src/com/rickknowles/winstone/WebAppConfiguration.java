@@ -600,7 +600,8 @@ public class WebAppConfiguration implements ServletContext
   }
 
   // Context level log statements
-  public void log(String msg)                           {Logger.log(Logger.INFO, msg);}
+  public void log(String msg)
+    {Logger.log(Logger.INFO, this.contextName, msg);}
   public void log(String message, Throwable throwable)
     {Logger.log(Logger.ERROR, this.contextName, message, throwable);}
   public void log(Exception exception, String msg)      {this.log(msg, exception);}
