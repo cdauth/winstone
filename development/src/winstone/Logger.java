@@ -156,10 +156,19 @@ public class Logger
 
       if (stream != null)
       {
-        stream.print("[" + streamName + " " + sdfLog.format(new Date()) + "] - ");
-        stream.println(message);
+        StringBuffer fullMessage = new StringBuffer();
+        fullMessage.append("[").append(streamName).append(" ")
+                   .append(sdfLog.format(new Date())).append("] - ")
+                   .append(message);
         if (error != null)
-          error.printStackTrace(stream);
+        {
+          StringWriter sw = new StringWriter();
+          PrintWriter pw = new PrintWriter(sw);
+          error.printStackTrace(pw);
+          pw.flush();
+          fullMessage.append(sw.toString());
+        }
+        stream.println(fullMessage.toString());
         stream.flush();
       }
     }
