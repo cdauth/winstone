@@ -66,8 +66,6 @@ public class Mapping implements java.util.Comparator
     {
       me.urlPattern = pattern;
       me.patternType = EXACT_PATTERN;
-    	Logger.log(Logger.FULL_DEBUG, resources.getString("Mapping.MappedPattern",
-        "[#name]", mappedTo, "[#pattern]", pattern));
     }
 
     // > 1 star = error
