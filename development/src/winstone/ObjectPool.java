@@ -132,29 +132,28 @@ public class ObjectPool
   public void handleRequest(Socket socket, Listener listener)
     throws IOException, InterruptedException
   {
+    RequestHandlerThread rh = null;
     synchronized (this.requestHandlerSemaphore)
     {
       // If we have any spare, get it from the pool
       if (this.unusedRequestHandlerThreads.size() > 0)
       {
-        RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
+        rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
         Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.UsingRHPoolThread",
             new String[] {"" + this.usedRequestHandlerThreads.size(),
                           "" + this.unusedRequestHandlerThreads.size()});
-        rh.commenceRequestHandling(socket, listener);
       }
 
       // If we are out (and not over our limit), allocate a new one
       else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL)
       {
-        RequestHandlerThread rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
+        rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
         this.usedRequestHandlerThreads.add(rh);
         Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.NewRHPoolThread",
             new String[] {"" + this.usedRequestHandlerThreads.size(),
                           "" + this.unusedRequestHandlerThreads.size()});
-        rh.commenceRequestHandling(socket, listener);
       }
 
       // otherwise throw fail message - we've blown our limit
@@ -164,9 +163,13 @@ public class ObjectPool
         // Remember to release the lock first
         Logger.log(Logger.WARNING, resources, "ObjectPool.NoRHPoolThreads");
         socket.close();
+        return;
         //throw new UnavailableException("NoHandlersAvailable");
       }
     }
+    
+    if (rh != null)
+      rh.commenceRequestHandling(socket, listener);
   }
 
   /**
