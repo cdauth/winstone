@@ -38,6 +38,7 @@ Authors:
     <!-- Create destination directories -->
     <mkdir dir="${winstone.build}"/>
     <mkdir dir="${winstone.build}/classes"/>
+    <mkdir dir="lib"/>
   </target>
 
   <!-- ==================== Main build target  ======================= -->

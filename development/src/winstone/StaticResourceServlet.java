@@ -146,61 +146,84 @@ public class StaticResourceServlet extends HttpServlet
       response.getOutputStream().close();
     }
 
-    // Write out the resource
-    else
+    // Write out the resource if not range
+    else if (request.getHeader(RANGE_HEADER) == null)
     {
       String mimeType = getServletContext().getMimeType(res.getName().toLowerCase());
       if (mimeType != null)
         response.setContentType(mimeType);
       InputStream resStream = new FileInputStream(res);
-      
-      // Check for the range header, so we can do restartable downloads
-      int start = 0;
-      int end = (int) res.length();
-      String range = request.getHeader(RANGE_HEADER);
-      if ((range != null) && range.startsWith("bytes="))
-      {
-        String remainder = range.substring(6).trim();
-        int delim = remainder.indexOf('-');
-        if (delim != 0)
-          start = Integer.parseInt(remainder.substring(0, delim));
-        if (delim != remainder.length() - 1)
-          end = Integer.parseInt(remainder.substring(delim + 1));
-        response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-        response.addHeader(CONTENT_RANGE_HEADER, "bytes " + start + "-" + end + "/" + res.length());
-      }
-      else
-        response.setStatus(HttpServletResponse.SC_OK);
 
-      response.setContentLength(end - start);
+      response.setStatus(HttpServletResponse.SC_OK);
+      response.setContentLength((int) res.length());
       response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
       response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
       OutputStream out = response.getOutputStream();
-      byte buffer[] = new byte[1024];
+      byte buffer[] = new byte[4096];
       while (resStream.available() > 0)
       {
         int read = resStream.read(buffer);
         out.write(buffer, 0, read);
       }
       out.close();
+      resStream.close();
     }
-  }
-/*
-  private String matchWelcomeFiles(String path, File res)
-  {
-    Set subfiles = getServletConfig().getServletContext().getResourcePaths(path);
-    for (int n = 0; n < this.welcomeFiles.length; n++)
+    else if (request.getHeader(RANGE_HEADER).startsWith("bytes="))
     {
-      String welcomeFile = this.welcomeFiles[n];
-      Logger.log(Logger.DEBUG,
-            this.resources.getString("StaticResourceServlet.TestingWelcomeFile",
-              "[#welcomeFile]", path + welcomeFile));
-      if (subfiles.contains(path + welcomeFile))
-        return welcomeFile;
+      String mimeType = getServletContext().getMimeType(res.getName().toLowerCase());
+      if (mimeType != null)
+        response.setContentType(mimeType);
+      InputStream resStream = new FileInputStream(res);
+
+      List ranges = new ArrayList();
+      StringTokenizer st = new StringTokenizer(request.getHeader(RANGE_HEADER)
+                                                .substring(6).trim(), ",", false);
+      int totalSent = 0;
+      String rangeText = "";
+      while (st.hasMoreTokens())
+      {
+        String rangeBlock = st.nextToken();
+        int start = 0;
+        int end = (int) res.length();
+        int delim = rangeBlock.indexOf('-');
+        if (delim != 0)
+          start = Integer.parseInt(rangeBlock.substring(0, delim).trim());
+        if (delim != rangeBlock.length() - 1)
+          end = Integer.parseInt(rangeBlock.substring(delim + 1).trim());
+        totalSent += (end - start);
+        rangeText += "," + start + "-" + end;
+        ranges.add(start + "-" + end);
+      }
+      response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+      response.addHeader(CONTENT_RANGE_HEADER, "bytes " + rangeText.substring(1) + "/" + res.length());
+      response.setContentLength(totalSent);
+      
+      response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
+      response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
+      OutputStream out = response.getOutputStream();
+      int bytesRead = 0;
+      for (Iterator i = ranges.iterator(); i.hasNext(); )
+      {
+        String rangeBlock = (String) i.next();
+        int delim = rangeBlock.indexOf('-');
+        int start = Integer.parseInt(rangeBlock.substring(0, delim));
+        int end = Integer.parseInt(rangeBlock.substring(delim + 1));
+        int read = 0;
+        while ((read != -1) && (bytesRead <= res.length()))
+        {
+          read = resStream.read();
+          if ((bytesRead >= start) && (bytesRead < end))
+            out.write(read);
+          bytesRead++;
+        }
+      }
+      out.close();
+      resStream.close();
     }
-    return null;
+    else
+      response.sendError(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
   }
-*/
+
   /**
    * Generate a list of the files in this directory
    */
