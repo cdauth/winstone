@@ -21,8 +21,37 @@ WARN - 4.9 Request Encoding
      - 6.2.5 Filter config for dispatcher
 DONE - 7.1.1 Session cookie name
 WARN - 7.4 Check order of session binding listeners
-		 - 7.6 Session accessed time
-		 - 7.7.2 Errors in distributed sessions
+     - 7.6 Session accessed time
+     - 7.7.2 Errors in distributed sessions
+     - 8.1 Return null request dispatcher when no url found
+     - 8.1 Request vs Context Dispatchers
+     - 8.1.1 Query string in request dispatchers
+     - 8.3 Request attributes for include disptatches
+     - 8.3.1 getNamedDispatcher
+     - 8.4.2 Forward request attributes
+     - 8.5 Errors in dispatch
+     - 9.5 404 for WEB-INF
+     - 9.6 404 for META-INF
+     - 9.7.1 Shared library classloader (common/lib)
+     - 9.7.1 Manifest depend libraries
+     - 9.9.1 Error request attributes
+     - 9.9.2 Error page matching
+     - 9.10 Welcome file match
+     - 9.12 Order of startup
+     - 10.3.2 Order of listener invokation
+     - 10.3.4 Session then context listeners
+     - 10.6 Listener exceptions
+     - 10.8 Can determine invalidate or timeout on session
+WARN - 11.1 Rule order for URL match
+     - 11.2 default mapping of /
+     - 11.2.1 *.jsp mapping is overrideable
+     - 12.2 Security on incoming only
+     - 12.3 Match security-role-ref in IsUserInRole
+     - 12.7 run-as element in servlet
+     - 12.8.1 * = all roles
+     - 12.8.2 New security syntax
+     - 13.1 Locale-mapping element
+     - 13.2 Canonical paths in web.xml
 
 List of other things to do:
 ---------------------------
