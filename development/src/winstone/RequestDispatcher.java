@@ -181,14 +181,32 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   /**
    * Forwards to another servlet, and when it's finished executing
    * that other servlet, cut off execution.
-   * 
    */
   public void forward(javax.servlet.ServletRequest request,
                       javax.servlet.ServletResponse response)
     throws ServletException, IOException
   {
-    //ServletRequest bareRequest = request;
-    //ServletResponse bareResponse = response;
+    // because this is a forward, we can overwrite the request if it's ours
+    ServletRequest bareRequest = request;
+    ServletResponse bareResponse = response;
+
+    // Only on the first call to forward, we should strip the req/rsp back to bare
+    if (this.filterPatternsEvaluated == 0)
+    {
+      // Strip back to bare request/response - set up for filters
+      if (request instanceof ServletRequestWrapper)
+        bareRequest = ((ServletRequestWrapper) request).getRequest();
+      if (request instanceof ServletResponseWrapper)
+        bareResponse = ((ServletResponseWrapper) response).getResponse();
+      
+      if (bareRequest instanceof WinstoneRequest)
+      {
+        WinstoneRequest req = (WinstoneRequest) bareRequest;
+        req.setServletPath(this.servletPath);
+        req.setPathInfo(this.pathInfo);
+        req.setRequestURI(this.prefix + this.requestURI);
+      }
+    }
 
     // On the first call
     if (this.filterPatterns == null)
@@ -200,7 +218,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       this.filterPatterns = this.forwardFilterPatterns;
       
       // Check security - if we should not continue, return
-      if (!continueAfterSecurityCheck(request, response))
+      if (!continueAfterSecurityCheck(bareRequest, bareResponse))
         return;
     }
     this.doInclude = false;
@@ -208,11 +226,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     // Make sure the filter chain is exhausted first
     if ((this.filterPatterns.length > 0) &&
         (this.filterPatternsEvaluated < this.filterPatterns.length))
-      doFilter(request, response);
+      doFilter(bareRequest, bareResponse);
     else
     {
-      //request.setAttribute("winstone.requestDispatcher.include", "false");
-
       // Execute
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
@@ -222,11 +238,11 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       // Set request attributes
       if (useRequestAttributes)
       {
-        request.setAttribute(FORWARD_REQUEST_URI, this.requestURI);
-        request.setAttribute(FORWARD_CONTEXT_PATH, this.prefix);
-        request.setAttribute(FORWARD_SERVLET_PATH, this.servletPath);
-        request.setAttribute(FORWARD_PATH_INFO, this.pathInfo);
-        request.setAttribute(FORWARD_QUERY_STRING, this.queryString);
+        bareRequest.setAttribute(FORWARD_REQUEST_URI, this.requestURI);
+        bareRequest.setAttribute(FORWARD_CONTEXT_PATH, this.prefix);
+        bareRequest.setAttribute(FORWARD_SERVLET_PATH, this.servletPath);
+        bareRequest.setAttribute(FORWARD_PATH_INFO, this.pathInfo);
+        bareRequest.setAttribute(FORWARD_QUERY_STRING, this.queryString);
       }
 
       if (this.instance instanceof SingleThreadModel)
