@@ -36,10 +36,10 @@ public class ObjectPool
   private int MAX_REQUEST_HANDLERS_IN_POOL = 1000;
 
   private int START_REQUESTS_IN_POOL  = 10;
-  private int MAX_REQUESTS_IN_POOL    = 100;
+  private int MAX_REQUESTS_IN_POOL    = 1000;
 
   private int START_RESPONSES_IN_POOL = 10;
-  private int MAX_RESPONSES_IN_POOL   = 100;
+  private int MAX_RESPONSES_IN_POOL   = 1000;
 
   private List unusedRequestHandlerThreads;
   private List usedRequestHandlerThreads;
@@ -163,6 +163,7 @@ public class ObjectPool
       {
         // Possibly insert a second chance here ? Delay and one retry ?
         // Remember to release the lock first
+        Logger.log(Logger.WARNING, resources, "ObjectPool.NoRHPoolThreads");
         socket.close();
         //throw new UnavailableException("NoHandlersAvailable");
       }
