@@ -173,9 +173,13 @@ public class WinstoneContext implements Context
         }
       } 
     
+      else if (thisValue == null)
+        throw new NameNotFoundException(this.resources.getString("WinstoneContext.NameNotFound", thisName.toString()));
+        
       // If it's not in this level and what we found is not a context, complain
       else if (!(thisValue instanceof Context)) 
-        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", thisName.toString()));
+        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", 
+            new String[] {thisName.toString(), thisValue.getClass().getName()}));
       
       // Open the context, perform a lookup, then close the context we opened
       else
@@ -224,8 +228,11 @@ public class WinstoneContext implements Context
           {return ((Context) ctx).list(new CompositeName(""));}
         finally
           {((Context) ctx).close();}
+      else if (ctx == null)
+        throw new NameNotFoundException(this.resources.getString("WinstoneContext.NameNotFound", searchName.toString()));
       else
-        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", searchName.toString()));
+        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", 
+            new String[] {searchName.toString(), ctx.getClass().getName()}));
     }
   }
   public NamingEnumeration list(String name) throws NamingException 
@@ -256,8 +263,11 @@ public class WinstoneContext implements Context
           {return ((Context) ctx).listBindings(new CompositeName(""));}
         finally
           {((Context) ctx).close();}
+      else if (ctx == null)
+        throw new NameNotFoundException(this.resources.getString("WinstoneContext.NameNotFound", searchName.toString()));
       else
-        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", searchName.toString()));
+        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", 
+            new String[] {searchName.toString(), ctx.getClass().getName()}));
     }
   }
   public NamingEnumeration listBindings(String name) throws NamingException
@@ -299,7 +309,10 @@ public class WinstoneContext implements Context
     {
       Object ctx = lookup(bindName.get(0));
       if (!(ctx instanceof Context))
-        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", bindName.get(0)));
+        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", 
+            new String[] {bindName.get(0), ctx.getClass().getName()}));
+      else if (ctx == null)
+        throw new NameNotFoundException(this.resources.getString("WinstoneContext.NameNotFound", bindName.get(0)));
       else try
       {
         if (allowOverwrites)
@@ -340,7 +353,10 @@ public class WinstoneContext implements Context
     {
       Object ctx = lookup(unbindName.get(0));
       if (!(ctx instanceof Context))
-        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", unbindName.get(0)));
+        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", 
+            new String[] {unbindName.get(0), ctx.getClass().getName()}));
+      else if (ctx == null)
+        throw new NameNotFoundException(this.resources.getString("WinstoneContext.NameNotFound", unbindName.get(0)));
       else try
         {((Context) ctx).unbind(unbindName.getSuffix(1));}
       finally
@@ -379,7 +395,10 @@ public class WinstoneContext implements Context
     {
       Object ctx = lookup(childName.get(0));
       if (!(ctx instanceof Context))
-        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", childName.get(0)));
+        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", 
+            new String[] {childName.get(0), ctx.getClass().getName()}));
+      else if (ctx == null)
+        throw new NameNotFoundException(this.resources.getString("WinstoneContext.NameNotFound", childName.get(0)));
       else try
         {((Context) ctx).createSubcontext(childName.getSuffix(1));}
       finally
@@ -422,7 +441,10 @@ public class WinstoneContext implements Context
     {
       Object ctx = lookup(childName.get(0));
       if (!(ctx instanceof Context))
-        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", childName.get(0)));
+        throw new NotContextException(this.resources.getString("WinstoneContext.NotContext", 
+            new String[] {childName.get(0), ctx.getClass().getName()}));
+      else if (ctx == null)
+        throw new NameNotFoundException(this.resources.getString("WinstoneContext.NameNotFound", childName.get(0)));
       else try
         {((Context) ctx).destroySubcontext(childName.getSuffix(1));}
       finally
