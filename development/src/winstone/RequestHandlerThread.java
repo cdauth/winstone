@@ -218,16 +218,17 @@ public class RequestHandlerThread implements Runnable
   private void processRequest(WinstoneRequest req, WinstoneResponse rsp, String path)
     throws IOException, ServletException
   {
-    RequestDispatcher rd = this.webAppConfig.getInitialDispatcher(path, req);
+    RequestDispatcher rd = null;
     try
     {
+      rd = this.webAppConfig.getInitialDispatcher(path, req, rsp);
+      
+      // Null RD means we have been redirected to a welcome page, so ignore quietly
       if (rd != null)
       {
         Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.HandlingRD") + ((RequestDispatcher) rd).getName());
         rd.forward(req, rsp);
       }
-      else
-        Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.NullRD"));
     }
     catch (Throwable err)
     {

@@ -674,7 +674,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
       sessionAttributeListeners.toArray(
         new HttpSessionAttributeListener[sessionAttributeListeners.size()]);
     this.sessionListeners = (HttpSessionListener []) sessionListeners.toArray(
-        new HttpSessionListener[sessionListeners.size()]);
+      new HttpSessionListener[sessionListeners.size()]);
 
     // If we haven't explicitly mapped the default servlet, map it here
     if (this.defaultServletName == null)
@@ -742,6 +742,10 @@ public class WebAppConfiguration implements ServletContext, Comparator
     for (int n = 0; n < this.contextListeners.length; n++)
       this.contextListeners[n].contextInitialized(new ServletContextEvent(this));
 
+    // Initialise all the filters 
+    for (Iterator i = this.filterInstances.values().iterator(); i.hasNext(); )
+      ((FilterConfiguration) i.next()).getFilter();
+    
     // Initialise load on startup servlets
     Object autoStarters[] = startupServlets.toArray();
     Arrays.sort(autoStarters);
@@ -877,7 +881,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
         return (ServletConfiguration) this.servletInstances.get(urlPattern.getMappedTo());
     }
 
-    // return null, which indicates this should be handled by default servlet
+    // return default servlet
     //servletPath.append("");  // unneeded
     pathInfo.append(path);
     return (ServletConfiguration) this.servletInstances.get(this.defaultServletName);
@@ -1067,7 +1071,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
    * setting any of the request attributes for a forward.
    */
   public RequestDispatcher getInitialDispatcher(String uriInsideWebapp,
-      WinstoneRequest request)
+      WinstoneRequest request, WinstoneResponse response) throws IOException
   {
     if (!uriInsideWebapp.equals("") && !uriInsideWebapp.startsWith("/"))
       return null;
@@ -1088,6 +1092,43 @@ public class WebAppConfiguration implements ServletContext, Comparator
     ServletConfiguration servlet = urlMatch(uriInsideWebapp, servletPath, pathInfo);
     if (servlet != null)
     {
+      // If the default servlet was returned, we should check for welcome files
+      if (servlet.equals(this.servletInstances.get(this.defaultServletName)))
+      {
+        // Is path a directory ?
+        String directoryPath = pathInfo.toString();
+        if (directoryPath.endsWith("/"))
+          directoryPath = directoryPath.substring(0, directoryPath.length() - 1);
+        if (directoryPath.startsWith("/"))
+          directoryPath = directoryPath.substring(1);
+
+        File res = new File(webRoot, directoryPath);
+        if (res.exists() && res.isDirectory())
+        {
+          // Check for the send back with slash case
+          if (!pathInfo.toString().endsWith("/"))
+          {
+            Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.FoundNonSlashDirectory", 
+                "[#path]", pathInfo.toString()));
+            response.sendRedirect(this.prefix + servletPath.toString() + pathInfo.toString() + 
+                "/" + (queryString.equals("") ? "" : "?" + queryString));
+            return null;
+          }
+
+          // Check for welcome files
+          Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.CheckWelcomeFile", 
+              "[#path]", servletPath.toString() + pathInfo.toString()));
+          String welcomeFile = matchWelcomeFiles(servletPath.toString() + pathInfo.toString(), request);
+          if (welcomeFile != null)
+          {
+            response.sendRedirect(this.prefix + servletPath.toString() + pathInfo.toString() +
+                welcomeFile + (queryString.equals("") ? "" : "?" + queryString));
+            return null;
+          }
+        }
+      }
+
+      // Otherwise process as normal
       request.setQueryString(queryString);
       // parse params here ? yes for now
       request.getParameters().putAll(WinstoneRequest.extractParameters(queryString, request.getEncoding(), resources));
@@ -1099,7 +1140,11 @@ public class WebAppConfiguration implements ServletContext, Comparator
           uriInsideWebapp, this.filterPatternsRequest, this.authenticationHandler);
       return rd;
     }
-    else return null;
+    else
+    {
+      Logger.log(Logger.ERROR, resources.getString("WebAppConfig.NullRD"));
+      return null;
+    }
   }
 
   /**
@@ -1137,7 +1182,36 @@ public class WebAppConfiguration implements ServletContext, Comparator
     }
     else return null;
   }
+  
+  /**
+   * Check if any of the welcome files under this path are available
+   */
+  private String matchWelcomeFiles(String path, WinstoneRequest request)
+  {
+    ServletConfiguration defaultServlet = (ServletConfiguration) 
+            this.servletInstances.get(this.defaultServletName);
+    Set subfiles = getResourcePaths(path);
+    for (int n = 0; n < this.welcomeFiles.length; n++)
+    {
+      String exact = (String) this.exactServletMatchMounts.get(path);
+      if (exact != null)
+        return this.welcomeFiles[n];
+      
+      // Inexact folder mount check - note folder mounts only
+      for (int j = 0; j < this.patternMatches.length; j++)
+      {
+        Mapping urlPattern = (Mapping) this.patternMatches[j];
+        if ((urlPattern.getPatternType() == Mapping.FOLDER_PATTERN) &&
+            urlPattern.match(path + this.welcomeFiles[n], null, null))
+          return this.welcomeFiles[n];
+      }
 
+      if (subfiles.contains(path + this.welcomeFiles[n]))
+        return this.welcomeFiles[n];      
+    }
+    return null;
+  }
+  
   // Getting resources via the classloader
   public URL getResource(String path)
   {
@@ -1146,7 +1220,12 @@ public class WebAppConfiguration implements ServletContext, Comparator
     else if (!path.startsWith("/"))
       throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath", "[#path]", path));      
   	else try
-      {return new File(webRoot, path.substring(1)).toURL();}
+    {
+      if (path.endsWith("/"))
+        path = path.substring(0, path.length() - 1);
+      File res = new File(webRoot, path.substring(1));
+      return (res != null) && res.exists() ? res.toURL() : null;
+    }
     catch (MalformedURLException err)
       {throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath", "[#path]", path), err);}
   }
@@ -1154,7 +1233,10 @@ public class WebAppConfiguration implements ServletContext, Comparator
   public InputStream getResourceAsStream(String path)
   {
     try
-      {return this.getResource(path).openStream();}
+    {
+      URL res = this.getResource(path);
+      return res == null ? null : res.openStream();
+    }
     catch (IOException err)
       {throw new WinstoneException(resources.getString("WebAppConfig.ErrorOpeningStream"), err);}
   }
@@ -1205,7 +1287,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
       Set out = new HashSet();
       for (int n = 0; n < children.length; n++)
       {
-        // Write the entry as prefix + subpath + child element
+        // Write the entry as subpath + child element
         String entry = //this.prefix + 
         			"/" + (workingPath.length() != 0 ? workingPath + "/" : "") +
               children[n].getName() + (children[n].isDirectory() ? "/" : "");

@@ -125,10 +125,11 @@ public class StaticResourceServlet extends HttpServlet
       if (path.endsWith("/"))
       {
         // Try to match each of the welcome files
-        String matchedWelcome = matchWelcomeFiles(path, res);
-        if (matchedWelcome != null)
-          response.sendRedirect(this.prefix + path + matchedWelcome);
-        else if (this.directoryList)
+        //String matchedWelcome = matchWelcomeFiles(path, res);
+        //if (matchedWelcome != null)
+        //  response.sendRedirect(this.prefix + path + matchedWelcome);
+        //else 
+        if (this.directoryList)
           generateDirectoryList(request, response, path);
         else
           response.sendError(HttpServletResponse.SC_FORBIDDEN,
@@ -190,13 +191,13 @@ public class StaticResourceServlet extends HttpServlet
       out.close();
     }
   }
-
+/*
   private String matchWelcomeFiles(String path, File res)
   {
+    Set subfiles = getServletConfig().getServletContext().getResourcePaths(path);
     for (int n = 0; n < this.welcomeFiles.length; n++)
     {
       String welcomeFile = this.welcomeFiles[n];
-      Set subfiles = getServletConfig().getServletContext().getResourcePaths(path);
       Logger.log(Logger.DEBUG,
             this.resources.getString("StaticResourceServlet.TestingWelcomeFile",
               "[#welcomeFile]", path + welcomeFile));
@@ -205,7 +206,7 @@ public class StaticResourceServlet extends HttpServlet
     }
     return null;
   }
-
+*/
   /**
    * Generate a list of the files in this directory
    */

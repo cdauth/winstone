@@ -59,16 +59,13 @@ public class HttpListener implements Listener, Runnable
     // Load resources
     this.resources = resources;
     this.objectPool = objectPool;
-    this.listenPort = (args.get("httpPort") == null ? DEFAULT_PORT
-                          : Integer.parseInt((String) args.get("httpPort")));
-    if (args.get("httpListenAddress") != null)
-    	this.listenAddress = (String) args.get("httpListenAddress");
+    this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args, "httpPort", "" + DEFAULT_PORT));
+    this.listenAddress = WebAppConfiguration.stringArg(args, "httpListenAddress", null);
+    this.doHostnameLookups = WebAppConfiguration.booleanArg(args, "httpDoHostnameLookups", DEFAULT_HNL);
 
     if (this.listenPort < 0)
       throw new WinstoneException("disabling http connector");
 
-    String hnl = (String) args.get("httpDoHostnameLookups");
-    this.doHostnameLookups = (hnl == null ? DEFAULT_HNL : (hnl.equalsIgnoreCase("yes") || hnl.equalsIgnoreCase("true")));
     this.interrupted = false;
 
     Thread thread = new Thread(this);

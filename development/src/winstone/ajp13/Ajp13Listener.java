@@ -36,6 +36,7 @@ public class Ajp13Listener implements Listener, Runnable
   private int LISTENER_TIMEOUT = 5000; // every 5s reset the listener socket
   private int DEFAULT_PORT = 8009;
   private int CONNECTION_TIMEOUT = 60000;
+  private int BACKLOG_COUNT = 1000;
 
   private int KEEP_ALIVE_TIMEOUT   = -1;
   private int KEEP_ALIVE_SLEEP     = 50;
@@ -48,6 +49,7 @@ public class Ajp13Listener implements Listener, Runnable
   private ObjectPool objectPool;
   private int listenPort;
   private boolean interrupted;
+  private String listenAddress;
 
   /**
    * Constructor
@@ -59,9 +61,8 @@ public class Ajp13Listener implements Listener, Runnable
     this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
     this.objectPool = objectPool;
 
-    //this.arguments = args;
-    this.listenPort = (args.get("ajp13Port") == null ? DEFAULT_PORT
-                          : Integer.parseInt((String) args.get("ajp13Port")));
+    this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args, "ajp13Port", "" + DEFAULT_PORT));
+    this.listenAddress = WebAppConfiguration.stringArg(args, "ajp13ListenAddress", null);
 
     if (this.listenPort < 0)
       throw new WinstoneException("disabling ajp13 connector");
@@ -81,7 +82,10 @@ public class Ajp13Listener implements Listener, Runnable
   {
     try
     {
-      ServerSocket ss = new ServerSocket(this.listenPort);
+      ServerSocket ss = this.listenAddress == null 
+          ? new ServerSocket(this.listenPort, BACKLOG_COUNT)
+          : new ServerSocket(this.listenPort, BACKLOG_COUNT, 
+                    InetAddress.getByName(this.listenAddress));
       ss.setSoTimeout(LISTENER_TIMEOUT);
       Logger.log(Logger.INFO, localResources.getString("Ajp13Listener.StartupOK",
                               "[#port]", this.listenPort + ""));

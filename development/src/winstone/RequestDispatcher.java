@@ -335,7 +335,13 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
           "RequestDispatcher.ExecutingFilter", "[#filterName]", filterPattern.getMappedTo()));
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
-        filter.getFilter().doFilter(request, response, this);
+        try
+          {filter.getFilter().doFilter(request, response, this);}
+        catch (UnavailableException err)
+        {
+          filter.setUnavailable();
+          throw new ServletException(resources.getString("RequestDispatcher.FilterError"), err);
+        }
         Thread.currentThread().setContextClassLoader(cl);
         return;
       }
@@ -348,7 +354,13 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
           "RequestDispatcher.ExecutingFilter", "[#filterName]", filterPattern.getMappedTo()));
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
-        filter.getFilter().doFilter(request, response, this);
+        try
+          {filter.getFilter().doFilter(request, response, this);}
+        catch (UnavailableException err)
+        {
+          filter.setUnavailable();
+          throw new ServletException(resources.getString("RequestDispatcher.FilterError"), err);
+        }
         Thread.currentThread().setContextClassLoader(cl);
         return;
       }

@@ -20,6 +20,7 @@ package winstone;
 import java.io.*;
 import java.util.*;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 
@@ -513,24 +514,28 @@ public class WinstoneResponse implements HttpServletResponse
     {
       Class exceptionClasses[] = this.webAppConfig.getErrorPageExceptions();
       Map errorPages = this.webAppConfig.getErrorPagesByException();
-      for (int n = 0; n < exceptionClasses.length  && !found; n++)
-      {
-        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneResponse.TestingException", 
-            "[#exception]", exceptionClasses[n] + ""));
-        try
+      Throwable errWrapper = new ServletException("First time only", err);
+      while (!found && (errWrapper instanceof ServletException))
+        for (int n = 0; n < exceptionClasses.length  && !found; n++)
         {
-          if (exceptionClasses[n].isInstance(err))
+          errWrapper = ((ServletException) errWrapper).getRootCause();
+        
+          Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneResponse.TestingException", 
+            "[#exception]", exceptionClasses[n] + ""));
+          try
           {
-            javax.servlet.RequestDispatcher rd = this.webAppConfig
-              .getErrorDispatcher((String) errorPages.get(exceptionClasses[n]),
+            if (exceptionClasses[n].isInstance(err))
+            {
+              javax.servlet.RequestDispatcher rd = this.webAppConfig
+                .getErrorDispatcher((String) errorPages.get(exceptionClasses[n]),
                   new Integer(SC_INTERNAL_SERVER_ERROR), err, throwingServletName,
                   req.getRequestURI());
-            found = true;
-            rd.forward(req, this);
+              found = true;
+              rd.forward(req, this);
+            }
           }
+          catch (Throwable err2) {/* Skipping */}
         }
-        catch (Throwable err2) {/* Skipping */}
-      }
     }
 
     // Fall through to the default page if no webapp or no errorPage tags

@@ -23,6 +23,7 @@ import org.w3c.dom.Node;
 import java.util.*;
 import javax.servlet.ServletContext;
 import javax.servlet.Filter;
+import javax.servlet.UnavailableException;
 
 /**
  * Corresponds to a filter object in the web app. Holds one instance only.
@@ -45,6 +46,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
   private Map initParameters;
   private ServletContext context;
   private ClassLoader loader;
+  private boolean unavailableException;
 
   private WinstoneResourceBundle resources;
   private Object filterSemaphore = new Boolean(true);
@@ -114,7 +116,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
   {
     synchronized (this.filterSemaphore)
     {
-      if (this.instance == null)
+      if ((this.instance == null) && !isUnavailable())
       try
       {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -130,11 +132,20 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
         this.instance.init(this);
         Thread.currentThread().setContextClassLoader(cl);
       }
-      catch (javax.servlet.ServletException err)
-        {Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.InitError") + this.filterName +
-                                          " - " + this.classFile, err);}
-      catch (Throwable err)
+      catch (ClassNotFoundException err)
         {Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.ClassLoadError") + this.classFile, err);}
+      catch (IllegalAccessException err)
+        {Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.ClassLoadError") + this.classFile, err);}
+      catch (InstantiationException err)
+        {Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.ClassLoadError") + this.classFile, err);}
+      catch (javax.servlet.ServletException err)
+      {
+        this.instance = null;
+        Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.InitError") + this.filterName +
+                                          " - " + this.classFile, err);
+        if (err instanceof UnavailableException)
+          setUnavailable();
+      }
     }
     return this.instance;
   }
@@ -161,6 +172,16 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
   {
     return this.resources.getString("FilterConfiguration.Description",
       "[#name]", this.filterName, "[#class]", this.classFile);
+  }
+  
+  public boolean isUnavailable() {return this.unavailableException;}
+  
+  public void setUnavailable() 
+  {
+    this.unavailableException = true;
+    if (this.instance != null)
+      this.instance.destroy();
+    this.instance = null;
   }
 }
 
