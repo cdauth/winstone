@@ -20,6 +20,7 @@ package winstone.testCase.load;
 import java.io.IOException;
 import java.util.*;
 import winstone.*;
+import com.meterware.httpunit.*;
 
 /**
  * This class is an attempt to benchmark performance under load for winstone.
@@ -39,6 +40,8 @@ public class LoadTest
   private int endThreads;
   private int stepSize;
   private long stepPeriod;
+  private long successTimeTotal;
+  private int successCount;
   private WinstoneResourceBundle resources; 
   private static String LOCAL_RESOURCE_FILE = "winstone.testCase.load.LocalStrings";
   
@@ -60,42 +63,44 @@ public class LoadTest
   
   public void test() throws InterruptedException
   {
+    WebConversation wc = null;
+    
     // Loop through in steps
-    for (int n = this.startThreads; n < this.endThreads; n += this.stepSize)
+    for (int n = this.startThreads; n <= this.endThreads; n += this.stepSize)
     {
+      if (this.useKeepAlives)
+        wc = new WebConversation();
+      
       // Spawn the threads
+      int noOfSeconds = (int) this.stepPeriod / 1000;
       List threads = new ArrayList();
       for (int m = 0; m < n; m++) 
-        threads.add(new LoadTestThread(this.url, this.useKeepAlives, 
-            (int) this.stepPeriod / 1000, this.resources));
+        threads.add(new LoadTestThread(this.url, this, this.resources, wc, noOfSeconds - 1));
       
       // Sleep for step period
-      Thread.sleep(this.stepPeriod + 5000);
+      Thread.sleep(this.stepPeriod + 10000);
       
-      // Count the errors
-      int errorCount = 0;
-      int successCount = 0;
-      long successTimeTotal = 0;
-      for (Iterator i = threads.iterator(); i.hasNext(); )
-      {
-        LoadTestThread ltt = (LoadTestThread) i.next();
-        errorCount += ltt.getErrorCount();
-        successCount += ltt.getSuccessCount();
-        successTimeTotal += ltt.getSuccessTime();
-      }
-      
-      Long averageSuccessTime = successCount == 0 ? null :
-        new Long(successTimeTotal / successCount);
+      int errorCount = (noOfSeconds * n) - this.successCount;
+      Long averageSuccessTime = this.successCount == 0 ? null :
+        new Long(this.successTimeTotal / this.successCount);
       
       // Write out results
       Logger.log(Logger.INFO, resources, "LoadTest.LineResult", new String[] {n + "",
-          successCount + "", errorCount + "", averageSuccessTime + ""});
+          this.successCount + "", ((noOfSeconds * n) - this.successCount) + "", 
+          averageSuccessTime + ""});
       
       // Close threads
       for (Iterator i = threads.iterator(); i.hasNext(); )
         ((LoadTestThread) i.next()).destroy();
+      
+      this.successTimeTotal = 0;
+      this.successCount = 0;
+
     }
   }
+  
+  public void incTimeTotal(long amount) {this.successTimeTotal += amount;}
+  public void incSuccessCount() {this.successCount++;}
   
   public static void main(String args[]) throws Exception
   {

@@ -34,6 +34,8 @@ public class ObjectPool
   private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 50;
   private int MAX_REQUEST_HANDLERS_IN_POOL = 1000;
 
+  private long RETRY_PERIOD = 1000;
+  
   private int START_REQUESTS_IN_POOL  = 10;
   private int MAX_REQUESTS_IN_POOL    = 1000;
 
@@ -161,15 +163,38 @@ public class ObjectPool
       {
         // Possibly insert a second chance here ? Delay and one retry ?
         // Remember to release the lock first
-        Logger.log(Logger.WARNING, resources, "ObjectPool.NoRHPoolThreads");
+        Logger.log(Logger.WARNING, resources, "ObjectPool.NoRHPoolThreadsRetry");
         socket.close();
-        return;
         //throw new UnavailableException("NoHandlersAvailable");
       }
     }
     
     if (rh != null)
       rh.commenceRequestHandling(socket, listener);
+    else
+    {
+      // Sleep for a set period and try again from the pool
+      Thread.sleep(RETRY_PERIOD);
+      
+      synchronized (this.requestHandlerSemaphore)
+      {
+        if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL)
+        {
+          rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
+          this.usedRequestHandlerThreads.add(rh);
+          Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.NewRHPoolThread",
+              new String[] {"" + this.usedRequestHandlerThreads.size(),
+                            "" + this.unusedRequestHandlerThreads.size()});
+        }
+      }
+      if (rh != null)
+        rh.commenceRequestHandling(socket, listener);
+      else
+      {
+        Logger.log(Logger.WARNING, resources, "ObjectPool.NoRHPoolThreads");
+        socket.close();
+      }
+    }
   }
 
   /**

@@ -31,81 +31,73 @@ public class LoadTestThread implements Runnable
 {
   private WinstoneResourceBundle resources;
   private String url;
-  private boolean keepAlive;
-  private int expectedTotal;
-  private int successCount;
-  private long successTimeTotal;
-  private boolean interrupted;
+  private long delayBeforeStarting;
+  private LoadTest loadTest;
+  private WebConversation webConv;
   private Thread thread;
+  private LoadTestThread next;
   
-  public LoadTestThread(String url, boolean keepAlive, int expectedTotal,
-      WinstoneResourceBundle resources)
+  public LoadTestThread(String url, LoadTest loadTest,
+      WinstoneResourceBundle resources, WebConversation webConv, int delayedThreads)
   {
     this.resources = resources;
     this.url = url;
-    this.keepAlive = keepAlive;
-    this.expectedTotal = expectedTotal;
-    this.interrupted = false;
+    this.loadTest = loadTest;
+    this.webConv = webConv;
+    this.delayBeforeStarting = 1000 * delayedThreads;
     this.thread = new Thread(this);
     this.thread.setDaemon(true);
     this.thread.start();
+    
+    // Launch the next second's getter
+    if (delayedThreads > 0)
+      this.next = new LoadTestThread(url, loadTest, resources, webConv, delayedThreads - 1);
   }
   
   public void run() 
   {
-    WebConversation wc = null;
-    for (int n = 0; (n < this.expectedTotal) && !this.interrupted; n++)
+    if (this.delayBeforeStarting > 0)
+      try {Thread.sleep(this.delayBeforeStarting);}
+      catch (InterruptedException err) {}
+    
+    long startTime = System.currentTimeMillis();
+    
+    try
     {
-      long startTime = System.currentTimeMillis();
+      if (this.webConv == null)
+        this.webConv = new WebConversation();
       
-      try
-      {
-        if (!this.keepAlive || (wc == null))
-          wc = new WebConversation();
-        
-        // Access the URL
-        WebRequest wreq = new GetMethodWebRequest(this.url);
-        WebResponse wresp = wc.getResponse(wreq);
-        int responseCode = wresp.getResponseCode();
-        if (responseCode >= 400)
-          throw new IOException("Failed with status " + responseCode);
-        InputStream inContent = wresp.getInputStream();
-        int contentLength = wresp.getContentLength() == -1 ? inContent.available() : wresp.getContentLength();
-        byte content[] = new byte[contentLength];
-        int position = 0;
-        while (position < contentLength)
-          position += inContent.read(content, position, contentLength - position);
-        inContent.close();
-  
-        // Confirm the result is the same size the content-length said it was
-        if (position == contentLength)
-        {
-          this.successTimeTotal += (System.currentTimeMillis() - startTime);
-          this.successCount++;
-        }
-        else
-          throw new IOException("Only downloaded " + position + " of " + contentLength + " bytes");
-      }
-      catch (IOException err) {Logger.log(Logger.DEBUG, resources, "LoadTestThread.Error", err);}
-      catch (SAXException err) {Logger.log(Logger.DEBUG, resources, "LoadTestThread.Error", err);}
+      // Access the URL
+      WebRequest wreq = new GetMethodWebRequest(this.url);
+      WebResponse wresp = this.webConv.getResponse(wreq);
+      int responseCode = wresp.getResponseCode();
+      if (responseCode >= 400)
+        throw new IOException("Failed with status " + responseCode);
+      InputStream inContent = wresp.getInputStream();
+      int contentLength = wresp.getContentLength() == -1 ? inContent.available() : wresp.getContentLength();
+      byte content[] = new byte[contentLength];
+      int position = 0;
+      while (position < contentLength)
+        position += inContent.read(content, position, contentLength - position);
+      inContent.close();
 
-      try
+      // Confirm the result is the same size the content-length said it was
+      if (position == contentLength)
       {
-        // Make it sleep the rest of the second
-        if (System.currentTimeMillis() - startTime < 980)
-          Thread.sleep(1000 - (System.currentTimeMillis() - startTime));
+        this.loadTest.incTimeTotal(System.currentTimeMillis() - startTime);
+        this.loadTest.incSuccessCount();
       }
-      catch (InterruptedException err) {this.interrupted = true;}
+      else
+        throw new IOException("Only downloaded " + position + " of " + contentLength + " bytes");
     }
+    catch (IOException err) {Logger.log(Logger.DEBUG, resources, "LoadTestThread.Error", err);}
+    catch (SAXException err) {Logger.log(Logger.DEBUG, resources, "LoadTestThread.Error", err);}
   }
   
   public void destroy() 
   {
-    this.interrupted = true;
     this.thread.interrupt();
+    if (this.next != null)
+      this.next.destroy();
   }
-  
-  public long getSuccessTime() {return this.successTimeTotal;}
-  public int getSuccessCount() {return this.successCount;}
-  public int getErrorCount() {return this.expectedTotal - this.successCount;}
 }
