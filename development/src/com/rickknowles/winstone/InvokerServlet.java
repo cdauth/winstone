@@ -122,8 +122,8 @@ public class InvokerServlet extends HttpServlet
               new Hashtable(), -1);
           this.mountedInstances.put(pathName, sc);
           Logger.log(Logger.DEBUG, this.resources.getString("InvokerServlet.MountingServlet",
-              "[#className]", className));
-          sc.getRequestDispatcher(pathName);
+              "[#className]", className, "[#invokerName]", getServletConfig().getServletName()));
+          sc.getRequestDispatcher(pathName, null, null);
         }
         catch (Throwable err) {/* Ignore, just return a null instance */}
       }
@@ -146,7 +146,7 @@ public class InvokerServlet extends HttpServlet
       rsp.sendError(rsp.SC_NOT_FOUND, errMsg);
     }
     else
-      invokedServlet.getRequestDispatcher(localPath).forward(req, rsp);
+      invokedServlet.getRequestDispatcher(localPath, null, null).forward(req, rsp);
   }
 
   protected void doPost(HttpServletRequest req, HttpServletResponse rsp)
@@ -161,7 +161,7 @@ public class InvokerServlet extends HttpServlet
         this.resources.getString("InvokerServlet.NoMatchingServletFound",
                                  "[#requestURI]", req.getRequestURI()));
     else
-      invokedServlet.getRequestDispatcher(localPath).forward(req, rsp);
+      invokedServlet.getRequestDispatcher(localPath, null, null).forward(req, rsp);
   }
 
 }

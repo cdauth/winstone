@@ -45,8 +45,12 @@ public class WebAppConfiguration implements ServletContext
   final String ELEM_DESCRIPTION     = "description";
   final String ELEM_DISPLAY_NAME    = "display-name";
   final String ELEM_SERVLET         = "servlet";
-  final String ELEM_MAPPING         = "servlet-mapping";
+  final String ELEM_SERVLET_MAPPING = "servlet-mapping";
   final String ELEM_SERVLET_NAME    = "servlet-name";
+  final String ELEM_FILTER          = "filter";
+  final String ELEM_FILTER_MAPPING  = "filter-mapping";
+  final String ELEM_FILTER_NAME     = "filter-name";
+
   final String ELEM_URL_PATTERN     = "url-pattern";
   final String ELEM_WELCOME_FILES   = "welcome-file-list";
   final String ELEM_WELCOME_FILE    = "welcome-file";
@@ -62,7 +66,7 @@ public class WebAppConfiguration implements ServletContext
   final String ELEM_LISTENER_CLASS  = "listener-class";
   final String ELEM_DISTRIBUTABLE   = "distributable";
 
-  final String STAR = "*";
+  static final String STAR = "*";
   final String WEBAPP_LOGSTREAM = "WebApp";
   
   final String JSP_SERVLET_NAME       = "JspServlet";
@@ -70,8 +74,11 @@ public class WebAppConfiguration implements ServletContext
   final String JSP_SERVLET_CLASS      = "org.apache.jasper.servlet.JspServlet";
   final String JSP_SERVLET_LOG_LEVEL  = "WARNING";
 
-  final String INVOKER_SERVLET_NAME   = "InvokerServlet";
+  final String INVOKER_SERVLET_NAME   = "invoker";
   final String INVOKER_SERVLET_CLASS  = "com.rickknowles.winstone.InvokerServlet";
+
+  final String STATIC_SERVLET_NAME   = "default";
+  final String STATIC_SERVLET_CLASS  = "com.rickknowles.winstone.StaticResourceServlet";
 
   private WinstoneResourceBundle resources;
 
@@ -88,7 +95,7 @@ public class WebAppConfiguration implements ServletContext
   private Map   mimeTypes;
 
   private Map   servletInstances;
-  private Map   exactMatchMounts;
+  private Map   filterInstances;
 
   private List contextAttributeListeners;
   private List contextListeners;
@@ -96,8 +103,11 @@ public class WebAppConfiguration implements ServletContext
   private List sessionAttributeListeners;
   private List sessionListeners;
 
-  private String  patterns[];
-  private String  patternMounts[];
+  private Map     exactServletMatchMounts;
+  private String  servletPatterns[];
+  private String  servletPatternMounts[];
+
+  private String  filterPatterns[];
 
   private String  welcomeFiles[];
   private Integer sessionTimeout;
@@ -121,17 +131,16 @@ public class WebAppConfiguration implements ServletContext
     this.webRoot = webRoot;
     this.prefix = (prefix != null ? prefix : "");
     this.contextName = WEBAPP_LOGSTREAM;
-    this.loader = (useWinstoneClassLoader ? new WinstoneClassLoader(webRoot,
-                                                                   this.getClass().getClassLoader(),
-                                                                   this.resources)
-                                         : this.getClass().getClassLoader());
+    this.loader = (useWinstoneClassLoader
+      ? new WinstoneClassLoader(webRoot, this.getClass().getClassLoader(), this.resources)
+      : this.getClass().getClassLoader());
 
     this.attributes = new Hashtable();
     this.initParameters = new Hashtable();
     this.sessions = new Hashtable();
 
     this.servletInstances = new Hashtable();
-    this.exactMatchMounts = new Hashtable();
+    this.filterInstances = new Hashtable();
 
     this.contextAttributeListeners = new ArrayList();
     this.contextListeners = new ArrayList();
@@ -141,10 +150,12 @@ public class WebAppConfiguration implements ServletContext
 
     this.distributable = false;
 
-    List localPatterns = new ArrayList();
-    List localPatternMounts = new ArrayList();
-    List localWelcomeFiles = new ArrayList();
+    this.exactServletMatchMounts = new Hashtable();
+    List localServletPatterns = new ArrayList();
+    List localServletPatternMounts = new ArrayList();
+    List localFilterPatterns = new ArrayList();
 
+    List localWelcomeFiles = new ArrayList();
     List startupServlets = new ArrayList();
 
     // Initialise jasper servlet if requested
@@ -163,7 +174,8 @@ public class WebAppConfiguration implements ServletContext
         JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
       this.servletInstances.put(JSP_SERVLET_NAME, sc);
       startupServlets.add(sc);
-      processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, localPatterns, localPatternMounts);
+      processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, this.exactServletMatchMounts,
+                     localServletPatterns, localServletPatternMounts);
     }
 
     // Initialise invoker servlet if requested
@@ -175,7 +187,8 @@ public class WebAppConfiguration implements ServletContext
       ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
         INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams, 3);
       this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
-      processMapping(INVOKER_SERVLET_NAME, invokerPrefix + STAR, localPatterns, localPatternMounts);
+      processMapping(INVOKER_SERVLET_NAME, invokerPrefix + STAR, this.exactServletMatchMounts,
+                     localServletPatterns, localServletPatternMounts);
     }
 
     // init mimeTypes set
@@ -229,6 +242,13 @@ public class WebAppConfiguration implements ServletContext
         }
 
         // Construct the servlet instances
+        else if (nodeName.equals(ELEM_FILTER))
+        {
+          FilterConfiguration instance = new FilterConfiguration(this, this.loader, this.resources, child);
+          this.filterInstances.put(instance.getFilterName(), instance);
+        }
+
+        // Construct the servlet instances
         else if (nodeName.equals(ELEM_LISTENER))
         {
           String listenerClass = null;
@@ -261,7 +281,7 @@ public class WebAppConfiguration implements ServletContext
         }
 
         // Process the servlet mappings
-        else if (nodeName.equals(ELEM_MAPPING))
+        else if (nodeName.equals(ELEM_SERVLET_MAPPING))
         {
           String name    = null;
           String pattern = null;
@@ -278,7 +298,32 @@ public class WebAppConfiguration implements ServletContext
             else if (mapNodeName.equals(ELEM_URL_PATTERN))
               pattern = mapChild.getFirstChild().getNodeValue().trim();
           }
-          processMapping(name, pattern, localPatterns, localPatternMounts);
+          processMapping(name, pattern, this.exactServletMatchMounts, localServletPatterns, localServletPatternMounts);
+        }
+
+        // Process the servlet mappings
+        else if (nodeName.equals(ELEM_FILTER_MAPPING))
+        {
+          String filterName  = null;
+          String servletName = null;
+          String urlPattern  = null;
+
+          // Parse the element and extract
+          for (int k = 0; k < child.getChildNodes().getLength(); k++)
+          {
+            Node mapChild = child.getChildNodes().item(k);
+            if (mapChild.getNodeType() != Node.ELEMENT_NODE)
+              continue;
+            String mapNodeName = mapChild.getNodeName();
+            if (mapNodeName.equals(ELEM_FILTER_NAME))
+              filterName = mapChild.getFirstChild().getNodeValue().trim();
+            else if (mapNodeName.equals(ELEM_SERVLET_NAME))
+              servletName = mapChild.getFirstChild().getNodeValue().trim();
+            else if (mapNodeName.equals(ELEM_URL_PATTERN))
+              urlPattern = mapChild.getFirstChild().getNodeValue().trim();
+          }
+          localFilterPatterns.add((servletName == null ? "U:[" + urlPattern : "S:[" + servletName)
+                                  + "] F:[" + filterName + "]");
         }
 
         // Process the list of welcome files
@@ -343,10 +388,12 @@ public class WebAppConfiguration implements ServletContext
     // Take the elements out of the lists and build arrays
     this.welcomeFiles = (String []) localWelcomeFiles.toArray(
                                     new String[localWelcomeFiles.size()]);
-    this.patterns = (String []) localPatterns.toArray(
-                                    new String[localPatterns.size()]);
-    this.patternMounts = (String []) localPatternMounts.toArray(
-                                    new String[localPatternMounts.size()]);
+    this.servletPatterns = (String []) localServletPatterns.toArray(
+                                    new String[localServletPatterns.size()]);
+    this.servletPatternMounts = (String []) localServletPatternMounts.toArray(
+                                    new String[localServletPatternMounts.size()]);
+    this.filterPatterns = (String []) localFilterPatterns.toArray(
+                                    new String[localFilterPatterns.size()]);
 
     // Initialise static processor
     Map staticParams = new Hashtable();
@@ -357,19 +404,18 @@ public class WebAppConfiguration implements ServletContext
     for (int n = 0; n < this.welcomeFiles.length; n++)
       staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
     this.staticResourceProcessor = new ServletConfiguration(this, this.loader, this.resources,
-      "StaticResourceProcessor", "com.rickknowles.winstone.StaticResourceServlet", staticParams, 0);
-    this.staticResourceProcessor.getRequestDispatcher(null);
+      STATIC_SERVLET_NAME, STATIC_SERVLET_CLASS, staticParams, 0);
+    this.staticResourceProcessor.getRequestDispatcher(null, this.filterInstances, this.filterPatterns);
 
     // Initialise load on startup servlets
     Object autoStarters[] = startupServlets.toArray();
     Arrays.sort(autoStarters);
     for (int n = 0; n < autoStarters.length; n++)
-      ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null);
+      ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null, this.filterInstances, this.filterPatterns);
 
     // Send init notifies
     for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
       ((ServletContextListener) i.next()).contextInitialized(new ServletContextEvent(this));
-
   }
 
   public String getPrefix()         {return this.prefix;}
@@ -382,6 +428,8 @@ public class WebAppConfiguration implements ServletContext
    */
   public void destroy()
   {
+    for (Iterator i = this.filterInstances.values().iterator(); i.hasNext(); )
+      ((FilterConfiguration) i.next()).destroy();
     for (Iterator i = this.servletInstances.values().iterator(); i.hasNext(); )
       ((ServletConfiguration) i.next()).destroy();
 
@@ -393,7 +441,8 @@ public class WebAppConfiguration implements ServletContext
   /**
    * Here we process url patterns into the exactMatch and patternMatch map/list
    */
-  private void processMapping(String name, String pattern, List localPatterns, List localPatternMounts)
+  private void processMapping(String name, String pattern,
+      Map exactPatterns, List localPatterns, List localPatternMounts)
   {
     // If pattern contains asterisk, goes in pattern match, otherwise exact
     if ((pattern == null) || (name == null))
@@ -401,7 +450,7 @@ public class WebAppConfiguration implements ServletContext
                                           "[#name]", name, "[#pattern]", pattern));
     // exact mount
     else if (pattern.indexOf(STAR) == -1)
-      this.exactMatchMounts.put(pattern, name);
+      exactPatterns.put(pattern, name);
     // pattern mount - 1 star
     else if (pattern.indexOf(STAR) == pattern.lastIndexOf(STAR))
     {
@@ -438,14 +487,14 @@ public class WebAppConfiguration implements ServletContext
                                           "[#path]", path));
 
     // Check exact matches first
-    String exact = (String) this.exactMatchMounts.get(path);
+    String exact = (String) this.exactServletMatchMounts.get(path);
     if (exact != null)
       return (ServletConfiguration) this.servletInstances.get(exact);
 
     // Check pattern mounts
-    for (int n = 0; n < this.patterns.length; n++)
-      if (wildcardMatch(this.patterns[n], path))
-        return (ServletConfiguration) this.servletInstances.get(this.patternMounts[n]);
+    for (int n = 0; n < this.servletPatterns.length; n++)
+      if (wildcardMatch(this.servletPatterns[n], path))
+        return (ServletConfiguration) this.servletInstances.get(this.servletPatternMounts[n]);
 
     // return null, which indicates this should be handled as static content
     return null;
@@ -455,7 +504,7 @@ public class WebAppConfiguration implements ServletContext
    * Currently only processes simple-ish patterns (1 star at start, end, or middle,
    * and anything between 2 stars
    */
-  private boolean wildcardMatch(String pattern, String path)
+  public static boolean wildcardMatch(String pattern, String path)
   {
     int first = pattern.indexOf(STAR);
     int last = pattern.lastIndexOf(STAR);
@@ -463,7 +512,7 @@ public class WebAppConfiguration implements ServletContext
       return true;
     else if (first == last)
     {
-      if (first == pattern.length() - 1)
+      if (first == (pattern.length() - 1))
         return path.startsWith(pattern.substring(0, pattern.length() - STAR.length()));
       else if (first == 0)
         return path.endsWith(pattern.substring(STAR.length()));
@@ -473,27 +522,6 @@ public class WebAppConfiguration implements ServletContext
     }
     else
       return (path.indexOf(pattern.substring(first, last)) != -1);
-  }
-
-  private boolean fancyWildcardMatch(int type, String pattern, String path)
-  {
-    if (pattern == null)
-      return false;
-    else if (pattern.equals("*"))
-      return true;
-
-    int wcPos = pattern.indexOf('*');
-
-    // Where there are no wildcards left
-    if (wcPos == -1)
-      return path.equals(pattern);
-    else if (wcPos == 0)
-      return path.endsWith(pattern.substring(1));
-    else if (wcPos == pattern.length())
-      return path.startsWith(pattern.substring(0, wcPos));
-    else
-      return false; // for now - if I can find a decent recursive algorithm
-                    // for this kind of pattern match, add it here
   }
 
   public WinstoneSession makeNewSession(String sessionId)
@@ -546,7 +574,7 @@ public class WebAppConfiguration implements ServletContext
   // Server info
   public String getServerInfo() {return resources.getString("ServerVersion");}
   public int getMajorVersion()  {return 2;}
-  public int getMinorVersion()  {return 2;}
+  public int getMinorVersion()  {return 3;}
 
   // Weird mostly deprecated crap to do with getting servlet instances
   public javax.servlet.ServletContext getContext(String uri)  {return this;}
@@ -581,16 +609,16 @@ public class WebAppConfiguration implements ServletContext
   public javax.servlet.RequestDispatcher getNamedDispatcher(String name)
   {
     ServletConfiguration servlet = (ServletConfiguration) this.servletInstances.get(name);
-    return (servlet != null ? servlet.getRequestDispatcher(null) : null);
+    return (servlet != null ? servlet.getRequestDispatcher(null, this.filterInstances, this.filterPatterns) : null);
   }
 
   public javax.servlet.RequestDispatcher getRequestDispatcher(String path)
   {
     ServletConfiguration servlet = urlMatch(path);
     if (servlet != null)
-      return servlet.getRequestDispatcher(path);
+      return servlet.getRequestDispatcher(path, this.filterInstances, this.filterPatterns);
     else
-      return this.staticResourceProcessor.getRequestDispatcher(path);
+      return this.staticResourceProcessor.getRequestDispatcher(path, this.filterInstances, this.filterPatterns);
   }
 
   // Getting resources via the classloader

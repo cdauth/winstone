@@ -40,7 +40,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   final String ELEM_INIT_PARAM_VALUE  = "param-value";
   final String ELEM_LOAD_ON_STARTUP   = "load-on-startup";
 
-  private String name;
+  private String servletName;
   private String classFile;
   private Servlet instance;
   private Map initParameters;
@@ -65,7 +65,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   public ServletConfiguration(ServletContext webAppConfig,
                               ClassLoader loader,
                               WinstoneResourceBundle resources,
-                              String name,
+                              String servletName,
                               String className,
                               Map initParams,
                               int loadOnStartup)
@@ -73,7 +73,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     this(webAppConfig, loader, resources);
     if (initParams != null)
       this.initParameters.putAll(initParams);
-    this.name = name;
+    this.servletName = servletName;
     this.classFile = className;
     this.loadOnStartup = loadOnStartup;
   }
@@ -95,7 +95,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
 
       // Construct the servlet instances
       if (nodeName.equals(ELEM_NAME))
-        this.name = child.getFirstChild().getNodeValue().trim();
+        this.servletName = child.getFirstChild().getNodeValue().trim();
       else if (nodeName.equals(ELEM_CLASS))
         this.classFile = child.getFirstChild().getNodeValue().trim();
       else if (nodeName.equals(ELEM_LOAD_ON_STARTUP))
@@ -119,13 +119,15 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       }
     }
     Logger.log(Logger.FULL_DEBUG, resources.getString("ServletConfiguration.DeployedInstance",
-        "[#name]", this.name, "[#class]", this.classFile));
+        "[#name]", this.servletName, "[#class]", this.classFile));
   }
 
   /**
    * Implements the first-time-init of an instance, and wraps it in a dispatcher.
    */
-  public RequestDispatcher getRequestDispatcher(String requestedPath)
+  public RequestDispatcher getRequestDispatcher(String requestedPath,
+                                                Map filters,
+                                                String filterPatterns[])
   {
     synchronized (this.servletSemaphore)
     {
@@ -137,7 +139,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
 
         Class servletClass = Class.forName(classFile, true, this.loader);
         this.instance = (Servlet) servletClass.newInstance();
-        Logger.log(Logger.DEBUG, this.name + ": "
+        Logger.log(Logger.DEBUG, this.servletName + ": "
                     + resources.getString("ServletConfiguration.init")
                     //+ " (classloader: " + this.loader.getClass().getName() + ")"
                     );
@@ -153,17 +155,20 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       catch (InstantiationException err)
         {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
       catch (javax.servlet.ServletException err)
-        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.InitError") + this.name +
+        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.InitError") + this.servletName +
                                           " - " + this.classFile, err);}
     }
-    return new RequestDispatcher(this.instance, this.name, this.loader, this.servletSemaphore, requestedPath, this.resources);
+
+    // Build filter chain
+    return new RequestDispatcher(this.instance, this.servletName, this.loader,
+        this.servletSemaphore, requestedPath, this.resources, filters, filterPatterns);
   }
 
   public int getLoadOnStartup()               {return this.loadOnStartup;}
   public String getInitParameter(String name) {return (String) this.initParameters.get(name);}
   public Enumeration getInitParameterNames()  {return Collections.enumeration(this.initParameters.keySet());}
   public javax.servlet.ServletContext getServletContext() {return this.webAppConfig;}
-  public String getServletName()  {return this.name;}
+  public String getServletName()  {return this.servletName;}
 
   /**
    * This was included so that the servlet instances could be sorted on their
@@ -185,7 +190,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     {
       if (this.instance != null)
       {
-        Logger.log(Logger.DEBUG, this.name + ": " + resources.getString("ServletConfiguration.destroy"));
+        Logger.log(Logger.DEBUG, this.servletName + ": " + resources.getString("ServletConfiguration.destroy"));
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
         this.instance.destroy();

@@ -40,7 +40,7 @@ public class WinstoneResponse implements HttpServletResponse
   private int statusCode;
   private String protocol;
   private WinstoneRequest req;
-  private HttpConnector connector;
+  private HttpProtocol protocolClass;
   private WinstoneOutputStream outputStream;
   private List headers;
   private String encoding;
@@ -54,13 +54,13 @@ public class WinstoneResponse implements HttpServletResponse
    * Constructor
    */
   protected WinstoneResponse(WinstoneRequest req,
-                            OutputStream out,
-                            HttpConnector connector,
-                            WinstoneResourceBundle resources)
+                             OutputStream out,
+                             HttpProtocol protocolClass,
+                             WinstoneResourceBundle resources)
   {
     this.resources = resources;
     this.req = req;
-    this.connector = connector;
+    this.protocolClass = protocolClass;
     this.headers = new ArrayList();
     this.cookies = new ArrayList();
     this.encoding = req.getCharacterEncoding();
@@ -68,7 +68,7 @@ public class WinstoneResponse implements HttpServletResponse
 
     this.protocol = req.getProtocol();
     this.statusCode = SC_OK;
-    connector.validateHeaders(req, this);
+    protocolClass.validateHeaders(req, this);
     updateContentTypeHeader("text/html");
   }
 
@@ -87,7 +87,7 @@ public class WinstoneResponse implements HttpServletResponse
     }
     String header = sb.toString().substring(0, sb.length() - 1) +
                    (this.encoding == null ? "" : ";charset=" + this.encoding);
-    setHeader(this.connector.CONTENT_TYPE_HEADER, header);
+    setHeader(this.protocolClass.CONTENT_TYPE_HEADER, header);
   }
 
   /**
@@ -95,7 +95,7 @@ public class WinstoneResponse implements HttpServletResponse
    */
   public void verifyContentLength()
   {
-    String length = getHeader(this.connector.CONTENT_LENGTH_HEADER);
+    String length = getHeader(this.protocolClass.CONTENT_LENGTH_HEADER);
     if (length != null)
     {
       int contentLength = 0;
@@ -110,8 +110,8 @@ public class WinstoneResponse implements HttpServletResponse
 
   public void writeHeaders(PrintStream writeTo) throws IOException
   {
-    this.connector.writeHeaders(this.req, this, writeTo,
-                                this.headers, this.cookies);
+    this.protocolClass.writeHeaders(this.req, this, this.req.getWebAppConfig().getPrefix(),
+                                writeTo, this.headers, this.cookies);
   }
 
   // ServletResponse interface methods
@@ -129,14 +129,7 @@ public class WinstoneResponse implements HttpServletResponse
   public Locale getLocale() {Logger.log(Logger.WARNING, "Response locales not implemented"); return null;}
 
   public ServletOutputStream getOutputStream() throws IOException
-  {
-    //if (!this.outputStream.areHeadersWritten())
-    //{
-    //  this.connector.writeHeaders(this.req, this, this.outputStream, this.headers, this.cookies);
-    //  this.outputStream.setHeadersWritten(true);
-    //}
-    return this.outputStream;
-  }
+    {return this.outputStream;}
 
   public PrintWriter getWriter() throws IOException
   {
@@ -160,7 +153,7 @@ public class WinstoneResponse implements HttpServletResponse
   public boolean isCommitted() {return this.outputStream.isCommitted();}
   public void reset() {this.outWriter = null; this.outputStream.reset();}
   public void resetBuffer() {reset();}
-  public void setContentLength(int len) {setIntHeader(this.connector.CONTENT_LENGTH_HEADER, len);}
+  public void setContentLength(int len) {setIntHeader(this.protocolClass.CONTENT_LENGTH_HEADER, len);}
 
   // HttpServletResponse interface methods
   public void addCookie(Cookie cookie) {this.cookies.add(cookie);}
@@ -236,7 +229,7 @@ public class WinstoneResponse implements HttpServletResponse
   public void sendRedirect(String location) throws IOException
   {
     this.statusCode = HttpServletResponse.SC_MOVED_TEMPORARILY;
-    setHeader(this.connector.LOCATION_HEADER, location);
+    setHeader(this.protocolClass.LOCATION_HEADER, location);
     setContentLength(0);
     getWriter().close();
   }

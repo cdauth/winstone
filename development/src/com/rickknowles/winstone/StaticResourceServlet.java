@@ -108,7 +108,7 @@ public class StaticResourceServlet extends HttpServlet
 
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
     Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",
-              "[#path]", path));
+              "[#name]", getServletConfig().getServletName(), "[#path]", path));
 
     // Check for the resource
     File res = path.equals("") ? new File(this.webRoot) : new File(this.webRoot, path);
@@ -126,7 +126,7 @@ public class StaticResourceServlet extends HttpServlet
               "[#path]", path));
 
     // Check we are below the webroot
-    else if (path.toUpperCase().startsWith("/WEB-INF"))
+    else if (res.getCanonicalPath().startsWith(this.webRoot + "/WEB-INF"))
       response.sendError(response.SC_FORBIDDEN,
             this.resources.getString("StaticResourceServlet.PathInvalid",
               "[#path]", path));

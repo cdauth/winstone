@@ -53,7 +53,7 @@ public class WinstoneRequest implements HttpServletRequest
   private WinstoneInputStream inputData;
   private ServletConfiguration servletConfig;
   private WebAppConfiguration webappConfig;
-  private HttpConnector connector;
+  private HttpProtocol protocolClass;
   private String serverName;
   private int serverPort;
   private String remoteIP;
@@ -69,7 +69,7 @@ public class WinstoneRequest implements HttpServletRequest
    * InputStream factory method.
    */
   public WinstoneRequest(WinstoneInputStream inData,
-                         HttpConnector connector,
+                         HttpProtocol protocolClass,
                          WebAppConfiguration webappConfig,
                          WinstoneResourceBundle resources)
     throws IOException
@@ -77,7 +77,7 @@ public class WinstoneRequest implements HttpServletRequest
     this.resources = resources;
     this.webappConfig = webappConfig;
     this.inputData = inData;
-    this.connector = connector;
+    this.protocolClass = protocolClass;
     this.attributes = new Hashtable();
     this.parameters = new Hashtable();
     this.locales = new ArrayList();
@@ -147,7 +147,7 @@ public class WinstoneRequest implements HttpServletRequest
   public Enumeration getLocales() {return Collections.enumeration(this.locales);}
 
   public String getProtocol()             {return this.protocol;}
-  public String getScheme()               {return this.connector.getScheme();}
+  public String getScheme()               {return this.protocolClass.getScheme();}
   public boolean isSecure()               {return false;}
 
   public BufferedReader getReader() throws IOException
@@ -169,7 +169,7 @@ public class WinstoneRequest implements HttpServletRequest
 
   public String getParameter(String name)
   {
-    Boolean parsed = this.connector.parseRequestParameters(this.inputData,
+    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
                                                            this.parsedParameters,
                                                            this.method,
                                                            this.contentType,
@@ -189,7 +189,7 @@ public class WinstoneRequest implements HttpServletRequest
 
   public Enumeration getParameterNames()
   {
-    Boolean parsed = this.connector.parseRequestParameters(this.inputData,
+    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
                                                            this.parsedParameters,
                                                            this.method,
                                                            this.contentType,
@@ -201,7 +201,7 @@ public class WinstoneRequest implements HttpServletRequest
 
   public String[] getParameterValues(String name)
   {
-    Boolean parsed = this.connector.parseRequestParameters(this.inputData,
+    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
                                                            this.parsedParameters,
                                                            this.method,
                                                            this.contentType,
@@ -226,7 +226,7 @@ public class WinstoneRequest implements HttpServletRequest
 
   public Map getParameterMap()
   {
-    Boolean parsed = this.connector.parseRequestParameters(this.inputData,
+    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
                                                            this.parsedParameters,
                                                            this.method,
                                                            this.contentType,

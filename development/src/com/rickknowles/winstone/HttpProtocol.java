@@ -30,7 +30,7 @@ import javax.servlet.http.Cookie;
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class HttpConnector
+public class HttpProtocol
 {
   final char CR = '\r';
   final char LF = '\n';
@@ -63,7 +63,7 @@ public class HttpConnector
   private boolean doHostNameLookups;
   private WinstoneResourceBundle resources;
 
-  public HttpConnector(WinstoneResourceBundle resources, boolean doHostNameLookups)
+  public HttpProtocol(WinstoneResourceBundle resources, boolean doHostNameLookups)
   {
     this.doHostNameLookups = doHostNameLookups;
     this.resources = resources;
@@ -86,7 +86,7 @@ public class HttpConnector
     // Method
     int spacePos = uriLine.indexOf(' ');
     if (spacePos == -1)
-      throw new WinstoneException(resources.getString("HttpConnector.ErrorUriLine") + uriLine);
+      throw new WinstoneException(resources.getString("HttpProtocol.ErrorUriLine") + uriLine);
     String method = uriLine.substring(0, spacePos).toUpperCase();
     String servletURI = null;
     String fullURI = null;
@@ -181,12 +181,12 @@ public class HttpConnector
             Cookie thisCookie = new Cookie(cookieLine.substring(0, equalPos),
                                            cookieLine.substring(equalPos + 1));
             cookieList.add(thisCookie);
-            Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.CookieFound",
+            Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.CookieFound",
                   "[#cookieName]", thisCookie.getName(), "[#cookieValue]", thisCookie.getValue()));
             if (thisCookie.getName().equals(SESSION_COOKIE_NAME))
             {
               req.setSessionCookie(thisCookie.getValue());
-              Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.SessionCookieFound", "[#cookieValue]", thisCookie.getValue()));
+              Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.SessionCookieFound", "[#cookieValue]", thisCookie.getValue()));
             }
           }
         }
@@ -308,7 +308,7 @@ public class HttpConnector
    */
   private Map extractParameters(String urlEncodedParams)
   {
-    Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.ParsingParameters") + urlEncodedParams);
+    Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.ParsingParameters") + urlEncodedParams);
     Map params = new Hashtable();
     StringTokenizer st = new StringTokenizer(urlEncodedParams, "&", false);
     while (st.hasMoreTokens())
@@ -316,7 +316,7 @@ public class HttpConnector
       String token = st.nextToken();
       int equalPos = token.indexOf('=');
       if (equalPos == -1)
-        Logger.log(Logger.WARNING, resources.getString("HttpConnector.IgnoringBadParameter") + token);
+        Logger.log(Logger.WARNING, resources.getString("HttpProtocol.IgnoringBadParameter") + token);
       else try
       {
         String decodedName = decodeURLToken(token.substring(0, equalPos));
@@ -340,11 +340,11 @@ public class HttpConnector
           params.put(decodedName, oneMore);
         }
         else
-          Logger.log(Logger.WARNING, resources.getString("HttpConnector.UnknownParameterType",
+          Logger.log(Logger.WARNING, resources.getString("HttpProtocol.UnknownParameterType",
               "[#name]", decodedName + " = " + decodedValue.getClass()));
       }
       catch (Exception err)
-        {Logger.log(Logger.ERROR, resources.getString("HttpConnector.ErrorParameters"), err);}
+        {Logger.log(Logger.ERROR, resources.getString("HttpProtocol.ErrorParameters"), err);}
     }
     return params;
   }
@@ -385,13 +385,13 @@ public class HttpConnector
   {
     if ((parsedParameters != null) && !parsedParameters.booleanValue())
     {
-      Logger.log(Logger.WARNING, resources.getString("HttpConnector.BothMethodsCalled"));
+      Logger.log(Logger.WARNING, resources.getString("HttpProtocol.BothMethodsCalled"));
       return new Boolean(true);
     }
     else if (parsedParameters == null)
     try
     {
-      Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.ParsingBodyParameters"));
+      Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.ParsingBodyParameters"));
       if (method.equals(METHOD_POST) &&
           (contentType != null) && contentType.equals(POST_PARAMETERS))
       {
@@ -399,18 +399,18 @@ public class HttpConnector
         byte paramBuffer[] = new byte[contentLength];
         int readCount = inData.read(paramBuffer);
         if (readCount != contentLength)
-          Logger.log(Logger.WARNING, resources.getString("HttpConnector.IncorrectContentLength",
+          Logger.log(Logger.WARNING, resources.getString("HttpProtocol.IncorrectContentLength",
             "[#contentLength]", contentLength + "", "[#readCount]", readCount + ""));
         String paramLine = new String(paramBuffer);
         Map postParams = extractParameters(paramLine.trim());
-        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.ParamLine") + postParams);
+        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.ParamLine") + postParams);
         params.putAll(postParams);
       }
       return new Boolean(true);
     }
     catch (Throwable err)
     {
-      Logger.log(Logger.ERROR, resources.getString("HttpConnector.ErrorBodyParameters"), err);
+      Logger.log(Logger.ERROR, resources.getString("HttpProtocol.ErrorBodyParameters"), err);
       return null;
     }
     else
@@ -448,7 +448,7 @@ public class HttpConnector
       rsp.setDateHeader(DATE_HEADER, System.currentTimeMillis());
   }
 
-  public void writeHeaders(WinstoneRequest req, WinstoneResponse rsp,
+  public void writeHeaders(WinstoneRequest req, WinstoneResponse rsp, String prefix,
                            PrintStream outputStream, List headers, List cookies)
     throws IOException
   {
@@ -465,6 +465,7 @@ public class HttpConnector
         session.setIsNew(false);
         Cookie cookie = new Cookie(SESSION_COOKIE_NAME, sessionCookie);
         cookie.setMaxAge(-1);
+        cookie.setPath(prefix + "/");
         rsp.addCookie(cookie);
       }
     }
@@ -481,7 +482,7 @@ public class HttpConnector
         writeCookie((Cookie) i.next(), out);
     }
     out.append(CR_LF);
-    Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.OutHeaders") + out.toString());
+    Logger.log(Logger.FULL_DEBUG, resources.getString("HttpProtocol.OutHeaders") + out.toString());
     outputStream.print(out.toString());
   }
 

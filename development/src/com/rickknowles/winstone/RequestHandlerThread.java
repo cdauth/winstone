@@ -37,15 +37,13 @@ public class RequestHandlerThread implements Runnable
 
   final static int CONNECTION_TIMEOUT = 60000;
 
-  //private Thread thread;
   private Socket socket;
-  //private boolean continueFlag;
   private boolean killMe;
 
   private WebAppConfiguration webAppConfig;
-  private Listener listener;
+  private Launcher launcher;
   private String prefix;
-  private HttpConnector connector;
+  private HttpProtocol protocol;
 
   private WinstoneResourceBundle resources;
 
@@ -53,13 +51,13 @@ public class RequestHandlerThread implements Runnable
    * Constructor - this is called by the handler pool, and just sets up
    * for when a real request comes along.
    */
-  public RequestHandlerThread(WebAppConfiguration webAppConfig, Listener listener,
+  public RequestHandlerThread(WebAppConfiguration webAppConfig, Launcher launcher,
                               WinstoneResourceBundle resources, int threadIndex)
   {
     this.resources = resources;
     this.webAppConfig = webAppConfig;
     this.prefix = webAppConfig.getPrefix();
-    this.listener = listener;
+    this.launcher = launcher;
     this.killMe = false;
 
     // allocate a thread to run on this object
@@ -111,12 +109,12 @@ public class RequestHandlerThread implements Runnable
             String uriLine = new String(uriBuffer);
 
             // Make request / response
-            WinstoneRequest req = new WinstoneRequest(inData, this.connector, this.webAppConfig, this.resources);
-            WinstoneResponse rsp = new WinstoneResponse(req, out, this.connector, resources);
+            WinstoneRequest req = new WinstoneRequest(inData, this.protocol, this.webAppConfig, this.resources);
+            WinstoneResponse rsp = new WinstoneResponse(req, out, this.protocol, resources);
 
-            this.connector.parseSocketInfo(this.socket, req);
-            String servletURI = this.connector.parseURILine(uriLine, req);
-            this.connector.parseHeaders(req, inData);
+            this.protocol.parseSocketInfo(this.socket, req);
+            String servletURI = this.protocol.parseURILine(uriLine, req);
+            this.protocol.parseHeaders(req, inData);
 
             int contentLength = req.getContentLength();
             if (contentLength != -1)
@@ -148,7 +146,7 @@ public class RequestHandlerThread implements Runnable
             processRequest(req, rsp, path);
 
             Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.StartRequest") + requestId);
-            continueFlag = !connector.closeAfterRequest(req, rsp);
+            continueFlag = !protocol.closeAfterRequest(req, rsp);
 
             // Try keep alive if allowed
             if (continueFlag)
@@ -180,7 +178,7 @@ public class RequestHandlerThread implements Runnable
       }
       Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.ClosedPort") + thisPort);
       this.socket = null;
-      this.listener.releaseRequestHandler(this);
+      this.launcher.releaseRequestHandler(this);
     }
     Logger.log(Logger.FULL_DEBUG, this.resources.getString("RequestHandlerThread.ThreadExit", "[#threadName]", Thread.currentThread().getName()));
   }
@@ -221,10 +219,10 @@ public class RequestHandlerThread implements Runnable
   /**
    * Assign a socket to the handler
    */
-  public void commenceRequestHandling(Socket socket, HttpConnector connector)
+  public void commenceRequestHandling(Socket socket, HttpProtocol protocol)
   {
     this.socket = socket;
-    this.connector = connector;
+    this.protocol = protocol;
     synchronized (this) {notifyAll();}
   }
 

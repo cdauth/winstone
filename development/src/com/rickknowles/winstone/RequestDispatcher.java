@@ -23,6 +23,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.SingleThreadModel;
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Implements the sending of a request to a specific servlet instance,
@@ -31,7 +32,7 @@ import java.io.IOException;
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class RequestDispatcher implements javax.servlet.RequestDispatcher
+public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax.servlet.FilterChain
 {
   final String JSP_FILE = "org.apache.catalina.jsp_file";
 
@@ -41,9 +42,15 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher
   private Object semaphore;
   private String requestedPath;
   private WinstoneResourceBundle resources;
+  private Map filters;
+  private String filterPatterns[];
+  private int filterPatternsEvaluated;
+  private int filterPatternCount;
+  private boolean doInclude;
 
   public RequestDispatcher(Servlet instance, String name, ClassLoader loader,
-    Object semaphore, String requestedPath, WinstoneResourceBundle resources)
+    Object semaphore, String requestedPath, WinstoneResourceBundle resources,
+    Map filters, String filterPatterns[])
   {
     this.resources = resources;
     this.instance = instance;
@@ -51,6 +58,10 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher
     this.loader = loader;
     this.semaphore = semaphore;
     this.requestedPath = requestedPath;
+    this.filters = filters;
+    this.filterPatterns = filterPatterns;
+    this.filterPatternsEvaluated = 0;
+    this.filterPatternCount = (filterPatterns == null ? 0: filterPatterns.length);
   }
 
   public String getName() {return this.name;}
@@ -63,14 +74,26 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher
     throws ServletException, IOException
   {
     Logger.log(Logger.FULL_DEBUG, "INCLUDE: " + this.name);
-    ClassLoader cl = Thread.currentThread().getContextClassLoader();
-    Thread.currentThread().setContextClassLoader(this.loader);
-    if (this.instance instanceof SingleThreadModel)
-      synchronized (this.semaphore)
-        {this.instance.service(request, response);}
+
+
+    // Make sure the filter chain is exhausted first
+    if ((this.filterPatternCount > 0) &&
+        (this.filterPatternsEvaluated < this.filterPatternCount))
+    {
+      this.doInclude = true;
+      doFilter(request, response);
+    }
     else
-      this.instance.service(request, response);
-    Thread.currentThread().setContextClassLoader(cl);
+    {
+      ClassLoader cl = Thread.currentThread().getContextClassLoader();
+      Thread.currentThread().setContextClassLoader(this.loader);
+      if (this.instance instanceof SingleThreadModel)
+        synchronized (this.semaphore)
+          {this.instance.service(request, response);}
+      else
+        this.instance.service(request, response);
+      Thread.currentThread().setContextClassLoader(cl);
+    }
   }
 
   /**
@@ -85,20 +108,79 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher
     Logger.log(Logger.FULL_DEBUG, "FORWARD: " + this.name);
     if (response.isCommitted())
       throw new IllegalStateException(resources.getString("RequestDispatcher.ForwardCommitted"));
-
     response.resetBuffer();
 
-    // Execute
-    ClassLoader cl = Thread.currentThread().getContextClassLoader();
-    Thread.currentThread().setContextClassLoader(this.loader);
-    if (this.requestedPath != null)
-      request.setAttribute(JSP_FILE, this.requestedPath);
-    if (this.instance instanceof SingleThreadModel)
-      synchronized (this.semaphore)
-        {this.instance.service(request, response);}
+    // Make sure the filter chain is exhausted first
+    if ((this.filterPatternCount > 0) &&
+        (this.filterPatternsEvaluated < this.filterPatternCount))
+      doFilter(request, response);
     else
-      this.instance.service(request, response);
-    Thread.currentThread().setContextClassLoader(cl);
+    {
+      // Execute
+      ClassLoader cl = Thread.currentThread().getContextClassLoader();
+      Thread.currentThread().setContextClassLoader(this.loader);
+      if (this.requestedPath != null)
+        request.setAttribute(JSP_FILE, this.requestedPath);
+      if (this.instance instanceof SingleThreadModel)
+        synchronized (this.semaphore)
+          {this.instance.service(request, response);}
+      else
+        this.instance.service(request, response);
+      Thread.currentThread().setContextClassLoader(cl);
+    }
+  }
+
+  /**
+   * Handles the processing of the chain of filters, so that we process them all,
+   * then pass on to the main servlet
+   */
+  public void doFilter(ServletRequest request, ServletResponse response)
+    throws ServletException, IOException
+  {
+    // Loop through the filter mappings until we hit the end
+    while ((this.filterPatternCount > 0) &&
+           (this.filterPatternsEvaluated < this.filterPatternCount))
+    {
+      // Get the pattern and eval it, bumping up the eval'd count
+      String filterPattern = this.filterPatterns[this.filterPatternsEvaluated++];
+      int delimPos = filterPattern.indexOf("] F:[");
+
+      // If the servlet name matches this name, execute it
+      if ((delimPos == -1) || !filterPattern.endsWith("]"))
+        Logger.log(Logger.DEBUG, this.resources.getString(
+          "RequestDispatcher.InvalidMapping", "[#filterPattern]", filterPattern));
+      else if (filterPattern.startsWith("S:[") &&
+               filterPattern.substring(3, delimPos).equals(this.name))
+      {
+        String filterName = filterPattern.substring(delimPos + 5, filterPattern.length() - 1);
+        FilterConfiguration filter = (FilterConfiguration) this.filters.get(filterName);
+        Logger.log(Logger.DEBUG, this.resources.getString(
+          "RequestDispatcher.ExecutingFilter", "[#filterName]", filterName));
+        filter.getFilter().doFilter(request, response, this);
+        return;
+      }
+      else if (filterPattern.startsWith("U:[") &&
+               WebAppConfiguration.wildcardMatch(filterPattern.substring(3, delimPos),
+                                                 this.requestedPath))
+      {
+        String filterName = filterPattern.substring(delimPos + 5, filterPattern.length() - 1);
+        FilterConfiguration filter = (FilterConfiguration) this.filters.get(filterName);
+        Logger.log(Logger.DEBUG, this.resources.getString(
+          "RequestDispatcher.ExecutingFilter", "[#filterName]", filterName));
+        filter.getFilter().doFilter(request, response, this);
+        return;
+      }
+      else
+        Logger.log(Logger.FULL_DEBUG, this.resources.getString(
+          "RequestDispatcher.BypassingFilter",
+            "[#filterPattern]", filterPattern, "[#path]", this.requestedPath));
+    }
+
+    // Forward / include as requested in the beginning
+    if (this.doInclude)
+      include(request, response);
+    else
+      forward(request, response);
   }
 }
 

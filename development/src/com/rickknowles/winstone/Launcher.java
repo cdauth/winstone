@@ -31,13 +31,13 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
- * Implements the main listener daemon thread. This is the class that
+ * Implements the main launcher daemon thread. This is the class that
  * gets launched by the command line, and owns the server socket, etc.
  *
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class Listener implements Runnable, EntityResolver
+public class Launcher implements EntityResolver, Runnable
 {
   final String DTD_2_2_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN";
   final String DTD_2_2_URL    = "javax/servlet/resources/web-app_2_2.dtd";
@@ -47,11 +47,8 @@ public class Listener implements Runnable, EntityResolver
 
   static final String RESOURCE_FILE    = "com.rickknowles.winstone.LocalStrings";
 
-  private int LISTENER_TIMEOUT = 500; // every 500ms reset the listener socket
   private int CONTROL_TIMEOUT = 1; // wait 10ms for control connection
-  private int DEFAULT_PORT = 8080;
   private int DEFAULT_CONTROL_PORT = -1;
-  private boolean DEFAULT_HNL = true;
   private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
   private int MIN_IDLE_REQUEST_HANDLERS_IN_POOL = 2;
@@ -63,37 +60,31 @@ public class Listener implements Runnable, EntityResolver
   private String WEB_XML  = "web.xml";
 
   private WinstoneResourceBundle resources;
-  private Map arguments;
-  private int listenPort;
   private int controlPort;
   private List unusedRequestHandlerThreads;
   private List usedRequestHandlerThreads;
-
   private WebAppConfiguration webAppConfig;
-  private HttpConnector connector;
 
   private Object requestHandlerSemaphore = new Boolean(true);
   private int threadIndex = 0;
 
+  private HttpListener httpListener;
+  
   /**
    * Constructor
    */
-  public Listener(Map args, WinstoneResourceBundle resources) throws IOException
+  public Launcher(Map args, WinstoneResourceBundle resources) throws IOException
   {
     // Load resources
     this.resources = resources;
-
-    this.arguments = args;
-    this.listenPort = (args.get("port") == null ?
-                       DEFAULT_PORT :
-                       Integer.parseInt((String) args.get("port")));
     this.controlPort = (args.get("controlPort") == null ?
                        DEFAULT_CONTROL_PORT :
                        Integer.parseInt((String) args.get("controlPort")));
 
+    // Get the parsed webapp xml deployment descriptor
     File webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"));
     if (!webRoot.exists())
-      throw new WinstoneException(resources.getString("Listener.NoWebRoot") + webRoot);
+      throw new WinstoneException(resources.getString("Launcher.NoWebRoot") + webRoot);
 
     Node webXMLParentNode = null;
     File webInfFolder = new File(webRoot, WEB_INF);
@@ -109,7 +100,7 @@ public class Listener implements Runnable, EntityResolver
       }
     }
 
-    // Get options
+    // Get generic options
     String dirLists = (String) args.get("directoryListings");
     String useJasper = (String) args.get("useJasper");
     String useWCL = (String) args.get("useWinstoneClassLoader");
@@ -117,16 +108,14 @@ public class Listener implements Runnable, EntityResolver
     String invokerPrefix = (String) (args.get("invokerPrefix") == null
                                                 ? DEFAULT_INVOKER_PREFIX
                                                 : args.get("invokerPrefix"));
-    String hnl = (String) args.get("doHostnameLookups");
 
     // Build switch values
     boolean switchOnDirLists = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
     boolean switchOnJasper   = (useJasper != null)  && (useJasper.equalsIgnoreCase("true")  || useJasper.equalsIgnoreCase("yes"));
     boolean switchOnWCL      = (useWCL == null)     || (useWCL.equalsIgnoreCase("true")     || useWCL.equalsIgnoreCase("yes"));
     boolean switchOnInvoker  = (useInvoker != null) && (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
-    boolean switchOnHNL      = (hnl == null ? DEFAULT_HNL : (hnl.equalsIgnoreCase("yes") || hnl.equalsIgnoreCase("true")));
 
-    this.connector = new HttpConnector(this.resources, switchOnHNL);
+    // Instantiate the webAppConfig
     this.webAppConfig = new WebAppConfiguration(webRoot.getCanonicalPath(),
                                                 (String) args.get("prefix"),
                                                 switchOnDirLists,
@@ -136,8 +125,17 @@ public class Listener implements Runnable, EntityResolver
                                                 webXMLParentNode,
                                                 this.resources);
 
+    // Build the initial pool of handler threads
     this.unusedRequestHandlerThreads = new Vector();
     this.usedRequestHandlerThreads = new Vector();
+
+    // If we're short an idle request handler
+    while ((this.unusedRequestHandlerThreads.size() < MIN_IDLE_REQUEST_HANDLERS_IN_POOL) &&
+           (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL - MIN_IDLE_REQUEST_HANDLERS_IN_POOL))
+      this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
+
+    // Create connector
+    this.httpListener = new HttpListener(args, resources, this);
   }
 
   /**
@@ -148,12 +146,12 @@ public class Listener implements Runnable, EntityResolver
   {
     if (warfile != null)
     {
-      Logger.log(Logger.INFO, this.resources.getString("Listener.BeginningWarExtraction"));
+      Logger.log(Logger.INFO, this.resources.getString("Launcher.BeginningWarExtraction"));
 
       // open the war file
       File warfileRef = new File(warfile);
       if (!warfileRef.exists() || !warfileRef.isFile())
-        throw new WinstoneException(resources.getString("Listener.WarFileInvalid", "[#warfile]", warfile));
+        throw new WinstoneException(resources.getString("Launcher.WarFileInvalid", "[#warfile]", warfile));
 
       // Get the webroot folder (or a temp dir if none supplied)
       File unzippedDir =(webroot != null ? new File(webroot) : new File(File.createTempFile("dummy", "dummy")
@@ -161,9 +159,9 @@ public class Listener implements Runnable, EntityResolver
       if (unzippedDir.exists())
       {
         if (!unzippedDir.isDirectory())
-          throw new WinstoneException(resources.getString("Listener.WebRootNotDirectory", "[#dir]", unzippedDir.getPath()));
+          throw new WinstoneException(resources.getString("Launcher.WebRootNotDirectory", "[#dir]", unzippedDir.getPath()));
         else
-          Logger.log(Logger.DEBUG, resources.getString("Listener.WebRootExists", "[#dir]", unzippedDir.getCanonicalPath()));
+          Logger.log(Logger.DEBUG, resources.getString("Launcher.WebRootExists", "[#dir]", unzippedDir.getCanonicalPath()));
       }
       else
         unzippedDir.mkdirs();
@@ -213,8 +211,6 @@ public class Listener implements Runnable, EntityResolver
     boolean interrupted = false;
     try
     {
-      ServerSocket ss = new ServerSocket(this.listenPort);
-      ss.setSoTimeout(LISTENER_TIMEOUT);
       ServerSocket controlSocket = null;
       if (this.controlPort > 0)
       {
@@ -223,11 +219,10 @@ public class Listener implements Runnable, EntityResolver
       }
 
       Map params = new HashMap();
-      params.put("[#port]", this.listenPort + "");
-      params.put("[#controlPort]", (this.controlPort > 0 ? "" + this.controlPort : resources.getString("Listener.ControlDisabled")));
+      params.put("[#controlPort]", (this.controlPort > 0 ? "" + this.controlPort : resources.getString("Launcher.ControlDisabled")));
       params.put("[#prefix]", this.webAppConfig.getPrefix());
       params.put("[#webroot]", this.webAppConfig.getWebroot());
-      Logger.log(Logger.INFO, resources.getString("Listener.StartupOK", params));
+      Logger.log(Logger.INFO, resources.getString("Launcher.StartupOK", params));
 
       // Enter the main loop
       while (!interrupted)
@@ -240,25 +235,6 @@ public class Listener implements Runnable, EntityResolver
             this.unusedRequestHandlerThreads.remove(0);
         }
 
-        // Check min idle requestHandler count
-        synchronized (this.requestHandlerSemaphore)
-        {
-          // If we're short an idle request handler
-          while ((this.unusedRequestHandlerThreads.size() < MIN_IDLE_REQUEST_HANDLERS_IN_POOL) &&
-                 (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL - MIN_IDLE_REQUEST_HANDLERS_IN_POOL))
-            this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
-        }
-
-        // Get the listener
-        Socket s = null;
-        try
-          {s = ss.accept();}
-        catch (InterruptedIOException err) {s = null;}
-
-        // if we actually got a socket, process it. Otherwise go around again
-        if (s != null)
-          handleRequest(s);
-
         // Check for control request
         try
         {
@@ -269,15 +245,15 @@ public class Listener implements Runnable, EntityResolver
             cs.close();
           }
         }
-        catch (InterruptedIOException err2) {}
+        catch (InterruptedIOException err) {}
         Thread.currentThread().yield();
       }
 
       // Close server socket
-      ss.close();
       controlSocket.close();
 
-      // Release all handlers
+      // Release all listeners/handlers/webapps
+      if (this.httpListener != null) this.httpListener.destroy();
       for (Iterator i = this.usedRequestHandlerThreads.iterator(); i.hasNext(); )
         releaseRequestHandler((RequestHandlerThread) i.next());
       for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
@@ -285,10 +261,9 @@ public class Listener implements Runnable, EntityResolver
       this.webAppConfig.destroy();
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, resources.getString("Listener.ShutdownError"), err);}
+      {Logger.log(Logger.ERROR, resources.getString("Launcher.ShutdownError"), err);}
 
-    Logger.log(Logger.INFO, resources.getString("Listener.ShutdownOK"));
-    System.exit(0);
+    Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownOK"));
   }
 
   /**
@@ -296,45 +271,45 @@ public class Listener implements Runnable, EntityResolver
    * request handler, then delegates the socket to that class. When it finishes,
    * the handler is released back into the pool.
    */
-  private void handleRequest(Socket s) throws IOException
+  public void handleRequest(Socket s, HttpProtocol protocol) throws IOException
   {
     // If we have any spare, get it from the pool
-    if (this.unusedRequestHandlerThreads.size() > 0)
+    synchronized (this.requestHandlerSemaphore)
     {
-      RequestHandlerThread rh = null;
-      synchronized (this.requestHandlerSemaphore)
+      // If we're short an idle request handler
+      while ((this.unusedRequestHandlerThreads.size() < MIN_IDLE_REQUEST_HANDLERS_IN_POOL) &&
+             (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL - MIN_IDLE_REQUEST_HANDLERS_IN_POOL))
+        this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
+
+      if (this.unusedRequestHandlerThreads.size() > 0)
       {
-        rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
+        RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("Listener.UsingRHPoolThread",
+        Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.UsingRHPoolThread",
             "[#used]", "" + this.usedRequestHandlerThreads.size(),
             "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
+        rh.commenceRequestHandling(s, protocol);
       }
-      rh.commenceRequestHandling(s, this.connector);
-    }
 
-    // If we are out (and not over our limit), allocate a new one
-    else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL)
-    {
-      RequestHandlerThread rh = null;
-      synchronized (this.requestHandlerSemaphore)
+      // If we are out (and not over our limit), allocate a new one
+      else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL)
       {
-        rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
+        RequestHandlerThread rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("Listener.NewRHPoolThread",
+        Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.NewRHPoolThread",
             "[#used]", "" + this.usedRequestHandlerThreads.size(),
             "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
+        rh.commenceRequestHandling(s, protocol);
       }
-      rh.commenceRequestHandling(s, this.connector);
-    }
 
-    // otherwise throw fail message - we've blown our limit
-    else
-    {
-      s.close();
-      Logger.log(Logger.ERROR, resources.getString("Listener.NoRHPoolThreads"));
+      // otherwise throw fail message - we've blown our limit
+      else
+      {
+        s.close();
+        Logger.log(Logger.ERROR, resources.getString("Launcher.NoRHPoolThreads"));
+      }
     }
   }
 
@@ -349,12 +324,12 @@ public class Listener implements Runnable, EntityResolver
       {
         this.usedRequestHandlerThreads.remove(rh);
         this.unusedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("Listener.ReleasingRHPoolThread",
+        Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.ReleasingRHPoolThread",
             "[#used]", "" + this.usedRequestHandlerThreads.size(),
             "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
       }
       else
-        Logger.log(Logger.WARNING, resources.getString("Listener.UnknownRHPoolThread"));
+        Logger.log(Logger.WARNING, resources.getString("Launcher.UnknownRHPoolThread"));
     }
   }
 
@@ -374,12 +349,8 @@ public class Listener implements Runnable, EntityResolver
       builder.setEntityResolver(this);
       return builder.parse(in);
     }
-    catch (ParserConfigurationException errParser)
-      {throw new WinstoneException(resources.getString("Listener.WebXMLParseError"), errParser);}
-    catch (SAXException errSax)
-      {throw new WinstoneException(resources.getString("Listener.WebXMLParseError"), errSax);}
-    catch (IOException errIO)
-      {throw new WinstoneException(resources.getString("Listener.WebXMLParseError"), errIO);}
+    catch (Throwable errParser)
+      {throw new WinstoneException(resources.getString("Launcher.WebXMLParseError"), errParser);}
   }
 
   public InputSource resolveEntity(String publicName, String url)
@@ -388,9 +359,9 @@ public class Listener implements Runnable, EntityResolver
     if (publicName == null)
       return null;
     else if (publicName.equals(DTD_2_2_PUBLIC))
-      return new InputSource(this.getClass().getClassLoader().getResourceAsStream(DTD_2_2_URL));
+      return new InputSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(DTD_2_2_URL));
     else if (publicName.equals(DTD_2_3_PUBLIC))
-      return new InputSource(this.getClass().getClassLoader().getResourceAsStream(DTD_2_3_URL));
+      return new InputSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(DTD_2_3_URL));
     else
       return new InputSource(url);
   }
@@ -401,19 +372,53 @@ public class Listener implements Runnable, EntityResolver
    */
   public static void main(String argv[]) throws IOException
   {
-    Map args = new HashMap();
+    WinstoneResourceBundle resources = new WinstoneResourceBundle(RESOURCE_FILE);
 
     // Get command line args
+    String configFilename = resources.getString("Launcher.DefaultPropertyFile");
+    Map args = new HashMap();
     for (int n = 0; n < argv.length;  n++)
     {
       String option = argv[n];
-      if (option.equals("-help") || option.equals("-usage"))
-        args.put(option.substring(1), "true");
-      else if (option.startsWith("-"))
-        args.put(option.substring(1), (n + 1 >= argv.length ? "" : argv[n+1]));
+      if (option.startsWith("--"))
+      {
+        int equalPos = option.indexOf('=');
+        String paramName = option.substring(2, equalPos == -1 ? option.length() : equalPos);
+        String paramValue = (equalPos == -1 ? "true" : option.substring(equalPos + 1));
+        args.put(paramName, paramValue);
+        if (paramName.equals("config"))
+          configFilename = paramValue;
+      }
     }
 
-    WinstoneResourceBundle resources = new WinstoneResourceBundle(RESOURCE_FILE);
+    // Load default props if available
+    File configFile = new File(configFilename);
+    if (configFile.exists() && configFile.isFile())
+    {
+      InputStream inConfig = new FileInputStream(configFile);
+      Properties props = new Properties();
+      props.load(inConfig);
+      inConfig.close();
+      props.putAll(args);
+      args = props;
+
+      // Reset the log level
+      Logger.setCurrentDebugLevel(args.get("debug") == null ?
+                                  Logger.DEBUG :
+                                  Integer.parseInt((String) args.get("debug")));
+      Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingPropertyFile",
+                "[#filename]", configFilename));
+
+    }
+    else
+    {
+      Logger.setCurrentDebugLevel(args.get("debug") == null ?
+                                  Logger.DEBUG :
+                                  Integer.parseInt((String) args.get("debug")));
+      Logger.log(Logger.DEBUG, resources.getString("Launcher.NoPropertyFile",
+                "[#filename]", configFilename));
+    }
+
     if (!args.containsKey("webroot") && !args.containsKey("warfile"))
       printUsage(resources);
     else
@@ -421,13 +426,10 @@ public class Listener implements Runnable, EntityResolver
       if (args.containsKey("usage") || args.containsKey("help"))
         printUsage(resources);
 
-      Logger.setCurrentDebugLevel(args.get("debug") == null ?
-                                  Logger.DEBUG :
-                                  Integer.parseInt((String) args.get("debug")));
       try
       {
-        Listener listener = new Listener(args, resources);
-        Thread th = new Thread(listener);
+        Launcher launcher = new Launcher(args, resources);
+        Thread th = new Thread(launcher);
         th.start();
       }
       catch (WinstoneException err) {System.err.println(err.getMessage()); err.printStackTrace();}
@@ -436,7 +438,7 @@ public class Listener implements Runnable, EntityResolver
 
   private static void printUsage(WinstoneResourceBundle resources)
   {
-    System.out.println(resources.getString("Listener.UsageInstructions", "[#version]", resources.getString("ServerVersion")));
+    System.out.println(resources.getString("Launcher.UsageInstructions", "[#version]", resources.getString("ServerVersion")));
   }
 }
 

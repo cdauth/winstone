@@ -1,8 +1,9 @@
 List of things to do:
 
+DONE - Modify the request handler thread to survive beyond a single request cycle
 DONE - Add auto WAR extract instead of webroot
 DONE - Change build process to use external ant
 DONE - Add listener handlers, etc
-     - Add security model - pluggable if possible, so Winstone can work in non-security mode
+DONE - Add filter handling code
+     - Add authentication/security model - pluggable if possible, so Winstone can work in non-security mode
      - Refactor HttpConnector links, and try to build an ajp13 connector
-     - Add filter handling code
