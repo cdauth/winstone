@@ -40,13 +40,14 @@ public class LoadTest
   private int endThreads;
   private int stepSize;
   private long stepPeriod;
+  private long gracePeriod;
   private long successTimeTotal;
   private int successCount;
   private WinstoneResourceBundle resources; 
   private static String LOCAL_RESOURCE_FILE = "winstone.testCase.load.LocalStrings";
   
   public LoadTest(WinstoneResourceBundle resources, String url, boolean useKeepAlives,
-      int startThreads, int endThreads, int stepSize, long stepPeriod)
+      int startThreads, int endThreads, int stepSize, long stepPeriod, long gracePeriod)
   {
     this.resources = resources;
     this.url = url;
@@ -55,10 +56,11 @@ public class LoadTest
     this.endThreads = endThreads;
     this.stepSize = stepSize;
     this.stepPeriod = stepPeriod;
+    this.gracePeriod = gracePeriod;
     
     Logger.log(Logger.INFO, resources, "LoadTest.Config", new String[] {this.url, 
         this.useKeepAlives + "", this.startThreads + "", this.endThreads + "",
-        this.stepSize + "", this.stepPeriod + ""});
+        this.stepSize + "", this.stepPeriod + "", this.gracePeriod + ""});
   }
   
   public void test() throws InterruptedException
@@ -78,7 +80,7 @@ public class LoadTest
         threads.add(new LoadTestThread(this.url, this, this.resources, wc, noOfSeconds - 1));
       
       // Sleep for step period
-      Thread.sleep(this.stepPeriod + 10000);
+      Thread.sleep(this.stepPeriod + gracePeriod);
       
       int errorCount = (noOfSeconds * n) - this.successCount;
       Long averageSuccessTime = this.successCount == 0 ? null :
@@ -134,9 +136,11 @@ public class LoadTest
     String endThreads = WebAppConfiguration.stringArg(options, "endThreads", "1000");
     String stepSize = WebAppConfiguration.stringArg(options, "stepSize", "20");
     String stepPeriod = WebAppConfiguration.stringArg(options, "stepPeriod", "5000");
+    String gracePeriod = WebAppConfiguration.stringArg(options, "gracePeriod", "5000");
 
     LoadTest lt = new LoadTest(resources, url, keepAlive, Integer.parseInt(startThreads),
-        Integer.parseInt(endThreads), Integer.parseInt(stepSize), Integer.parseInt(stepPeriod));
+        Integer.parseInt(endThreads), Integer.parseInt(stepSize), 
+        Integer.parseInt(stepPeriod), Integer.parseInt(gracePeriod));
     
     lt.test();
   }
