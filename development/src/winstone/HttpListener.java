@@ -26,7 +26,7 @@ import java.util.*;
  * Implements the main listener daemon thread. This is the class that
  * gets launched by the command line, and owns the server socket, etc.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author  <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class HttpListener implements Listener, Runnable
@@ -132,7 +132,7 @@ public class HttpListener implements Listener, Runnable
 
     // Build input/output streams, plus request/response
     WinstoneInputStream inData = new WinstoneInputStream(inSocket, this.resources);
-    WinstoneOutputStream outData = new WinstoneOutputStream(outSocket, resources);
+    WinstoneOutputStream outData = new WinstoneOutputStream(outSocket, false, resources);
     WinstoneRequest req = this.objectPool.getRequestFromPool();
     WinstoneResponse rsp = this.objectPool.getResponseFromPool();
     outData.setResponse(rsp);

@@ -20,7 +20,7 @@ package winstone;
 /**
  * Interface for authentication realms. 
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public interface AuthenticationRealm

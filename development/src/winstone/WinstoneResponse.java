@@ -30,7 +30,7 @@ import java.text.SimpleDateFormat;
 /**
  * Response for servlet
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneResponse implements HttpServletResponse
@@ -134,8 +134,11 @@ public class WinstoneResponse implements HttpServletResponse
       catch (Throwable err) {return;}
       int bodyBytes = this.outputStream.getBytesWritten();
       if (contentLength != bodyBytes)
+      {
         Logger.log(Logger.WARNING, resources.getString("WinstoneResponse.ShortOutput",
           "[#contentLength]", contentLength + "", "[#bodyBytes]", bodyBytes + ""));
+        this.setContentLength(bodyBytes);
+      }
     }
   }
 

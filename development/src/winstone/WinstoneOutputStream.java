@@ -24,7 +24,7 @@ import javax.servlet.http.Cookie;
 /**
  * Matches the socket output stream to the servlet output.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
@@ -37,6 +37,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
   protected int bytesWritten;
   protected ByteArrayOutputStream buffer;
   protected boolean committed;
+  protected boolean bodyOnly;
   //private boolean headersWritten;
   protected WinstoneResourceBundle resources;
   protected WinstoneResponse owner;
@@ -45,10 +46,12 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
    * Constructor
    */
   public WinstoneOutputStream(OutputStream out,
+                              boolean bodyOnly,
                               WinstoneResourceBundle resources)
   {
     this.resources = resources;
     this.outStream = out;
+    this.bodyOnly = bodyOnly;
     setBufferSize(DEFAULT_BUFFER_SIZE);
     this.committed = false;
     //this.headersWritten = false;
@@ -80,9 +83,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
     this.buffer.flush();
 
     // If we haven't written the headers yet, write them out
-    if (!this.committed)
+    if (!this.committed && !this.bodyOnly)
     {
       this.owner.validateHeaders();
+      this.owner.verifyContentLength();
 
       PrintStream headerStream = new PrintStream(this.outStream, true);
       String statusLine = this.owner.getProtocol() + " " + this.owner.getStatus();

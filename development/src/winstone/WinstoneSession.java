@@ -31,7 +31,7 @@ import javax.servlet.ServletContext;
 /**
  * Http session implementation for Winstone.
  * 
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneSession implements HttpSession, Serializable

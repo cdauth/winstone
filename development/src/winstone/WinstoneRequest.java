@@ -31,7 +31,7 @@ import java.security.*;
 /**
  * Implements the request interface required by the servlet spec.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneRequest implements HttpServletRequest

@@ -27,7 +27,7 @@ import javax.servlet.Servlet;
  * This is the one that keeps a specific servlet instance's config, as
  * well as holding the instance itself.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class ServletConfiguration implements javax.servlet.ServletConfig, Comparable

@@ -26,7 +26,7 @@ import java.io.*;
  * Interface that defines the necessary methods for being a connection listener
  * within winstone.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  */
 public interface Listener
 {

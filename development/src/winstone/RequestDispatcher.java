@@ -31,7 +31,7 @@ import javax.servlet.http.*;
  * Implements the sending of a request to a specific servlet instance,
  * or routes off to the static content servlet.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax.servlet.FilterChain
@@ -115,17 +115,20 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     	ServletResponse inclResponse = response;
       if (response instanceof ServletResponseWrapper)
         inclResponse = ((ServletResponseWrapper) response).getResponse();
-        
+      IncludeResponse includer = new IncludeResponse(inclResponse, this.resources);
+      //Integer contentLength
+          
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.requestedPath != null)
         request.setAttribute(JSP_FILE, this.requestedPath);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
-          {this.instance.service(request, inclResponse);}
+          {this.instance.service(request, includer);}
       else
         this.instance.service(request, inclResponse);
       Thread.currentThread().setContextClassLoader(cl);
+      includer.finish();
     }
   }
 

@@ -26,7 +26,7 @@ import java.util.ResourceBundle;
  * A ResourceBundle that includes the ability to do string replacement on the
  * resources it retrieves.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  */
 public class WinstoneResourceBundle
 {

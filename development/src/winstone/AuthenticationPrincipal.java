@@ -25,7 +25,7 @@ import java.io.Serializable;
  * Implements the principal method - basically just a way of identifying
  * an authenticated user.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author  <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class AuthenticationPrincipal implements Principal, Serializable

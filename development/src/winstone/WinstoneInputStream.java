@@ -23,7 +23,7 @@ import java.io.*;
 /**
  * The request stream management class.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneInputStream extends javax.servlet.ServletInputStream

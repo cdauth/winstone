@@ -24,7 +24,7 @@ import javax.servlet.ServletException;
 /**
  * The threads to which incoming requests get allocated.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class RequestHandlerThread implements Runnable

@@ -64,7 +64,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream
   public Ajp13OutputStream(OutputStream outStream, WinstoneResourceBundle mainResources, 
     WinstoneResourceBundle localResources, String headerEncoding)
   {
-    super(outStream, mainResources);
+    super(outStream, false, mainResources);
     this.localResources = localResources;
     this.headerEncoding = headerEncoding;
   }

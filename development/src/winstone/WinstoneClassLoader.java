@@ -25,7 +25,7 @@ import java.util.*;
  * The class loader for the application. This is the one that actually loads
  * servlet classes from the filesystem.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneClassLoader extends URLClassLoader

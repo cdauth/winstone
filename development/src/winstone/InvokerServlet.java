@@ -28,7 +28,7 @@ import java.util.*;
  * If a URI matches a servlet class name, mount an instance of that servlet, and
  * try to process the request using that servlet.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author  <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class InvokerServlet extends HttpServlet

@@ -27,7 +27,7 @@ import javax.servlet.Filter;
 /**
  * Corresponds to a filter object in the web app. Holds one instance only.
  *
- * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
+ * @author  <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  */
 public class FilterConfiguration implements javax.servlet.FilterConfig
 {
