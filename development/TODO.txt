@@ -8,7 +8,7 @@ Long-term
      - Additional control port options, such as manual webapp forced reload operation
      - Java wrappers for control operations, such as shutdown or flush
      - Update to v2.4 servlet specification
-     - In memory response cache for certain url patterns
+     - In memory response cache for preset url patterns
      - Add more automated tests as part of release process:
        - url matching
        - security / authentication

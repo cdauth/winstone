@@ -58,7 +58,7 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler
     // Check for certificates in the request attributes
     X509Certificate certificateArray[] = (X509Certificate []) request
                       .getAttribute("javax.servlet.request.X509Certificate");
-    if ((certificateArray != null) && (certificateArray.length != 0))
+    if ((certificateArray != null) && (certificateArray.length > 0))
     {
       boolean failed = false;
       for (int n = 0; n < certificateArray.length; n++) 
