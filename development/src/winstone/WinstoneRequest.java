@@ -40,7 +40,7 @@ public class WinstoneRequest implements HttpServletRequest
   static  {headerDF.setTimeZone(TimeZone.getTimeZone("GMT"));}
 
   // Request header constants
-  static final String SESSION_COOKIE_NAME    = "WinstoneHttpSessionId";
+  static final String SESSION_COOKIE_NAME    = "JSESSIONID";
   static final String CONTENT_LENGTH_HEADER  = "Content-Length";
   static final String CONTENT_TYPE_HEADER    = "Content-Type";
   static final String AUTHORIZATION_HEADER   = "Authorization";

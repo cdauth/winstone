@@ -18,6 +18,7 @@
 package winstone.tools;
 
 import java.io.*;
+import java.util.*;
 import java.net.Socket;
 import winstone.*;
 
@@ -43,15 +44,34 @@ public class WinstoneControl
   public static void main(String args[]) throws Exception
   {
     WinstoneResourceBundle resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
+    
+    // Loop for args
+    Map options = new HashMap();
+    String operation = "";
+    for (int n = 0; n < args.length;  n++)
+    {
+      String option = args[n];
+      if (option.startsWith("--"))
+      {
+        int equalPos = option.indexOf('=');
+        String paramName = option.substring(2, equalPos == -1 ? option.length() : equalPos);
+        String paramValue = (equalPos == -1 ? "true" : option.substring(equalPos + 1));
+        options.put(paramName, paramValue);
+      }
+      else
+        operation = option;
+    }
+    
 
-    if (args.length < 1)
+    if (operation.equals(""))
       printUsage(resources);
     
+    String host = options.get("host") != null ? (String) options.get("host") : "";
+    String port = options.get("port") != null ? (String) options.get("port") : "";
+    
     // Check for shutdown
-    else if (args[0].equalsIgnoreCase(OPERATION_SHUTDOWN))
+    if (operation.equalsIgnoreCase(OPERATION_SHUTDOWN))
     {
-      String host = args[1];
-      String port = args[2];
       Socket socket = new Socket(host, Integer.parseInt(port));
       socket.setSoTimeout(TIMEOUT);
       OutputStream out = socket.getOutputStream();
@@ -61,10 +81,8 @@ public class WinstoneControl
     }
 
     // check for reload
-    else if (args[0].equalsIgnoreCase(OPERATION_RELOAD))
+    else if (operation.equalsIgnoreCase(OPERATION_RELOAD))
     {
-      String host = args[1];
-      String port = args[2];
       Socket socket = new Socket(host, Integer.parseInt(port));
       socket.setSoTimeout(TIMEOUT);
       OutputStream out = socket.getOutputStream();

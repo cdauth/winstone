@@ -1,4 +1,31 @@
-List of things to do:
+Points of non-compliance with Servlet 2.4 Specification
+-------------------------------------------------------
+     - 1.6.1 Session Destroyed call timing is not called at correct time
+     - 2.3.2.1 Error handling in servlet.init() - UnavailableException
+     - 2.3.3.2 Error handling in servlet.service() - UnavailableException
+     - 2.3.4 Calling destroy incorrectly - wait for all threads to finish
+     - 3.5 Resource URLs
+     - 4.1.1 Parse conditions for POST parameters
+     - 4.4 Context Path / Servlet Path / Path Info values wrong
+     - 4.5 Path translation methods incorrect
+WARN - 4.7 Check SSL request attributes
+WARN - 4.9 Request Encoding
+     - 4.10 Implement request + attribute listeners
+     - 5.1 Reset / Buffer management
+     - 5.2 X-Powered-By
+     - 5.3 Redirect URLs must be absolute
+     - 5.4 Locale mapping implementation
+     - 6.2.1 Filter init() error handling
+     - 6.2.2 No include response wrapper 
+     - 6.2.4 Build filter chain in reverse order
+     - 6.2.5 Filter config for dispatcher
+DONE - 7.1.1 Session cookie name
+WARN - 7.4 Check order of session binding listeners
+		 - 7.6 Session accessed time
+		 - 7.7.2 Errors in distributed sessions
+
+List of other things to do:
+---------------------------
 
 Short-term
      - Control port password
@@ -6,9 +33,8 @@ Short-term
      - Add additional listener class calls for request + attributes
 
 Long-term
-     - Additional control port options, such as manual webapp forced reload operation
-     - In memory response cache for preset url patterns ? Not a good idea
-     - Cache filter chain calculation for certain URLs
+     - In memory response cache for preset url patterns ? Not a good idea, (session cookies)
+     - Cache filter chain calculation for known URLs
      - Add more automated tests as part of release process:
        - url matching
        - security / authentication
@@ -19,7 +45,7 @@ Long-term
      - Add a JSP compiler ?
 
 v0.6
-DONE - Create my local jsp 2.0 api classes
+DONE - Create winstone local jsp 2.0 api classes
 DONE - Update to v2.4 servlet api classes
 DONE - Refactor to winstone package, not com.rickknowles.winstone package
 DONE - Test with Apache Struts framework
@@ -29,6 +55,7 @@ DONE - Fixed jsp include bugs
 DONE - Fixed http session bugs
 DONE - Added simple test application
 DONE - Java wrapper for control operations, such as shutdown or flush
+DONE - Additional control port options, such as manual webapp forced reload operation
 
 v0.5
 DONE - Implement session clustering between multiple Winstone instances
