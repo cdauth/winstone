@@ -147,6 +147,7 @@ public class HttpsListener extends HttpListener
    * This is basically just so we can have a custom location for key stores.
    */
   public SSLContext getSSLContext(String keyStoreName, String password) 
+    throws IOException
   {
     try
     {
@@ -171,6 +172,8 @@ public class HttpsListener extends HttpListener
       Arrays.fill(passwordChars, (char)'x');
       return context;
     }
+    catch (IOException err)
+      {throw err;}
     catch (Throwable err)
       {throw new WinstoneException(localResources.getString("HttpsListener.ErrorGettingContext"), err);}
   }
