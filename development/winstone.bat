@@ -1,20 +1,18 @@
 @echo off
 
-set JAVA_HOME=c:\java\j2sdk1.5.0
+set JAVA_HOME=c:\java\jdk1.4.2
 set WINSTONE_HOME=d:\rick\winstone
 set CATALINA_HOME=c:\java\tomcat
 set JAVA_OPTS=-Djava.endorsed.dirs=%JAVA_HOME%\jre\lib\ext
 
-set CP=%WINSTONE_HOME%\dist\jsp-servlet.jar
 set CP=%CP%;%WINSTONE_HOME%\dist\winstone.jar
-@rem set WINSTONE_OPTS=--prefix=/jsp-examples --debug=5 --httpPort=9080 --javaHome=%JAVA_HOME% --commonLibFolder=d:\lib --controlPort=9081 --webroot=%CATALINA_HOME%-5\webapps\jsp-examples --argumentsRealm.passwd.rickk=rickk --argumentsRealm.roles.rickk=test,tomcat --useJNDI --jndi.resource.mail/Session=javax.mail.Session --jndi.param.mail/Session.mail.smtp.host=smtp.ponbiki.org --jndi.param.mail/Session.mail.smtp.user=rickk@ponbiki.org
-@rem set WINSTONE_OPTS=--prefix=/examples --controlPort=8081 --webroot=%CATALINA_HOME%\webapps\examples
-@rem set WINSTONE_OPTS=--prefix=/examples --debug=7 --webroot=%CATALINA_HOME%-5\webapps\examples
-set WINSTONE_OPTS=--prefix=/training --debug=7 --httpPort=9080 --controlPort=8081 --webroot=d:\rick\training\build
-set WINSTONE_OPTS=%WINSTONE_OPTS% --useJNDI --jndi.resource.jdbc/connPool=javax.sql.DataSource --jndi.param.jdbc/connPool.driverClassName=com.mckoi.JDBCDriver --jndi.param.jdbc/connPool.url=jdbc:mckoi:local://c:/mckoi/db.conf --jndi.param.jdbc/connPool.username=training --jndi.param.jdbc/connPool.password=training
-@rem set WINSTONE_OPTS=--prefix=/tristero --debug=7 --webroot=d:\download\neurogrid
-@rem set WINSTONE_OPTS=--webroot=%CATALINA_HOME%\webapps\m3career --httpPort=80 --controlPort=8081 --debug=7
-@rem set WINSTONE_OPTS=--webroot=%WINSTONE_HOME%\build\testWebApp --httpPort=9080 --controlPort=9081 --debug=7 --useInvoker --javaHome=%JAVA_HOME%
+set WINSTONE_OPTS=--prefix=/examples 
+set WINSTONE_OPTS=%WINSTONE_OPTS% --webroot=%CATALINA_HOME%\webapps\examples
+set WINSTONE_OPTS=%WINSTONE_OPTS% --debug=7
+set WINSTONE_OPTS=%WINSTONE_OPTS% --commonLibFolder=d:\lib 
+set WINSTONE_OPTS=%WINSTONE_OPTS% --javaHome=%JAVA_HOME%
+set WINSTONE_OPTS=%WINSTONE_OPTS% --argumentsRealm.passwd.rickk=rickk --argumentsRealm.roles.rickk=test,tomcat
+set WINSTONE_OPTS=%WINSTONE_OPTS% --useJNDI --jndi.resource.mail/Session=javax.mail.Session --jndi.param.mail/Session.mail.smtp.host=smtp.ponbiki.org --jndi.param.mail/Session.mail.smtp.user=rickk@ponbiki.org
 
 @rem ********************************************************************
 @rem            Uncomment for non-1.4 jdks
@@ -26,12 +24,12 @@ set CP=%CP%;%WINSTONE_HOME%\dist\xercesImpl.jar
 @rem ********************************************************************
 @rem            Uncomment for jsp support
 @rem ********************************************************************
-set CP=%CP%;%CATALINA_HOME%-5\common\lib\jasper-runtime.jar
-set CP=%CP%;%CATALINA_HOME%-5\common\lib\jasper-compiler.jar
-set CP=%CP%;%CATALINA_HOME%\common\lib\commons-logging-api.jar
-set CP=%CP%;%CATALINA_HOME%-5\common\lib\commons-el.jar
-set CP=%CP%;%CATALINA_HOME%\common\lib\ant.jar
-set CP=%CP%;%JAVA_HOME%\lib\tools.jar
+@rem set CP=%CP%;%CATALINA_HOME%-5\common\lib\jasper-runtime.jar
+@rem set CP=%CP%;%CATALINA_HOME%-5\common\lib\jasper-compiler.jar
+@rem set CP=%CP%;%CATALINA_HOME%\common\lib\commons-logging-api.jar
+@rem set CP=%CP%;%CATALINA_HOME%-5\common\lib\commons-el.jar
+@rem set CP=%CP%;%CATALINA_HOME%\common\lib\ant.jar
+@rem set CP=%CP%;%JAVA_HOME%\lib\tools.jar
 set WINSTONE_OPTS=%WINSTONE_OPTS% --useJasper
 
 @rem ********************************************************************
