@@ -1,14 +1,9 @@
 Points of non-compliance with Servlet 2.4 Specification
 -------------------------------------------------------
-     - 1.6.1 Session Destroyed call timing is not called at correct time
-     - 2.3.2.1 Error handling in servlet.init() - UnavailableException
-     - 2.3.3.2 Error handling in servlet.service() - UnavailableException
      - 2.3.4 Calling destroy incorrectly - wait for all threads to finish
-     - 3.5 Resource URLs
-     - 4.1.1 Parse conditions for POST parameters
      - 4.4 Context Path / Servlet Path / Path Info values wrong
      - 4.5 Path translation methods incorrect
-WARN - 4.7 Check SSL request attributes
+     - 4.7 Add SSL request attribute (javax.servlet.request.key_size)
 WARN - 4.9 Request Encoding
      - 4.10 Implement request + attribute listeners
      - 5.1 Reset / Buffer management
@@ -19,7 +14,6 @@ WARN - 4.9 Request Encoding
      - 6.2.2 No include response wrapper 
      - 6.2.4 Build filter chain in reverse order
      - 6.2.5 Filter config for dispatcher
-DONE - 7.1.1 Session cookie name
 WARN - 7.4 Check order of session binding listeners
      - 7.6 Session accessed time
      - 7.7.2 Errors in distributed sessions
@@ -30,8 +24,6 @@ WARN - 7.4 Check order of session binding listeners
      - 8.3.1 getNamedDispatcher
      - 8.4.2 Forward request attributes
      - 8.5 Errors in dispatch
-     - 9.5 404 for WEB-INF
-     - 9.6 404 for META-INF
      - 9.7.1 Shared library classloader (common/lib)
      - 9.7.1 Manifest depend libraries
      - 9.9.1 Error request attributes
@@ -52,6 +44,16 @@ WARN - 11.1 Rule order for URL match
      - 12.8.2 New security syntax
      - 13.1 Locale-mapping element
      - 13.2 Canonical paths in web.xml
+
+DONE - 1.6.1 Session Destroyed call timing is not called at correct time
+DONE - 2.3.2.1 Error handling in servlet.init() - UnavailableException
+DONE - 2.3.3.2 Error handling in servlet.service() - UnavailableException
+DONE - 3.5 Resource URLs
+DONE - 4.1.1 Parse conditions for POST parameters
+DONE - 7.1.1 Session cookie name
+DONE - 9.5 404 for WEB-INF
+DONE - 9.6 404 for META-INF
+
 
 List of other things to do:
 ---------------------------
