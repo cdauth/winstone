@@ -206,18 +206,15 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       }
       catch (ClassNotFoundException err)
       {
-        Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);
-        return null;
+        throw new WinstoneException(resources.getString("ServletConfiguration.ClassLoadError", this.classFile), err);
       }
       catch (IllegalAccessException err)
       {
-        Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);
-        return null;
+        throw new WinstoneException(resources.getString("ServletConfiguration.ClassLoadError", this.classFile), err);
       }
       catch (InstantiationException err)
       {
-        Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);
-        return null;
+        throw new WinstoneException(resources.getString("ServletConfiguration.ClassLoadError", this.classFile), err);
       }
       catch (javax.servlet.ServletException err)
       {
