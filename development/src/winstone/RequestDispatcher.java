@@ -17,13 +17,7 @@
  */
 package winstone;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.ServletRequestWrapper;
-import javax.servlet.ServletResponseWrapper;
-import javax.servlet.SingleThreadModel;
+import javax.servlet.*;
 import java.io.IOException;
 import java.util.Map;
 import javax.servlet.http.*;
@@ -121,7 +115,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       if (response instanceof ServletResponseWrapper)
         inclResponse = ((ServletResponseWrapper) response).getResponse();
       IncludeResponse includer = new IncludeResponse(inclResponse, this.resources);
-      //Integer contentLength
           
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);

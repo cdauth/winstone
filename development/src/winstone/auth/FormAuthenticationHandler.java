@@ -89,7 +89,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
    * @return A boolean indicating whether to continue after this request
    */
   public boolean processAuthentication(HttpServletRequest request,
-    WinstoneResponse response, String pathRequested)
+      HttpServletResponse response, String pathRequested)
     throws IOException, ServletException
   {
     if (pathRequested.equals(this.loginPage) || pathRequested.equals(this.errorPage))
