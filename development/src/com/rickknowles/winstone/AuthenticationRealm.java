@@ -29,5 +29,10 @@ public interface AuthenticationRealm
    * Authenticate the user - do we know them ? Return a distinct id once we know them
    */
   public AuthenticationPrincipal authenticateByUsernamePassword(String userName, String password);
+
+  /**
+   * Retrieve an authenticated user
+   */
+  public AuthenticationPrincipal retrieveUser(String userName);
 }
 

@@ -460,7 +460,10 @@ public class WebAppConfiguration implements ServletContext
           authMethod = loginConfigNode.getChildNodes().item(n).getFirstChild().getNodeValue();
 
       // Load the appropriate auth class
-      if (authMethod == null) authMethod = "BASIC";
+      if (authMethod == null) 
+        authMethod = "BASIC";
+      else
+        authMethod = WinstoneResourceBundle.globalReplace(authMethod, "-", "");
       String realmClassName = argsForSecurity.get("realmClass") == null ? DEFAULT_REALM_CLASS : (String) argsForSecurity.get("realmClass");
       String authClassName = "com.rickknowles.winstone.auth." + 
                              authMethod.substring(0, 1).toUpperCase() + 

@@ -155,6 +155,7 @@ Authors:
 
     <delete file="${release.dir}/winstone_src_${release.name}.tar.gz"/>
     <delete file="${release.dir}/winstone_${release.name}.jar"/>
+    <delete file="${release.dir}/winstone_lite_${release.name}.jar"/>
 
     <copy toDir="${release.dir}/winstone/development">
       <fileset dir="."/>
@@ -164,6 +165,7 @@ Authors:
     <delete file="${release.dir}/winstone_src_${release.name}.tar"/>
     <delete dir="${release.dir}/winstone"/>
     <copy toFile="${release.dir}/winstone_${release.name}.jar" file="${winstone.dist}/winstone.jar"/>
+    <copy toFile="${release.dir}/winstone_lite_${release.name}.jar" file="${winstone.dist}/winstone-lite.jar"/>
   </target>
 
   <target name="release.sourceforge">

@@ -3,7 +3,7 @@
   <title>Winstone Servlet Container</title>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.4</h1></center>
+<center><h1>Winstone Servlet Container v0.5</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
   <hr width="90%" size="1" noshade="true"/>
@@ -33,7 +33,7 @@
   <p>The original goals in writing Winstone were:</p>
     <ul>
       <li>Supply fast, reliable servlet container functionality for a single webapp per server</li>
-      <li>Keep the size of the core distribution jar as low as possible (currently 135KB)</li>
+      <li>Keep the size of the core distribution jar as low as possible (currently 120KB)</li>
       <li>Keep configuration files to an absolute minimum, using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -49,7 +49,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.4.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.5.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -58,11 +58,11 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.4.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.5.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.4.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.5.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p>The winstone.jar file will be in the winstone/dist directory after the build is complete.</p>
 
@@ -70,7 +70,7 @@
 
   <pre>
 Syntax:
-  java -jar winstone_v0.4.jar [--option=value] [--option=value] etc
+  java -jar winstone_v0.5.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile
    --webroot                = set document root folder.
@@ -96,6 +96,8 @@ Other options:
    --useServletReloading    = enable servlet reloading (true/false). Default is false
    --useInvoker             = enable the servlet invoker (true/false). Default is false
    --invokerPrefix          = set the invoker prefix. Default is /servlet/
+   --useCluster             = enable the cluster support (true/false). Default is false
+   --clusterNodes           = a comma separated list of node addresses (IP:ControlPort,IP:ControlPort,etc)
    --usage / --help         = show this message
 
 Security options:
@@ -134,19 +136,42 @@ Security options:
 
 <h2>Caveats</h2>
 
-  <p>As a result of the design goals, there are some things Winstone doesn't do (at least 
-    not yet).</p>
+  <p>As a result of the design goals, there are some things Winstone doesn't do</p>
   <ul>
-    <li>There is no clustering support (yet). This will be implemented eventually by allowing Winstone
-      instances to transfer sessions on request over the controlPort. This is a longer term goal 
-      though.</li>
-    <li>HttpSession support is cookie-based only (no URL rewriting). I don't see any reason to 
-      build this, since I've never come across anyone that actually uses URL rewriting. </li>
+    <li>Winstone only supports a single web application per server. This is a deliberate limitation,
+      intended to reduce complexity and therefore size.</li>
+    <li>There are two connectors supplied with Winstone:
+      <ol>
+        <li>An internal HTTP connector - allows plain HTTP/1.1 connections only</li>
+        <li>An AJP13 connector - allows connection to Apache/IIS/iPlanet, etc</li>
+      </ol>
+      There is no internal HTTPS/SSL connector included. If you need HTTPS support, I recommend using 
+      Apache 2.0 with the AJP13 connector (instructions below).</li>
+    <li>HttpSession support is cookie-based only (no URL rewriting). URL rewriting introduces a lot of 
+      unnecessary complex request body processing, and given that browser cookie support is common these
+      days (and no-one I know uses URL rewriting), I plan not to implement this.</li>
     <li>The messages are all in English only. These have been updated to use resource 
       bundles, but no translations yet.</li>
   </ul>
 
 <h2>Recent additions</h2>
+
+  <p>New features in v0.5:</p>
+
+  <ul>
+    <li>Implemented simple <b>clustering</b> (ie sharing of sessions between multiple Winstone instances).
+      See below for cluster configuration details.</li>
+    <li>The control port has been modified to be more useful. See below for usage instructions.</li>
+    <li>The distribution jar is now available in two forms:
+      <ol>
+        <li><b>Complete version</b> (winstone.jar - 158KB): This contains the complete winstone feature-set, 
+          including AJP13 Apache connectors, Authentication/Realm support and Clustering support.</li>
+        <li><b>Lite version</b> (winstone-lite.jar - 120KB): This is the core winstone feature-set only,
+          ie commonly used servlet features, as fast and reliable as possible, with unnecessary options 
+          removed.</li>
+      </ol>
+    </li>
+  </ul>
 
   <p>New features in v0.4:</p>
 
