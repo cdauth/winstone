@@ -6,6 +6,7 @@ Short-term
      - Move all debugging message lookups into logger (performance)
 
 Long-term
+     - Add session persistence across reboots (ie serialize to file)
      - In memory cache for default servlet, caches previously requested files ?
      - Cache filter chain calculation for known URLs
      - Add more automated tests as part of release process:
