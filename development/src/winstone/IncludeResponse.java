@@ -76,6 +76,9 @@ public class IncludeResponse extends HttpServletResponseWrapper
   public void setHeader(String name, String value) {}
   public void setIntHeader(String name, int value) {}
 
+  /**
+   * @deprecated
+   */
   public void setStatus(int sc, String sm) {}
   public void setStatus(int sc) {}
 
