@@ -53,8 +53,6 @@ public class IncludeResponse extends HttpServletResponseWrapper
     this.servletOutputStream.commit();
     this.servletOutputStream.close();
     this.includedBody.flush();
-    //String contentLengthHeader = getResponse().get
-    //getResponse().
     getResponse().getOutputStream().write(this.includedBody.toByteArray());
   }
   
