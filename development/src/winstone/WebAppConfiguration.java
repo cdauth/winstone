@@ -43,56 +43,56 @@ import java.io.IOException;
  */
 public class WebAppConfiguration implements ServletContext
 {
-  final String ELEM_DESCRIPTION         = "description";
-  final String ELEM_DISPLAY_NAME        = "display-name";
-  final String ELEM_SERVLET             = "servlet";
-  final String ELEM_SERVLET_MAPPING     = "servlet-mapping";
-  final String ELEM_SERVLET_NAME        = "servlet-name";
-  final String ELEM_FILTER              = "filter";
-  final String ELEM_FILTER_MAPPING      = "filter-mapping";
-  final String ELEM_FILTER_NAME         = "filter-name";
-  final String ELEM_URL_PATTERN         = "url-pattern";
-  final String ELEM_WELCOME_FILES       = "welcome-file-list";
-  final String ELEM_WELCOME_FILE        = "welcome-file";
-  final String ELEM_SESSION_CONFIG      = "session-config";
-  final String ELEM_SESSION_TIMEOUT     = "session-timeout";
-  final String ELEM_MIME_MAPPING        = "mime-mapping";
-  final String ELEM_MIME_EXTENSION      = "extension";
-  final String ELEM_MIME_TYPE           = "mime-type";
-  final String ELEM_CONTEXT_PARAM       = "context-param";
-  final String ELEM_PARAM_NAME          = "param-name";
-  final String ELEM_PARAM_VALUE         = "param-value";
-  final String ELEM_LISTENER            = "listener";
-  final String ELEM_LISTENER_CLASS      = "listener-class";
-  final String ELEM_DISTRIBUTABLE       = "distributable";
-  final String ELEM_ERROR_PAGE          = "error-page";
-  final String ELEM_EXCEPTION_TYPE      = "exception-type";
-  final String ELEM_ERROR_CODE          = "error-code";
-  final String ELEM_ERROR_LOCATION      = "location";
-  final String ELEM_SECURITY_CONSTRAINT = "security-constraint";
-  final String ELEM_LOGIN_CONFIG        = "login-config";
-  final String ELEM_SECURITY_ROLE       = "security-role";
-  final String ELEM_ROLE_NAME           = "role-name";
-  final String ELEM_ENV_ENTRY           = "env-entry";
+  static final String ELEM_DESCRIPTION         = "description";
+  static final String ELEM_DISPLAY_NAME        = "display-name";
+  static final String ELEM_SERVLET             = "servlet";
+  static final String ELEM_SERVLET_MAPPING     = "servlet-mapping";
+  static final String ELEM_SERVLET_NAME        = "servlet-name";
+  static final String ELEM_FILTER              = "filter";
+  static final String ELEM_FILTER_MAPPING      = "filter-mapping";
+  static final String ELEM_FILTER_NAME         = "filter-name";
+  static final String ELEM_URL_PATTERN         = "url-pattern";
+  static final String ELEM_WELCOME_FILES       = "welcome-file-list";
+  static final String ELEM_WELCOME_FILE        = "welcome-file";
+  static final String ELEM_SESSION_CONFIG      = "session-config";
+  static final String ELEM_SESSION_TIMEOUT     = "session-timeout";
+  static final String ELEM_MIME_MAPPING        = "mime-mapping";
+  static final String ELEM_MIME_EXTENSION      = "extension";
+  static final String ELEM_MIME_TYPE           = "mime-type";
+  static final String ELEM_CONTEXT_PARAM       = "context-param";
+  static final String ELEM_PARAM_NAME          = "param-name";
+  static final String ELEM_PARAM_VALUE         = "param-value";
+  static final String ELEM_LISTENER            = "listener";
+  static final String ELEM_LISTENER_CLASS      = "listener-class";
+  static final String ELEM_DISTRIBUTABLE       = "distributable";
+  static final String ELEM_ERROR_PAGE          = "error-page";
+  static final String ELEM_EXCEPTION_TYPE      = "exception-type";
+  static final String ELEM_ERROR_CODE          = "error-code";
+  static final String ELEM_ERROR_LOCATION      = "location";
+  static final String ELEM_SECURITY_CONSTRAINT = "security-constraint";
+  static final String ELEM_LOGIN_CONFIG        = "login-config";
+  static final String ELEM_SECURITY_ROLE       = "security-role";
+  static final String ELEM_ROLE_NAME           = "role-name";
+  static final String ELEM_ENV_ENTRY           = "env-entry";
 
   static final String STAR = "*";
-  final String WEBAPP_LOGSTREAM = "WebApp";
+  static final String WEBAPP_LOGSTREAM = "WebApp";
   
-  final String JSP_SERVLET_NAME       = "JspServlet";
-  final String JSP_SERVLET_MAPPING    = "*.jsp";
-  final String JSP_SERVLET_CLASS      = "org.apache.jasper.servlet.JspServlet";
-  final String JSP_SERVLET_LOG_LEVEL  = "WARNING";
+  static final String JSP_SERVLET_NAME       = "JspServlet";
+  static final String JSP_SERVLET_MAPPING    = "*.jsp";
+  public static final String JSP_SERVLET_CLASS = "org.apache.jasper.servlet.JspServlet";
+  static final String JSP_SERVLET_LOG_LEVEL  = "WARNING";
 
-  final String INVOKER_SERVLET_NAME   = "invoker";
-  final String INVOKER_SERVLET_CLASS  = "winstone.InvokerServlet";
+  static final String INVOKER_SERVLET_NAME   = "invoker";
+  static final String INVOKER_SERVLET_CLASS  = "winstone.InvokerServlet";
 
-  final String STATIC_SERVLET_NAME    = "default";
-  final String STATIC_SERVLET_CLASS   = "winstone.StaticResourceServlet";
+  static final String STATIC_SERVLET_NAME    = "default";
+  static final String STATIC_SERVLET_CLASS   = "winstone.StaticResourceServlet";
 
-  final String DEFAULT_REALM_CLASS    = "winstone.realm.ArgumentsRealm";
-  final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.WebAppJNDIManager";
+  static final String DEFAULT_REALM_CLASS    = "winstone.realm.ArgumentsRealm";
+  static final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.WebAppJNDIManager";
 
-  final String RELOADING_CL_CLASS     = "winstone.classloader.ReloadingClassLoader";
+  static final String RELOADING_CL_CLASS     = "winstone.classloader.ReloadingClassLoader";
 
   private WinstoneResourceBundle resources;
   private Launcher launcher;
@@ -215,8 +215,7 @@ public class WebAppConfiguration implements ServletContext
                         ((WinstoneClassLoader) this.loader).getClasspath());
 
       Map jspParams = new HashMap();
-      jspParams.put("logVerbosityLevel", JSP_SERVLET_LOG_LEVEL);
-      jspParams.put("fork", "false");
+      setupJspServletParams(jspParams);
       ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
         this.prefix, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
       this.servletInstances.put(JSP_SERVLET_NAME, sc);
@@ -584,6 +583,12 @@ public class WebAppConfiguration implements ServletContext
   public String[] getWelcomeFiles()     {return this.welcomeFiles;}
   public boolean isDistributable()      {return this.distributable;}
 
+  public void setupJspServletParams(Map jspParams)
+  {
+    jspParams.put("logVerbosityLevel", JSP_SERVLET_LOG_LEVEL);
+    jspParams.put("fork", "false");
+  }
+  
   /**
    * Iterates through each of the servlets/filters and calls destroy on them
    */

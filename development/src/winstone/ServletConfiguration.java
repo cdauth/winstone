@@ -35,6 +35,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   final String ELEM_NAME              = "servlet-name";
   final String ELEM_DISPLAY_NAME      = "display-name";
   final String ELEM_CLASS             = "servlet-class";
+  final String ELEM_JSP_FILE          = "jsp-file";
   final String ELEM_DESCRIPTION       = "description";
   final String ELEM_INIT_PARAM        = "init-param";
   final String ELEM_INIT_PARAM_NAME   = "param-name";
@@ -49,6 +50,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   private ClassLoader loader;
   private int loadOnStartup;
   private String prefix;
+  private String jspFile;
 
   private WinstoneResourceBundle resources;
   private Object servletSemaphore = new Boolean(true);
@@ -80,10 +82,11 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       this.initParameters.putAll(initParams);
     this.servletName = servletName;
     this.classFile = className;
+    this.jspFile = null;
     this.loadOnStartup = loadOnStartup;
   }
 
-  public ServletConfiguration(ServletContext webAppConfig,
+  public ServletConfiguration(WebAppConfiguration webAppConfig,
                               ClassLoader loader,
                               WinstoneResourceBundle resources,
                               String prefix,
@@ -104,6 +107,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
         this.servletName = child.getFirstChild().getNodeValue().trim();
       else if (nodeName.equals(ELEM_CLASS))
         this.classFile = child.getFirstChild().getNodeValue().trim();
+      else if (nodeName.equals(ELEM_JSP_FILE))
+        this.jspFile = child.getFirstChild().getNodeValue().trim();
       else if (nodeName.equals(ELEM_LOAD_ON_STARTUP))
         this.loadOnStartup = Integer.parseInt(child.getFirstChild().getNodeValue().trim());
       else if (nodeName.equals(ELEM_INIT_PARAM))
@@ -123,6 +128,12 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
         if ((paramName != null) && (paramValue != null))
           this.initParameters.put(paramName, paramValue);
       }
+    }
+    
+    if ((this.jspFile != null) && (this.classFile == null))
+    {
+      this.classFile = WebAppConfiguration.JSP_SERVLET_CLASS;
+      webAppConfig.setupJspServletParams(this.initParameters);
     }
     Logger.log(Logger.FULL_DEBUG, resources.getString("ServletConfiguration.DeployedInstance",
         "[#name]", this.servletName, "[#class]", this.classFile));
@@ -169,7 +180,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     // Build filter chain
     return new RequestDispatcher(this.instance, this.servletName, this.loader,
         this.servletSemaphore, requestedPath, this.resources, filters, 
-        filterPatterns, authHandler, this.prefix);
+        filterPatterns, authHandler, this.prefix, this.jspFile == null ? requestedPath : this.jspFile);
   }
 
   public int getLoadOnStartup()               {return this.loadOnStartup;}

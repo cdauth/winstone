@@ -39,6 +39,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   private ClassLoader loader;
   private Object semaphore;
   private String requestedPath;
+  private String jspFile;
   private WinstoneResourceBundle resources;
   private Map filters;
   private String filterPatterns[];
@@ -56,7 +57,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   public RequestDispatcher(Servlet instance, String name, ClassLoader loader,
     Object semaphore, String requestedPath, WinstoneResourceBundle resources,
     Map filters, String filterPatterns[], AuthenticationHandler authHandler,
-    String prefix)
+    String prefix, String jspFile)
   {
     this.resources = resources;
     this.instance = instance;
@@ -64,6 +65,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.loader = loader;
     this.semaphore = semaphore;
     this.requestedPath = requestedPath;
+    this.jspFile = jspFile;
     this.authHandler = authHandler;
     this.prefix = prefix;
     this.filters = filters;
@@ -113,8 +115,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
           
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
-      if (this.requestedPath != null)
-        request.setAttribute(JSP_FILE, this.requestedPath);
+      if (this.jspFile != null)
+        request.setAttribute(JSP_FILE, this.jspFile);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
           {this.instance.service(request, includer);}
@@ -179,8 +181,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       // Execute
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
-      if (this.requestedPath != null)
-        request.setAttribute(JSP_FILE, this.requestedPath);
+      if (this.jspFile != null)
+        request.setAttribute(JSP_FILE, this.jspFile);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
           {this.instance.service(request, response);}
