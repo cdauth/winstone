@@ -194,7 +194,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
     boolean useJasper  	 = booleanArg(startupArgs, "useJasper", false);
     boolean useWCL  	 	 = booleanArg(startupArgs, "useWinstoneClassLoader", true);
     boolean useReloading = booleanArg(startupArgs, "useServletReloading", false);
-    boolean useInvoker   = booleanArg(startupArgs, "useInvoker", false);
+    boolean useInvoker   = booleanArg(startupArgs, "useInvoker", true);
     boolean useJNDI      = booleanArg(startupArgs, "useJNDI", false);
     
     // Try to set up the reloading class loader, and if we fail, use the normal one
@@ -883,21 +883,28 @@ public class WebAppConfiguration implements ServletContext, Comparator
     String exact = (String) this.exactServletMatchMounts.get(path);
     if (exact != null)
     {
+      if (this.servletInstances.get(exact) == null)
+        throw new WinstoneException(resources.getString("WebAppConfig.MatchedNonExistServlet", exact));
       servletPath.append(path);
       // pathInfo.append(""); // a hack - empty becomes null later
       return (ServletConfiguration) this.servletInstances.get(exact);
     }
-    
+
     // Inexact mount check
     for (int n = 0; n < this.patternMatches.length; n++)
     {
       Mapping urlPattern = (Mapping) this.patternMatches[n];
       if (urlPattern.match(path, servletPath, pathInfo))
-        return (ServletConfiguration) this.servletInstances.get(urlPattern.getMappedTo());
+        if (this.servletInstances.get(urlPattern.getMappedTo()) == null)
+          throw new WinstoneException(resources.getString("WebAppConfig.MatchedNonExistServlet", urlPattern.getMappedTo()));
+        else
+          return (ServletConfiguration) this.servletInstances.get(urlPattern.getMappedTo());
     }
 
     // return default servlet
     //servletPath.append("");  // unneeded
+    if (this.servletInstances.get(this.defaultServletName) == null)
+      throw new WinstoneException(resources.getString("WebAppConfig.MatchedNonExistServlet", this.defaultServletName));
     pathInfo.append(path);
     return (ServletConfiguration) this.servletInstances.get(this.defaultServletName);
   }

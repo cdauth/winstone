@@ -3,7 +3,6 @@ List of other things to do:
 
 Short-term
      - Control port password
-     - Move all debugging message lookups into logger (performance)
 
 Long-term
      - Add session persistence across reboots (ie serialize to file)
@@ -17,6 +16,10 @@ Long-term
      - More complete manual/documentation
      - Publish apidocs
      - Add a JSP compiler ?
+
+v0.6.2
+DONE - Move all debugging message lookups into logger (performance)
+DONE - Made invoker servlet on by default
 
 v0.6.1
 DONE - Fix VariableInfo and BodyContent api errors for jsps
