@@ -53,6 +53,7 @@ public class WebAppConfiguration implements ServletContext
   static final String ELEM_FILTER              = "filter";
   static final String ELEM_FILTER_MAPPING      = "filter-mapping";
   static final String ELEM_FILTER_NAME         = "filter-name";
+  static final String ELEM_DISPATCHER					= "dispatcher";
   static final String ELEM_URL_PATTERN         = "url-pattern";
   static final String ELEM_WELCOME_FILES       = "welcome-file-list";
   static final String ELEM_WELCOME_FILE        = "welcome-file";
@@ -77,6 +78,11 @@ public class WebAppConfiguration implements ServletContext
   static final String ELEM_ROLE_NAME           = "role-name";
   static final String ELEM_ENV_ENTRY           = "env-entry";
 
+  static final String DISPATCHER_REQUEST = "REQUEST";
+  static final String DISPATCHER_FORWARD = "FORWARD";
+  static final String DISPATCHER_INCLUDE = "INCLUDE";
+  static final String DISPATCHER_ERROR   = "ERROR";
+  
   static final String STAR = "*";
   static final String SLASH = "/";
   static final String WEBAPP_LOGSTREAM = "WebApp";
@@ -89,8 +95,8 @@ public class WebAppConfiguration implements ServletContext
   static final String INVOKER_SERVLET_NAME   = "invoker";
   static final String INVOKER_SERVLET_CLASS  = "winstone.InvokerServlet";
 
-  static final String STATIC_SERVLET_NAME    = "default";
-  static final String STATIC_SERVLET_CLASS   = "winstone.StaticResourceServlet";
+  static final String DEFAULT_SERVLET_NAME    = "default";
+  static final String DEFAULT_SERVLET_CLASS   = "winstone.StaticResourceServlet";
 
   static final String DEFAULT_REALM_CLASS    = "winstone.realm.ArgumentsRealm";
   static final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.WebAppJNDIManager";
@@ -127,7 +133,11 @@ public class WebAppConfiguration implements ServletContext
   private String servletFolderPatternMounts[];
   private String servletExtensionPatterns[];
   private String servletExtensionPatternMounts[];
-  private String filterPatterns[];
+
+  private String fpRequest[];
+  private String fpForward[];
+  private String fpInclude[];
+  private String fpError[];
 
   private AuthenticationHandler authenticationHandler;
   private AuthenticationRealm authenticationRealm;
@@ -139,7 +149,7 @@ public class WebAppConfiguration implements ServletContext
   private Map errorPagesByException;
   private Map errorPagesByCode;
 
-  private ServletConfiguration staticResourceProcessor;
+  //private ServletConfiguration staticResourceProcessor;
   private JNDIManager jndiManager;
 
   /**
@@ -206,7 +216,16 @@ public class WebAppConfiguration implements ServletContext
     List localFolderPatternMounts = new ArrayList();
     List localExtensionPatterns = new ArrayList();
     List localExtensionPatternMounts = new ArrayList();
-    List localFilterPatterns = new ArrayList();
+
+    List lfpNameRequest = new ArrayList();
+    List lfpNameForward = new ArrayList();
+    List lfpNameInclude = new ArrayList();
+    List lfpNameError   = new ArrayList();
+
+    List lfpURLRequest = new ArrayList();
+    List lfpURLForward = new ArrayList();
+    List lfpURLInclude = new ArrayList();
+    List lfpURLError   = new ArrayList();
 
     List localWelcomeFiles = new ArrayList();
     List startupServlets = new ArrayList();
@@ -398,6 +417,10 @@ public class WebAppConfiguration implements ServletContext
           String filterName  = null;
           String servletName = null;
           String urlPattern  = null;
+          boolean onRequest = false;
+          boolean onForward = false;
+          boolean onInclude = false;
+          boolean onError   = false;
 
           // Parse the element and extract
           for (int k = 0; k < child.getChildNodes().getLength(); k++)
@@ -412,9 +435,37 @@ public class WebAppConfiguration implements ServletContext
               servletName = mapChild.getFirstChild().getNodeValue().trim();
             else if (mapNodeName.equals(ELEM_URL_PATTERN))
               urlPattern = mapChild.getFirstChild().getNodeValue().trim();
+            else if (mapNodeName.equals(ELEM_DISPATCHER))
+            {
+            	String dispatcherValue = mapChild.getFirstChild().getNodeValue().trim();
+            	if (dispatcherValue.equals(DISPATCHER_REQUEST))
+            		onRequest = true;
+            	else if (dispatcherValue.equals(DISPATCHER_FORWARD))
+            		onForward = true;
+            	else if (dispatcherValue.equals(DISPATCHER_INCLUDE))
+            		onInclude = true;
+            	else if (dispatcherValue.equals(DISPATCHER_ERROR))
+            		onError = true;
+            }
           }
-          localFilterPatterns.add((servletName == null ? "U:[" + urlPattern : "S:[" + servletName)
-                                  + "] F:[" + filterName + "]");
+          if (!onRequest && !onInclude && !onForward && !onError)
+          	onRequest = true;
+          if (servletName != null)
+          {
+          	String mapping = "S:[" + servletName + "] F:[" + filterName + "]";
+          	if (onRequest) lfpNameRequest.add(mapping);
+          	if (onForward) lfpNameForward.add(mapping);
+          	if (onInclude) lfpNameInclude.add(mapping);
+          	if (onError)   lfpNameError.add(mapping);
+          }
+          else if (urlPattern != null)
+          {
+          	String mapping = "U:[" + urlPattern + "] F:[" + filterName + "]";
+          	if (onRequest) lfpURLRequest.add(mapping);
+          	if (onForward) lfpURLForward.add(mapping);
+          	if (onInclude) lfpURLInclude.add(mapping);
+          	if (onError)   lfpURLError.add(mapping);
+          }
         }
 
         // Process the list of welcome files
@@ -576,22 +627,36 @@ public class WebAppConfiguration implements ServletContext
         														new String[localExtensionPatterns.size()]);
     this.servletExtensionPatternMounts = (String []) localExtensionPatternMounts.toArray(
         														new String[localExtensionPatternMounts.size()]);
-    this.filterPatterns = (String []) localFilterPatterns.toArray(
-                                    new String[localFilterPatterns.size()]);
+
+    // Put the name filters after the url filters, then convert to string arrays
+    lfpURLRequest.addAll(lfpNameRequest);
+    lfpURLForward.addAll(lfpNameForward);
+    lfpURLInclude.addAll(lfpNameInclude);
+    lfpURLError.addAll(lfpNameError);
+    
+    this.fpRequest = (String []) lfpURLRequest.toArray(new String[lfpURLRequest.size()]);
+    this.fpForward = (String []) lfpURLForward.toArray(new String[lfpURLForward.size()]);
+    this.fpInclude = (String []) lfpURLInclude.toArray(new String[lfpURLInclude.size()]);
+    this.fpError   = (String []) lfpURLError.toArray(new String[lfpURLError.size()]);
 
     // Initialise static processor
-    Map staticParams = new Hashtable();
-    staticParams.put("webRoot", this.webRoot);
-    staticParams.put("prefix", this.prefix);
-    staticParams.put("directoryList", "" + directoryListings);
-    staticParams.put("welcomeFileCount", "" + this.welcomeFiles.length);
-    for (int n = 0; n < this.welcomeFiles.length; n++)
-      staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
-    this.staticResourceProcessor = new ServletConfiguration(this, this.loader,
-      this.resources, this.prefix, STATIC_SERVLET_NAME, STATIC_SERVLET_CLASS, staticParams, 0);
-    this.staticResourceProcessor.getRequestDispatcher(null, this.filterInstances,
-      this.filterPatterns, this.authenticationHandler);
-
+    if (this.servletInstances.get(DEFAULT_SERVLET_NAME) == null)
+    {
+    	Map staticParams = new Hashtable();
+    	staticParams.put("webRoot", this.webRoot);
+    	staticParams.put("prefix", this.prefix);
+    	staticParams.put("directoryList", "" + directoryListings);
+    	staticParams.put("welcomeFileCount", "" + this.welcomeFiles.length);
+    	for (int n = 0; n < this.welcomeFiles.length; n++)
+    		staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
+    	ServletConfiguration defaultServlet = new ServletConfiguration(this, this.loader,
+    		this.resources, this.prefix, DEFAULT_SERVLET_NAME, DEFAULT_SERVLET_CLASS, staticParams, 0);
+    	defaultServlet.getRequestDispatcher(null, this.filterInstances,
+    		this.fpForward, this.fpInclude, this.authenticationHandler);
+    	this.servletInstances.put(DEFAULT_SERVLET_NAME, defaultServlet);
+    	startupServlets.add(defaultServlet);
+    }
+    
     // Send init notifies
     for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
       ((ServletContextListener) i.next()).contextInitialized(new ServletContextEvent(this));
@@ -601,7 +666,7 @@ public class WebAppConfiguration implements ServletContext
     Arrays.sort(autoStarters);
     for (int n = 0; n < autoStarters.length; n++)
       ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null,
-                  this.filterInstances, this.filterPatterns, this.authenticationHandler);
+                  this.filterInstances, this.fpForward, this.fpInclude, this.authenticationHandler);
   }
 
   public String getPrefix()             {return this.prefix;}
@@ -670,7 +735,9 @@ public class WebAppConfiguration implements ServletContext
   }
 
   /**
-   * Here we process url patterns into the exactMatch and patternMatch map/list
+   * Here we process url patterns into the exactMatch and patternMatch list
+   * Ideally we want to share this with so it can be called for both servlets and
+   * filters.
    */
   private void processMapping(String name, String pattern,
       Map exactPatterns, List folderPatterns, List folderPatternMounts,
@@ -909,25 +976,42 @@ public class WebAppConfiguration implements ServletContext
   public void log(String message, Throwable throwable)
     {Logger.log(Logger.ERROR, this.contextName, message, throwable);}
 
-  // Getting request dispatchers
+  /**
+   * Named dispatcher - this basically gets us a simple exact dispatcher
+   * (no url matching and no request attributes)
+   */
   public javax.servlet.RequestDispatcher getNamedDispatcher(String name)
   {
     ServletConfiguration servlet = (ServletConfiguration) this.servletInstances.get(name);
     return (servlet != null
       ? servlet.getRequestDispatcher(null, this.filterInstances,
-                                    this.filterPatterns, this.authenticationHandler)
+                                    this.fpForward, this.fpInclude, this.authenticationHandler)
       : null);
   }
 
+  /**
+   * Gets a dispatcher, initialising the request attributes, etc
+   */
   public javax.servlet.RequestDispatcher getRequestDispatcher(String path)
   {
+  	// Parse the url for query string, etc
+  	
+  	// Get the path info, servlet path, and the name of the matched instance
+  	
+  	// If none, use the default servlet
+  	
+  	// Get dispatcher and set its request attributes
+  	
+  	// Return the dispatcher
+  	
     ServletConfiguration servlet = urlMatch(path);
     if (servlet != null)
       return servlet.getRequestDispatcher(path, this.filterInstances,
-                        this.filterPatterns, this.authenticationHandler);
+      		this.fpForward, this.fpInclude, this.authenticationHandler);
     else
-      return this.staticResourceProcessor.getRequestDispatcher(path,
-            this.filterInstances, this.filterPatterns, this.authenticationHandler);
+    	return null;
+    	//return this.staticResourceProcessor.getRequestDispatcher(path,
+      //      this.filterInstances, this.filterPatterns, this.authenticationHandler);
   }
 
   // Getting resources via the classloader

@@ -42,12 +42,26 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   private String jspFile;
   private WinstoneResourceBundle resources;
   private Map filters;
+  private String forwardFilterPatterns[];
+  private String includeFilterPatterns[];
   private String filterPatterns[];
   private int filterPatternsEvaluated;
   private int filterPatternCount;
   //private boolean doInclude;
   private boolean securityChecked;
   private AuthenticationHandler authHandler;
+
+  static final String INCLUDE_REQUEST_URI  = "javax.servlet.include.request_uri";
+  static final String INCLUDE_CONTEXT_PATH = "javax.servlet.include.context_path";
+  static final String INCLUDE_SERVLET_PATH = "javax.servlet.include.servlet_path";
+  static final String INCLUDE_PATH_INFO    = "javax.servlet.include.path_info";
+  static final String INCLUDE_QUERY_STRING = "javax.servlet.include.query_string";
+
+  static final String FORWARD_REQUEST_URI  = "javax.servlet.forward.request_uri";
+  static final String FORWARD_CONTEXT_PATH = "javax.servlet.forward.context_path";
+  static final String FORWARD_SERVLET_PATH = "javax.servlet.forward.servlet_path";
+  static final String FORWARD_PATH_INFO    = "javax.servlet.forward.path_info";
+  static final String FORWARD_QUERY_STRING = "javax.servlet.forward.query_string";
 
   /**
    * Constructor. This initializes the filter chain and sets up the details
@@ -56,8 +70,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
    */
   public RequestDispatcher(ServletConfiguration config, Servlet instance, 
     String name, ClassLoader loader, Object semaphore, String requestedPath, 
-    WinstoneResourceBundle resources, Map filters, String filterPatterns[], 
-    AuthenticationHandler authHandler, String prefix, String jspFile)
+    WinstoneResourceBundle resources, Map filters, String forwardFilterPatterns[], 
+    String includeFilterPatterns[], AuthenticationHandler authHandler, String prefix, String jspFile)
   {
     this.config = config;
     this.resources = resources;
@@ -70,10 +84,11 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.authHandler = authHandler;
     this.prefix = prefix;
     this.filters = filters;
-    this.filterPatterns = filterPatterns;
+    this.forwardFilterPatterns = forwardFilterPatterns;
+    this.includeFilterPatterns = includeFilterPatterns;
 
     this.filterPatternsEvaluated = 0;
-    this.filterPatternCount = (filterPatterns == null ? 0: filterPatterns.length);
+    this.filterPatternCount = -1; //(forwardFilterPatterns == null ? 0: forwardFilterPatterns.length);
   }
 
   public String getName() {return this.name;}
@@ -120,19 +135,20 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.jspFile != null)
         request.setAttribute(JSP_FILE, this.jspFile);
-      try 
-      {
-        if (this.instance instanceof SingleThreadModel)
-          synchronized (this.semaphore)
-          	{this.instance.service(request, includer);}
-        else
-          this.instance.service(request, includer);
-      }
-      catch (UnavailableException err)
-      {
-        this.config.setUnavailable();
-        throw err;
-      }
+
+      // Set request attributes
+      request.setAttribute(INCLUDE_REQUEST_URI, "");
+      request.setAttribute(INCLUDE_CONTEXT_PATH, "");
+      request.setAttribute(INCLUDE_SERVLET_PATH, "");
+      request.setAttribute(INCLUDE_PATH_INFO, "");
+      request.setAttribute(INCLUDE_QUERY_STRING, "");
+      
+      if (this.instance instanceof SingleThreadModel)
+        synchronized (this.semaphore)
+          {this.instance.service(request, includer);}
+      else
+        this.instance.service(request, includer);
+
       Thread.currentThread().setContextClassLoader(cl);
       includer.finish();
     }
@@ -200,19 +216,19 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.jspFile != null)
         request.setAttribute(JSP_FILE, this.jspFile);
-      try 
-      {
-        if (this.instance instanceof SingleThreadModel)
-          synchronized (this.semaphore)
-          	{this.instance.service(bareRequest, bareResponse);}
-        else
-          this.instance.service(bareRequest, bareResponse);
-      }
-      catch (UnavailableException err)
-      {
-        this.config.setUnavailable();
-        throw err;
-      }
+
+      // Set request attributes
+      request.setAttribute(FORWARD_REQUEST_URI, "");
+      request.setAttribute(FORWARD_CONTEXT_PATH, "");
+      request.setAttribute(FORWARD_SERVLET_PATH, "");
+      request.setAttribute(FORWARD_PATH_INFO, "");
+      request.setAttribute(FORWARD_QUERY_STRING, "");
+
+      if (this.instance instanceof SingleThreadModel)
+        synchronized (this.semaphore)
+        	{this.instance.service(bareRequest, bareResponse);}
+      else
+        this.instance.service(bareRequest, bareResponse);
       Thread.currentThread().setContextClassLoader(cl);
     }
   }

@@ -145,7 +145,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
    */
   public RequestDispatcher getRequestDispatcher(String requestedPath,
                                                 Map filters,
-                                                String filterPatterns[],
+                                                String forwardFilterPatterns[],
+                                                String includeFilterPatterns[],
                                                 AuthenticationHandler authHandler)
   {
     synchronized (this.servletSemaphore)
@@ -186,7 +187,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     // Build filter chain
     return new RequestDispatcher(this, this.instance, this.servletName, this.loader,
         this.servletSemaphore, requestedPath, this.resources, filters, 
-        filterPatterns, authHandler, this.prefix, this.jspFile == null ? requestedPath : this.jspFile);
+        forwardFilterPatterns, includeFilterPatterns, authHandler, this.prefix, 
+				this.jspFile == null ? requestedPath : this.jspFile);
   }
 
   public int getLoadOnStartup()               {return this.loadOnStartup;}
