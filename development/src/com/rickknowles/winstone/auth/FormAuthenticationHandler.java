@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.ServletException;
+import org.w3c.dom.Node;
 
 import com.rickknowles.winstone.*;
 
@@ -34,8 +35,12 @@ import com.rickknowles.winstone.*;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class FormAuthenticationHandler extends AuthenticationHandler
+public class FormAuthenticationHandler extends BaseAuthenticationHandler
 {
+  static final String ELEM_FORM_LOGIN_CONFIG = "form-login-config";
+  static final String ELEM_FORM_LOGIN_PAGE = "form-login-page";
+  static final String ELEM_FORM_ERROR_PAGE = "form-error-page";
+  
   final String FORM_ACTION = "j_security_check";
   final String FORM_USER   = "j_username";
   final String FORM_PASS   = "j_password";
@@ -51,14 +56,29 @@ public class FormAuthenticationHandler extends AuthenticationHandler
    * @param resources The list of resource strings for messages
    * @param realmName The name of the realm this handler claims
    */
-  public FormAuthenticationHandler(List roles, String realmName, String loginPage,
-    String errorPage, WinstoneResourceBundle resources,
-    SecurityConstraint[] constraints, AuthenticationRealm realm)
+  public FormAuthenticationHandler(Node loginConfigNode, List constraintNodes, 
+    WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
-    super(realm, constraints, resources, realmName);
-    this.loginPage = loginPage;
-    this.errorPage = errorPage;
-    Logger.log(Logger.FULL_DEBUG, resources.getString("FormAuthenticationHandler.Initialised",
+    super(loginConfigNode, constraintNodes, resources, realm);
+
+    for (int n = 0; n < loginConfigNode.getChildNodes().getLength(); n++)
+    {
+      Node loginElm = loginConfigNode.getChildNodes().item(n);    
+      if (loginElm.getNodeName().equals(ELEM_FORM_LOGIN_CONFIG))
+      {
+        for (int k = 0; k < loginElm.getChildNodes().getLength(); k++)
+        {
+          Node formElm = (Node) loginElm.getChildNodes().item(k);
+          if (formElm.getNodeType() != Node.ELEMENT_NODE)
+            continue;
+          else if (formElm.getNodeName().equals(ELEM_FORM_LOGIN_PAGE))
+            loginPage = formElm.getFirstChild().getNodeValue().trim();
+          else if (formElm.getNodeName().equals(ELEM_FORM_ERROR_PAGE))
+            errorPage = formElm.getFirstChild().getNodeValue().trim();
+        }
+      }
+    }
+    Logger.log(Logger.DEBUG, this.resources.getString("FormAuthenticationHandler.Initialised",
       "[#name]", realmName));
   }
 

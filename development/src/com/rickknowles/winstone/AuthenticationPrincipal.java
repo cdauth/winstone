@@ -17,7 +17,7 @@
  */
 package com.rickknowles.winstone;
 
-import java.util.Arrays;
+import java.util.List;
 import java.security.Principal;
 import java.io.Serializable;
 
@@ -32,13 +32,13 @@ public class AuthenticationPrincipal implements Principal, Serializable
 {
   private String userName;
   private String password;
-  private String roles[];
+  private List roles;
   private String authenticationType;
 
   /**
    * Constructor
    */
-  public AuthenticationPrincipal(String userName, String password, String roles[])
+  public AuthenticationPrincipal(String userName, String password, List roles)
   {
     this.userName = userName;
     this.password = password;
@@ -61,7 +61,7 @@ public class AuthenticationPrincipal implements Principal, Serializable
     else if (role == null)
       return false;
     else
-      return (Arrays.binarySearch(this.roles, role) >= 0);
+      return this.roles.contains(role);
   }
 }
 

@@ -22,6 +22,7 @@ import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.w3c.dom.*;
 
 /**
  * Handles HTTP basic authentication.
@@ -29,14 +30,13 @@ import java.io.IOException;
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class BasicAuthenticationHandler extends AuthenticationHandler
+public class BasicAuthenticationHandler extends BaseAuthenticationHandler
 {
-  public BasicAuthenticationHandler(List roles, String realmName,
-    WinstoneResourceBundle resources, SecurityConstraint constraints[],
-    AuthenticationRealm realm)
+  public BasicAuthenticationHandler(Node loginConfigNode, List constraintNodes, 
+    WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
-    super(realm, constraints, resources, realmName);
-    Logger.log(Logger.FULL_DEBUG, resources.getString("BasicAuthenticationHandler.Initialised",
+    super(loginConfigNode, constraintNodes, resources, realm);
+    Logger.log(Logger.DEBUG, this.resources.getString("BasicAuthenticationHandler.Initialised",
       "[#name]", realmName));
   }
 

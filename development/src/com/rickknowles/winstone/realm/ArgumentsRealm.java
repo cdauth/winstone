@@ -28,13 +28,16 @@ import com.rickknowles.winstone.*;
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class ArgumentsRealm extends AuthenticationRealm
+public class ArgumentsRealm implements AuthenticationRealm
 {
-  final String PASSWORD_PREFIX = "argumentsRealm.passwd.";
-  final String ROLES_PREFIX    = "argumentsRealm.roles.";
+  static final String PASSWORD_PREFIX = "argumentsRealm.passwd.";
+  static final String ROLES_PREFIX    = "argumentsRealm.roles.";
+
+  static final String LOCAL_RESOURCES = "com.rickknowles.winstone.realm.LocalStrings";
 
   private Map passwords;
   private Map roles;
+  private WinstoneResourceBundle resources;
 
   /**
    * Constructor - this sets up an authentication realm, using the arguments supplied
@@ -42,7 +45,7 @@ public class ArgumentsRealm extends AuthenticationRealm
    */
   public ArgumentsRealm(WinstoneResourceBundle resources, Map args)
   {
-    super(resources, args);
+    this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); //resources;
     this.passwords = new Hashtable();
     this.roles = new Hashtable();
     
@@ -61,11 +64,11 @@ public class ArgumentsRealm extends AuthenticationRealm
         for (int n = 0; n < roleArray.length; n++)
           roleArray[n] = st.nextToken();
         Arrays.sort(roleArray);
-        this.roles.put(userName, roleArray);
+        this.roles.put(userName, Arrays.asList(roleArray));
       }
     }
 
-    Logger.log(Logger.FULL_DEBUG, resources.getString("ArgumentsRealm.Initialised",
+    Logger.log(Logger.DEBUG, this.resources.getString("ArgumentsRealm.Initialised",
       "[#userCount]", "" + this.passwords.size()));
   }
 
@@ -84,7 +87,7 @@ public class ArgumentsRealm extends AuthenticationRealm
       return null;
     else
       return new AuthenticationPrincipal(userName, password,
-                                          (String []) this.roles.get(userName));
+                                          (List) this.roles.get(userName));
   }
 }
 

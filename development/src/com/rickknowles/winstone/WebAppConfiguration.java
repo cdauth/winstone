@@ -20,6 +20,7 @@ package com.rickknowles.winstone;
 import java.util.*;
 import java.io.*;
 import java.net.*;
+import java.lang.reflect.*;
 
 import org.w3c.dom.Node;
 import javax.servlet.ServletContextAttributeEvent;
@@ -83,8 +84,11 @@ public class WebAppConfiguration implements ServletContext
   final String INVOKER_SERVLET_NAME   = "invoker";
   final String INVOKER_SERVLET_CLASS  = "com.rickknowles.winstone.InvokerServlet";
 
-  final String STATIC_SERVLET_NAME   = "default";
-  final String STATIC_SERVLET_CLASS  = "com.rickknowles.winstone.StaticResourceServlet";
+  final String STATIC_SERVLET_NAME    = "default";
+  final String STATIC_SERVLET_CLASS   = "com.rickknowles.winstone.StaticResourceServlet";
+
+  final String DEFAULT_REALM_CLASS    = "com.rickknowles.winstone.realm.ArgumentsRealm";
+
 
   private WinstoneResourceBundle resources;
   private Launcher launcher;
@@ -176,7 +180,8 @@ public class WebAppConfiguration implements ServletContext
     List startupServlets = new ArrayList();
 
     List rolesAllowed = new ArrayList();
-    List loginSecurityNodes = new ArrayList();
+    List constraintNodes = new ArrayList();
+    Node loginConfigNode = null;
 
     // Initialise jasper servlet if requested
     if (useJasper)
@@ -240,9 +245,11 @@ public class WebAppConfiguration implements ServletContext
         else if (nodeName.equals(ELEM_DISTRIBUTABLE))
           this.distributable = true;
 
-        else if (nodeName.equals(ELEM_SECURITY_CONSTRAINT) ||
-                 nodeName.equals(ELEM_LOGIN_CONFIG))
-          loginSecurityNodes.add(child);
+        else if (nodeName.equals(ELEM_SECURITY_CONSTRAINT))
+          constraintNodes.add(child);
+
+        else if (nodeName.equals(ELEM_LOGIN_CONFIG))
+          loginConfigNode = child;
 
         // Session config elements
         else if (nodeName.equals(ELEM_SESSION_CONFIG))
@@ -443,13 +450,38 @@ public class WebAppConfiguration implements ServletContext
                 "[#name]", name, "[#value]", value));
         }
       }
+
     // Build the login/security role instance
-    if (!loginSecurityNodes.isEmpty())
+    if (!constraintNodes.isEmpty() && (loginConfigNode != null))
     {
-      // Build the realm
-      this.authenticationRealm = AuthenticationRealm.getInstance(resources, argsForSecurity);
-      this.authenticationHandler = AuthenticationHandler.getInstance(loginSecurityNodes,
-                                                              resources, authenticationRealm);
+      String authMethod = null;
+      for (int n = 0; n < loginConfigNode.getChildNodes().getLength(); n++)
+        if (loginConfigNode.getChildNodes().item(n).getNodeName().equals("auth-method"))
+          authMethod = loginConfigNode.getChildNodes().item(n).getFirstChild().getNodeValue();
+
+      // Load the appropriate auth class
+      if (authMethod == null) authMethod = "BASIC";
+      String realmClassName = argsForSecurity.get("realmClass") == null ? DEFAULT_REALM_CLASS : (String) argsForSecurity.get("realmClass");
+      String authClassName = "com.rickknowles.winstone.auth." + 
+                             authMethod.substring(0, 1).toUpperCase() + 
+                             authMethod.substring(1).toLowerCase() + "AuthenticationHandler";
+      try
+      {
+        // Build the realm
+        Class realmClass = Class.forName(realmClassName);
+        Constructor realmConstr = realmClass.getConstructor(new Class[] {WinstoneResourceBundle.class, Map.class});
+        this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, argsForSecurity});
+
+        // Build the authentication handler
+        Class authClass = Class.forName(authClassName);
+        Constructor authConstr = authClass.getConstructor(new Class[] 
+          {Node.class, List.class, WinstoneResourceBundle.class, AuthenticationRealm.class});
+        this.authenticationHandler = (AuthenticationHandler) authConstr.newInstance(new Object[] 
+          {loginConfigNode, constraintNodes, resources, authenticationRealm});
+      }
+      catch (Throwable err)
+        {Logger.log(Logger.WARNING, this.resources.getString("WebAppConfig.AuthDisabled", 
+          "[#authClassName]", authClassName, "[#realmClassName]", realmClassName), err);}
     }
     
     // Add the default index.html welcomeFile if none are supplied

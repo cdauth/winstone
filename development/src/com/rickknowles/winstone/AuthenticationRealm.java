@@ -17,55 +17,17 @@
  */
 package com.rickknowles.winstone;
 
-import java.lang.reflect.*;
-import java.util.*;
-
 /**
- * Base class for authentication realms. Subclasses provide the source of
- * authentication roles, usernames, passwords, etc, and when asked for
- * validation respond with a role if valid, or null otherwise.
+ * Interface for authentication realms. 
  *
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public abstract class AuthenticationRealm
+public interface AuthenticationRealm
 {
-  static final String DEFAULT_REALM_CLASS = "com.rickknowles.winstone.realm.ArgumentsRealm";
-
-  protected WinstoneResourceBundle resources;
-
-  /**
-   * Factory method for retrieving concrete subclasses of this abstract class.
-   * Basically we dynamically load the realm manager based on startup arguments.
-   */
-  public static AuthenticationRealm getInstance(WinstoneResourceBundle resources,
-    Map args)
-  {
-    // Get the realm class name from the argset
-    String realmClassName = args.get("realmClass") == null
-                    ? DEFAULT_REALM_CLASS : (String) args.get("realmClass");
-    try
-    {
-      Class realmClass = Class.forName(realmClassName);
-      Constructor realmConstr = realmClass.getConstructor(new Class[] {WinstoneResourceBundle.class, Map.class});
-      return (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, args});
-    }
-    catch (Throwable err)
-      {Logger.log(Logger.WARNING, resources.getString("AuthenticationRealm.Error"), err);}
-    return null;
-  }
-
-  /**
-   * Base class constructor. Sets the resources and realm name.
-   */
-  protected AuthenticationRealm(WinstoneResourceBundle resources, Map args)
-  {
-    this.resources = resources;
-  }
-
   /**
    * Authenticate the user - do we know them ? Return a distinct id once we know them
    */
-  public abstract AuthenticationPrincipal authenticateByUsernamePassword(String userName, String password);
+  public AuthenticationPrincipal authenticateByUsernamePassword(String userName, String password);
 }
 

@@ -15,9 +15,15 @@
  * Version 2 along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package com.rickknowles.winstone;
+package com.rickknowles.winstone.auth;
 
 import org.w3c.dom.Node;
+
+import com.rickknowles.winstone.Logger;
+import com.rickknowles.winstone.WebAppConfiguration;
+import com.rickknowles.winstone.WinstoneRequest;
+import com.rickknowles.winstone.WinstoneResourceBundle;
+
 import java.util.*;
 
 /**
@@ -68,7 +74,8 @@ public class SecurityConstraint
         this.displayName = child.getFirstChild().getNodeValue().trim();
       else if (child.getNodeName().equals(ELEM_WEB_RESOURCES))
       {
-        String methodSet = "";
+        String methodSet = null;
+        
         // Parse the element and extract
         for (int k = 0; k < child.getChildNodes().getLength(); k++)
         {
@@ -136,17 +143,20 @@ public class SecurityConstraint
   /**
    * Call this to evaluate the security constraint - is this constraint applicable to this url ?
    */
-  public boolean isApplicable(String url, String protocol)
+  public boolean isApplicable(String url, String method)
   {
     for (int n = 0; n < this.urlPatterns.length; n++)
-      if (WebAppConfiguration.wildcardMatch(this.urlPatterns[n], url) &&
-          (this.methodSets[n].equals(".ALL.") || 
-          (this.methodSets[n].indexOf("." + protocol.toUpperCase() + ".") != -1)))
+      if (WebAppConfiguration.wildcardMatch(this.urlPatterns[n], url) && 
+          methodCheck(method, this.methodSets[n]))
         return true;
 
     return false;
   }
 
+  private boolean methodCheck(String protocol, String methodSet)
+  {
+    return methodSet.equals(".ALL.") || (methodSet.indexOf("." + protocol.toUpperCase() + ".") != -1);
+  }
   public boolean needsSSL() {return this.needsSSL;}
   public String getName() {return this.displayName;}
 }

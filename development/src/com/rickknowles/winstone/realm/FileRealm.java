@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -41,7 +42,7 @@ import com.rickknowles.winstone.WinstoneResourceBundle;
  * @author rickk
  * @version $Id$
  */
-public class FileRealm extends AuthenticationRealm 
+public class FileRealm implements AuthenticationRealm 
 {
   final String FILE_NAME_ARGUMENT = "fileRealm.configFile";
   final String DEFAULT_FILE_NAME  = "users.xml";
@@ -52,8 +53,11 @@ public class FileRealm extends AuthenticationRealm
   final String ATT_PASSWORD = "password";
   final String ATT_ROLELIST = "roles";
 
+  static final String LOCAL_RESOURCES = "com.rickknowles.winstone.realm.LocalStrings";
+
   private Map passwords;
   private Map roles;
+  private WinstoneResourceBundle resources;
 
   /**
    * Constructor - this sets up an authentication realm, using the file supplied
@@ -61,7 +65,7 @@ public class FileRealm extends AuthenticationRealm
    */
   public FileRealm(WinstoneResourceBundle resources, Map args)
   {
-    super(resources, args);
+    this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); //resources;
     this.passwords = new Hashtable();
     this.roles = new Hashtable();
 
@@ -114,11 +118,11 @@ public class FileRealm extends AuthenticationRealm
             for (int k = 0; k < roleArray.length; k++)
               roleArray[k] = st.nextToken();
             Arrays.sort(roleArray);
-            this.roles.put(userName, roleArray);
+            this.roles.put(userName, Arrays.asList(roleArray));
           }
         }
       }
-      Logger.log(Logger.FULL_DEBUG, resources.getString("FileRealm.Initialised",
+      Logger.log(Logger.DEBUG, this.resources.getString("FileRealm.Initialised",
           "[#userCount]", "" + this.passwords.size()));
     }
     catch (java.io.IOException err) 
@@ -164,6 +168,6 @@ public class FileRealm extends AuthenticationRealm
       return null;
     else
       return new AuthenticationPrincipal(userName, password,
-                      (String []) this.roles.get(userName));
+                      (List) this.roles.get(userName));
   }  
 }
