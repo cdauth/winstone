@@ -150,6 +150,9 @@ public class HttpsListener extends HttpListener
   {
     try
     {
+      File ksFile = new File(keyStoreName);
+      if (!ksFile.exists() || !ksFile.isFile())
+        throw new WinstoneException(localResources.getString("HttpsListener.KeyStoreNotFound", ksFile.getPath()));
       InputStream in = new FileInputStream(new File(".", keyStoreName));
       char[] passwordChars = password == null ? null : password.toCharArray();
       KeyStore ks = KeyStore.getInstance("JKS");
