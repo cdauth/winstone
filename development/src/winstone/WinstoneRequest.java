@@ -627,13 +627,16 @@ public class WinstoneRequest implements HttpServletRequest
       throw new WinstoneException(resources.getString("WinstoneRequest.UnknownParameterType",
           name + " - " + param.getClass()));
   }
-
+  
   public Map getParameterMap()
   {
-    Boolean parsed = parseRequestParameters(this.inputData, this.parsedParameters, this.method,
-                                            this.contentType, this.contentLength, this.parameters);
-    this.parsedParameters = parsed;
-    return new Hashtable(this.parameters);
+    Hashtable paramMap = new Hashtable();
+  	for (Enumeration names = this.getParameterNames(); names.hasMoreElements(); )
+  	{
+      String name = (String) names.nextElement();
+      paramMap.put(name, getParameterValues(name));
+    }
+    return paramMap;
   }
 
   public String getServerName() {return this.serverName;}

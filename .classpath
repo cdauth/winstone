@@ -2,8 +2,8 @@
 <classpath>
 	<classpathentry excluding="**/CVS/**" kind="src" path="development/src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="C:/Java/junit/xml-apis.jar"/>
-	<classpathentry kind="lib" path="C:/Java/junit/junit.jar"/>
-	<classpathentry kind="lib" path="C:/Java/junit/httpunit.jar"/>
+	<classpathentry kind="lib" path="/home/rickk/jars/xml-apis.jar"/>
+	<classpathentry kind="lib" path="/home/rickk/jars/junit.jar"/>
+	<classpathentry kind="lib" path="/home/rickk/jars/httpunit.jar"/>
 	<classpathentry kind="output" path="build-eclipse"/>
 </classpath>
