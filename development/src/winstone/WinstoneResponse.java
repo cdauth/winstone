@@ -471,8 +471,36 @@ public class WinstoneResponse implements HttpServletResponse
 
   public void sendRedirect(String location) throws IOException
   {
+    // Build location
+    StringBuffer fullLocation = new StringBuffer();
+    if (location.startsWith("http://"))
+      fullLocation.append(location);
+    else 
+    {
+      fullLocation.append(this.req.getScheme()).append("://");
+      fullLocation.append(this.req.getServerName());
+      if (!((this.req.getServerPort() == 80) && this.req.getScheme().equals("http")) &&
+          !((this.req.getServerPort() == 443) && this.req.getScheme().equals("https")))
+        fullLocation.append(':').append(this.req.getServerPort());
+      if (location.startsWith("/"))
+      {
+        if (!this.webAppConfig.getPrefix().equals("") &&
+            !location.startsWith(this.webAppConfig.getPrefix()))
+          fullLocation.append(this.webAppConfig.getPrefix());
+        fullLocation.append(location);
+      }
+      else 
+      {
+        fullLocation.append(this.req.getRequestURI());
+        if (fullLocation.indexOf("?") != -1)
+          fullLocation.delete(fullLocation.indexOf("?"), fullLocation.length());
+        fullLocation.delete(fullLocation.lastIndexOf("/") + 1, fullLocation.length());
+        fullLocation.append(location);
+      }
+    }
+    
     this.statusCode = HttpServletResponse.SC_MOVED_TEMPORARILY;
-    setHeader(LOCATION_HEADER, location);
+    setHeader(LOCATION_HEADER, fullLocation.toString());
     setContentLength(0);
     getWriter().close();
   }

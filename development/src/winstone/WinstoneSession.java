@@ -111,6 +111,13 @@ public class WinstoneSession implements HttpSession, Serializable
       Logger.log(Logger.WARNING, this.resources.getString("WinstoneSession.AttributeNotSerializable",
           "[#name]", name, "[#class]", value.getClass().getName()));
 
+    // valueBound must be before binding
+    if (value instanceof HttpSessionBindingListener)
+    {
+      HttpSessionBindingListener hsbl = (HttpSessionBindingListener) value;
+      hsbl.valueBound(new HttpSessionBindingEvent(this, name, value));
+    }
+
     Object oldValue = null;
     synchronized (this.sessionMonitor)
     {
@@ -118,17 +125,14 @@ public class WinstoneSession implements HttpSession, Serializable
       this.sessionData.put(name, value);
     }
 
-    // Notify listeners
+    // valueUnbound must be after unbinding
     if (oldValue instanceof HttpSessionBindingListener)
     {
       HttpSessionBindingListener hsbl = (HttpSessionBindingListener) oldValue;
       hsbl.valueUnbound(new HttpSessionBindingEvent(this, name, oldValue));
     }
-    if (value instanceof HttpSessionBindingListener)
-    {
-      HttpSessionBindingListener hsbl = (HttpSessionBindingListener) value;
-      hsbl.valueBound(new HttpSessionBindingEvent(this, name, value));
-    }
+    
+    // Notify other listeners
     if (oldValue != null)
       for (int n = 0; n < this.sessionAttributeListeners.length; n++)
         this.sessionAttributeListeners[n].attributeReplaced(new HttpSessionBindingEvent(this, name, oldValue));
@@ -173,8 +177,8 @@ public class WinstoneSession implements HttpSession, Serializable
 
   public void invalidate()
   {
-    // Notify session listeners of invalidated session
-    for (int n = 0; n < this.sessionListeners.length; n++)
+    // Notify session listeners of invalidated session -- backwards
+    for (int n = this.sessionListeners.length; n >= 0; n--)
       this.sessionListeners[n].sessionDestroyed(new HttpSessionEvent(this));
 
     List keys = new ArrayList(this.sessionData.keySet());

@@ -619,8 +619,17 @@ public class WinstoneRequest implements HttpServletRequest
   public int getLocalPort()     {return this.localPort;}
   
   public javax.servlet.RequestDispatcher getRequestDispatcher(String path)
-    {return this.webappConfig.getRequestDispatcher(path);}
-
+  {
+    if (path.startsWith("/"))
+      return this.webappConfig.getRequestDispatcher(path);
+    
+    // Take the servlet path + pathInfo, and make an absolute path
+    String fullPath = getServletPath() + (getPathInfo() == null ? "" : getPathInfo());
+    int lastSlash = fullPath.lastIndexOf('/'); 
+    String currentDir = (lastSlash == -1 ? "/" : fullPath.substring(0, lastSlash + 1));
+    return this.webappConfig.getRequestDispatcher(currentDir + path);
+  }
+  
   // Now the stuff for HttpServletRequest
   public String getContextPath()  {return this.webappConfig.getPrefix();}
   public Cookie[] getCookies() {return this.cookies;}

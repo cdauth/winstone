@@ -31,7 +31,6 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.ServletRequestListener;
-import javax.servlet.ServletRequestEvent;
 import javax.servlet.http.HttpSessionActivationListener;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionListener;
@@ -794,8 +793,13 @@ public class WebAppConfiguration implements ServletContext, Comparator
     for (Iterator i = this.servletInstances.values().iterator(); i.hasNext(); )
       ((ServletConfiguration) i.next()).destroy();
 
-    // Send destroy notifies
-    for (int n = 0; n < this.contextListeners.length; n++)
+    // Drop all sessions
+    Collection sessions = new ArrayList(this.sessions.values());
+    for (Iterator i = sessions.iterator(); i.hasNext(); )
+      ((WinstoneSession) i.next()).invalidate();
+
+    // Send destroy notifies - backwards
+    for (int n = this.contextListeners.length - 1; n >= 0; n--)
       this.contextListeners[n].contextDestroyed(new ServletContextEvent(this));
 
     // Terminate class loader reloading thread if running
@@ -805,11 +809,6 @@ public class WebAppConfiguration implements ServletContext, Comparator
     // Kill JNDI manager if we have one
     if (this.jndiManager != null)
       this.jndiManager.tearDown();
-
-    // Drop all sessions
-    Collection sessions = new ArrayList(this.sessions.values());
-    for (Iterator i = sessions.iterator(); i.hasNext(); )
-      ((WinstoneSession) i.next()).invalidate();
   }
 
   /**

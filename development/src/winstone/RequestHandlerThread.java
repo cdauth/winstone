@@ -23,7 +23,6 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequestListener;
 import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.ServletRequestEvent;
-import javax.servlet.ServletRequestAttributeEvent;
 
 /**
  * The threads to which incoming requests get allocated.

@@ -298,6 +298,15 @@ public class Ajp13Listener implements Listener, Runnable
                          headers.getAttributes().get("ssl_session"));
         req.setIsSecure(true);
       }
+      else if (attName.equals("ssl_key_size"))
+      {
+        req.setAttribute("javax.servlet.request.key_size",
+                         headers.getAttributes().get("ssl_key_size"));
+        req.setIsSecure(true);
+      }
+      else
+        Logger.log(Logger.DEBUG, localResources.getString("Ajp13Listener.UnknownAttribute",
+            "[#name]", attName, "[#value]", "" + headers.getAttributes().get(attName)));
     }
     return headers.getURI();
 

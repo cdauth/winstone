@@ -354,7 +354,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       }
       else
         Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-          "RequestDispatcher.BypassingFilter",
+          "RequestDispatcher.BypassingFilter", "[#name]", this.name,
             "[#filterPattern]", filterPattern.toString(), "[#path]", fullPath));
     }
 
