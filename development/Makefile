@@ -9,14 +9,15 @@ WINSTONE_LITE_O = winstone_lite.o winstone_res1.o
 WINSTONE_AJP_O = winstone_ajp.o winstone_ajp_res1.o
 WINSTONE_AUTH_O = winstone_auth.o winstone_realm.o winstone_auth_res1.o winstone_realm_res1.o
 WINSTONE_CLUSTER_O = winstone_cluster.o winstone_cluster_res1.o
+WINSTONE_CLASSLOADER_O = winstone_classloader.o winstone_classloader_res1.o
 WINSTONE_JNDI_O = winstone_jndi.o winstone_jndi_res1.o winstone_jndi_res2.o
 SERVLET_O = servlet.o servlet_res1.o servlet_res2.o
 CRIMSON_O = crimson.o crimson_res1.o crimson_res2.o javax_xml.o xml_api.o
-#JSP_API_O = jsp_api.o
+JSP_API_O = jsp_api.o jsp_api_res1.o jsp_api_res2.o jsp_api_res3.o jsp_api_res4.o jsp_api_res5.o jsp_api_res6.o
 
-all:	$(WINSTONE_LITE_O) $(WINSTONE_AJP_O) $(WINSTONE_AUTH_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(SERVLET_O) $(CRIMSON_O)
+all:	$(WINSTONE_LITE_O) $(WINSTONE_AJP_O) $(WINSTONE_AUTH_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(WINSTONE_CLASSLOADER_O) $(SERVLET_O) $(CRIMSON_O) $(JSP_API_O)
 	$(CC) $(CFLAGS) --main=winstone.Launcher -o winstone_lite $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O)
-	$(CC) $(CFLAGS) --main=winstone.Launcher -o winstone_full $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O) $(WINSTONE_AUTH_O) $(WINSTONE_AJP_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O)
+	$(CC) $(CFLAGS) --main=winstone.Launcher -o winstone_full $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O) $(WINSTONE_AUTH_O) $(WINSTONE_AJP_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(WINSTONE_CLASSLOADER_O) $(JSP_API_O)
 
 winstone_lite.o: $(WINSTONE_BASE)/winstone/*.java
 	$(CC) $(CFLAGS) -o winstone_lite.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/winstone/*.java
@@ -43,6 +44,11 @@ winstone_cluster.o: $(WINSTONE_BASE)/winstone/cluster/*.java
 winstone_cluster_res1.o: $(WINSTONE_BASE)/winstone/cluster/LocalStrings.properties
 	$(CC) $(CFLAGS) -o winstone_cluster_res1.o --resource=winstone/cluster/LocalStrings.properties -c $(WINSTONE_BASE)/winstone/cluster/LocalStrings.properties
 
+winstone_classloader.o: $(WINSTONE_BASE)/winstone/classLoader/*.java
+	$(CC) $(CFLAGS) -o winstone_classloader.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/winstone/classLoader/*.java
+winstone_classloader_res1.o: $(WINSTONE_BASE)/winstone/classLoader/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_classloader_res1.o --resource=winstone/classLoader/LocalStrings.properties -c $(WINSTONE_BASE)/winstone/classLoader/LocalStrings.properties
+
 winstone_jndi.o: $(WINSTONE_BASE)/winstone/jndi/*.java \
                  $(WINSTONE_BASE)/winstone/jndi/java/*.java \
                  $(WINSTONE_BASE)/winstone/jndi/resourceFactories/*.java
@@ -63,6 +69,20 @@ servlet_res2.o: $(WINSTONE_BASE)/javax/servlet/resources/web-app_2_3.dtd
 	$(CC) $(CFLAGS) -o servlet_res2.o --resource=javax/servlet/resources/web-app_2_3.dtd -c $(WINSTONE_BASE)/javax/servlet/resources/web-app_2_3.dtd
 
 # Add JSP API classes here
+jsp_api.o: $(WINSTONE_BASE)/javax/servlet/jsp/*.java $(WINSTONE_BASE)/javax/servlet/jsp/tagext/*.java $(WINSTONE_BASE)/javax/servlet/jsp/el/*.java
+	$(CC) $(CFLAGS) -o jsp_api.o --classpath=$(WINSTONE_BASE) -c $(WINSTONE_BASE)/javax/servlet/jsp/*.java $(WINSTONE_BASE)/javax/servlet/jsp/tagext/*.java $(WINSTONE_BASE)/javax/servlet/jsp/el/*.java
+jsp_api_res1.o: $(WINSTONE_BASE)/javax/servlet/jsp/resources/jsp_2_0.xsd
+	$(CC) $(CFLAGS) -o jsp_api_res1.o --resource=javax/servlet/jsp/resources/jsp_2_0.xsd -c $(WINSTONE_BASE)/javax/servlet/jsp/resources/jsp_2_0.xsd
+jsp_api_res2.o: $(WINSTONE_BASE)/javax/servlet/jsp/resources/jspxml.dtd
+	$(CC) $(CFLAGS) -o jsp_api_res2.o --resource=javax/servlet/jsp/resources/jspxml.dtd -c $(WINSTONE_BASE)/javax/servlet/jsp/resources/jspxml.dtd
+jsp_api_res3.o: $(WINSTONE_BASE)/javax/servlet/jsp/resources/jspxml.xsd
+	$(CC) $(CFLAGS) -o jsp_api_res3.o --resource=javax/servlet/jsp/resources/jspxml.xsd -c $(WINSTONE_BASE)/javax/servlet/jsp/resources/jspxml.xsd
+jsp_api_res4.o: $(WINSTONE_BASE)/javax/servlet/jsp/resources/web-jsptaglibrary_1_1.dtd
+	$(CC) $(CFLAGS) -o jsp_api_res4.o --resource=javax/servlet/jsp/resources/web-jsptaglibrary_1_1.dtd -c $(WINSTONE_BASE)/javax/servlet/jsp/resources/web-jsptaglibrary_1_1.dtd
+jsp_api_res5.o: $(WINSTONE_BASE)/javax/servlet/jsp/resources/web-jsptaglibrary_1_2.dtd
+	$(CC) $(CFLAGS) -o jsp_api_res5.o --resource=javax/servlet/jsp/resources/web-jsptaglibrary_1_2.dtd -c $(WINSTONE_BASE)/javax/servlet/jsp/resources/web-jsptaglibrary_1_2.dtd
+jsp_api_res6.o: $(WINSTONE_BASE)/javax/servlet/jsp/resources/web-jsptaglibrary_2_0.xsd
+	$(CC) $(CFLAGS) -o jsp_api_res6.o --resource=javax/servlet/jsp/resources/web-jsptaglibrary_2_0.xsd -c $(WINSTONE_BASE)/javax/servlet/jsp/resources/web-jsptaglibrary_2_0.xsd
 
 javax_xml.o: $(CRIMSON_BASE)/javax/xml/*/*.java
 	$(CC) $(CFLAGS) -o javax_xml.o -c $(CRIMSON_BASE)/javax/xml/*/*.java

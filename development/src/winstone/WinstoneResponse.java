@@ -483,9 +483,9 @@ public class WinstoneResponse implements HttpServletResponse
       else 
       {
         fullLocation.append(this.req.getRequestURI());
-        if (fullLocation.indexOf("?") != -1)
-          fullLocation.delete(fullLocation.indexOf("?"), fullLocation.length());
-        fullLocation.delete(fullLocation.lastIndexOf("/") + 1, fullLocation.length());
+        if (fullLocation.toString().indexOf("?") != -1)
+          fullLocation.delete(fullLocation.toString().indexOf("?"), fullLocation.length());
+        fullLocation.delete(fullLocation.toString().lastIndexOf("/") + 1, fullLocation.length());
         fullLocation.append(location);
       }
     }

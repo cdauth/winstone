@@ -103,7 +103,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
     this.commonLibCLPaths = new ArrayList();
     String javaHome = WebAppConfiguration.stringArg(args, "javaHome", System.getProperty("java.home"));
     Logger.log(Logger.DEBUG, resources, "Launcher.UsingJavaHome", javaHome);
-    File toolsJar = new File(javaHome, "lib/tools.jar");
+    String toolsJarLocation = WebAppConfiguration.stringArg(args, "toolsJar", null);
+    File toolsJar = (toolsJarLocation == null ? new File(javaHome, "lib/tools.jar") : new File(toolsJarLocation));
     if (toolsJar.exists())
     {
       jars.add(toolsJar.toURL());
