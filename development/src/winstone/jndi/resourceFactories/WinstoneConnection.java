@@ -17,6 +17,7 @@
  */
 package winstone.jndi.resourceFactories;
 
+import winstone.*;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -36,14 +37,17 @@ public class WinstoneConnection implements Connection
 {
   private Connection realConnection;
   private WinstoneDataSource datasource;
+  private WinstoneResourceBundle resources;
   
   /**
    * Constructor - this sets the real connection and the link back to the pool 
    */
-  public WinstoneConnection(Connection connection, WinstoneDataSource datasource)
+  public WinstoneConnection(Connection connection, 
+          WinstoneDataSource datasource, WinstoneResourceBundle resources)
   {
     this.realConnection = connection;
     this.datasource = datasource;
+    this.resources = resources;
   }
 
   public void close() throws SQLException
@@ -51,6 +55,7 @@ public class WinstoneConnection implements Connection
     Connection realConnectionHolder = null;
     if (this.realConnection != null)
     {
+      Logger.log(Logger.FULL_DEBUG, resources, "WinstoneConnection.ReleaseRollback");
       if (!this.realConnection.getAutoCommit())
         this.realConnection.rollback();
       realConnectionHolder = this.realConnection;

@@ -103,7 +103,10 @@ public class WinstoneDataSource implements DataSource, Runnable
       while ((this.unusedConnections.size() < START_CONNECTIONS) &&
              (this.usedConnections.size() + this.unusedConnections.size() < MAX_CONNECTIONS))
       {
-        this.unusedConnections.add(this.driver.connect(this.url, this.connectProps));
+        Connection conn = this.driver.connect(this.url, this.connectProps);
+        if (conn == null)
+          throw new WinstoneException(this.resources.getString("WinstoneDataSource.DriverConnectNull"));
+        this.unusedConnections.add(conn);
         Logger.log(Logger.FULL_DEBUG, this.resources, "WinstoneDataSource.AddingPooledConnection",
           new String[] {"" + this.usedConnections.size(),
                         "" + this.unusedConnections.size()});
@@ -242,7 +245,7 @@ public class WinstoneDataSource implements DataSource, Runnable
       else
         throw new SQLException(this.resources.getString("WinstoneDataSource.PoolLimitExceeded", "" + MAX_CONNECTIONS));
 
-      wrapper = new WinstoneConnection(realConnection, this);
+      wrapper = new WinstoneConnection(realConnection, this, this.resources);
       this.usedWrappers.add(wrapper);
     }
     return wrapper;    
@@ -260,7 +263,7 @@ public class WinstoneDataSource implements DataSource, Runnable
     WinstoneConnection wrapper = null;
     synchronized (this.semaphore)
     {
-      wrapper = new WinstoneConnection(conn, this);
+      wrapper = new WinstoneConnection(conn, this, this.resources);
       this.usedWrappers.add(wrapper);
     }    
     return wrapper;
