@@ -207,7 +207,8 @@ Authors:
          remotedir="incoming"
          userid="anonymous"
          password=""
-         verbose="yes">
+         verbose="yes"
+         passive="yes">
       <fileset file="${release.dir}/winstone_${release.name}.jar"/>
       <fileset file="${release.dir}/winstone_lite_${release.name}.jar"/>
       <fileset file="${release.dir}/winstone_src_${release.name}.tar.gz"/>
