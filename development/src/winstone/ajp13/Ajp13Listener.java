@@ -42,6 +42,8 @@ public class Ajp13Listener implements Listener, Runnable
   private int KEEP_ALIVE_SLEEP     = 50;
   private int KEEP_ALIVE_SLEEP_MAX = 500;
 
+  private static String TEMPORARY_URL_STASH = "winstone.ajp13.TemporaryURLAttribute";
+  
   private static final String LOCAL_RESOURCE_FILE    = "winstone.ajp13.LocalStrings";
 
   private WinstoneResourceBundle mainResources;
@@ -135,7 +137,7 @@ public class Ajp13Listener implements Listener, Runnable
     WinstoneResponse rsp = this.objectPool.getResponseFromPool();
     req.setListener(this);
     rsp.setRequest(req);
-    rsp.updateContentTypeHeader("text/html");
+    //rsp.updateContentTypeHeader("text/html");
 
     if (iAmFirst || (KEEP_ALIVE_TIMEOUT == -1))
       socket.setSoTimeout(CONNECTION_TIMEOUT);
@@ -148,7 +150,9 @@ public class Ajp13Listener implements Listener, Runnable
     {
       headers.parsePacket("8859_1");
       parseSocketInfo(headers, req);
+      req.parseHeaders(Arrays.asList(headers.getHeaders()));
       String servletURI = parseURILine(headers, req, rsp);
+      req.setAttribute(TEMPORARY_URL_STASH, servletURI);
  
       // If content-length present and non-zero, download the other packets
       WinstoneInputStream inData = null;
@@ -212,7 +216,11 @@ public class Ajp13Listener implements Listener, Runnable
   public String parseURI(RequestHandlerThread handler, WinstoneRequest req, 
       WinstoneResponse rsp, WinstoneInputStream inData, Socket socket, 
       boolean iAmFirst) throws IOException
-    {return req.getServletPath();}
+  {
+    String uri = (String) req.getAttribute(TEMPORARY_URL_STASH);
+    req.removeAttribute(TEMPORARY_URL_STASH);
+    return uri;
+  }
 
   /**
    * Called by the request handler thread, because it needs specific shutdown code
@@ -260,10 +268,9 @@ public class Ajp13Listener implements Listener, Runnable
     req.setMethod(headers.getMethod());
     req.setProtocol(headers.getProtocol());
     rsp.setProtocol(headers.getProtocol());
-    req.parseHeaders(Arrays.asList(headers.getHeaders()));
     rsp.extractRequestKeepAliveHeader(req);
-    req.setServletPath(headers.getURI());
-    req.setRequestURI(headers.getURI());
+    //req.setServletPath(headers.getURI());
+    //req.setRequestURI(headers.getURI());
 
     // Get query string if supplied
     for (Iterator i = headers.getAttributes().keySet().iterator(); i.hasNext(); )
