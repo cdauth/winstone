@@ -72,8 +72,7 @@ public class LoadTestThread implements Runnable
         int contentLength = wresp.getContentLength() == -1 ? inContent.available() : wresp.getContentLength();
         byte content[] = new byte[contentLength];
         int position = 0;
-        while ((position < contentLength) && 
-               (System.currentTimeMillis() - startTime < 1000))
+        while (position < contentLength)
           position += inContent.read(content, position, contentLength - position);
         inContent.close();
   

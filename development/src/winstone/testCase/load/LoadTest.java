@@ -70,7 +70,7 @@ public class LoadTest
             (int) this.stepPeriod / 1000, this.resources));
       
       // Sleep for step period
-      Thread.sleep(this.stepPeriod + 2000);
+      Thread.sleep(this.stepPeriod + 5000);
       
       // Count the errors
       int errorCount = 0;
