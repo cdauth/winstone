@@ -34,6 +34,7 @@ public class LoadTestThread implements Runnable
   private boolean keepAlive;
   private int expectedTotal;
   private int successCount;
+  private long successTimeTotal;
   private boolean interrupted;
   private Thread thread;
   
@@ -78,7 +79,10 @@ public class LoadTestThread implements Runnable
   
         // Confirm the result is the same size the content-length said it was
         if (position == contentLength)
+        {
+          this.successTimeTotal += (System.currentTimeMillis() - startTime);
           this.successCount++;
+        }
         else
           throw new IOException("Only downloaded " + position + " of " + contentLength + " bytes");
       }
@@ -101,6 +105,7 @@ public class LoadTestThread implements Runnable
     this.thread.interrupt();
   }
   
+  public long getSuccessTime() {return this.successTimeTotal;}
   public int getSuccessCount() {return this.successCount;}
   public int getErrorCount() {return this.expectedTotal - this.successCount;}
 }

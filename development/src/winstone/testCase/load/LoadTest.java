@@ -75,16 +75,21 @@ public class LoadTest
       // Count the errors
       int errorCount = 0;
       int successCount = 0;
+      long successTimeTotal = 0;
       for (Iterator i = threads.iterator(); i.hasNext(); )
       {
         LoadTestThread ltt = (LoadTestThread) i.next();
         errorCount += ltt.getErrorCount();
         successCount += ltt.getSuccessCount();
+        successTimeTotal += ltt.getSuccessTime();
       }
+      
+      Long averageSuccessTime = successCount == 0 ? null :
+        new Long(successTimeTotal / successCount);
       
       // Write out results
       Logger.log(Logger.INFO, resources, "LoadTest.LineResult", new String[] {n + "",
-          successCount + "", errorCount + ""});
+          successCount + "", errorCount + "", averageSuccessTime + ""});
       
       // Close threads
       for (Iterator i = threads.iterator(); i.hasNext(); )
