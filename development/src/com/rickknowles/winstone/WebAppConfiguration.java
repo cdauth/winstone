@@ -182,6 +182,10 @@ public class WebAppConfiguration implements ServletContext
           }
       }
 
+    // Add the default index.html welcomeFile if none are supplied
+    if (localWelcomeFiles.isEmpty())
+      localWelcomeFiles.add("index.html");
+
     // Take the elements out of the lists and build arrays
     this.welcomeFiles = (String []) localWelcomeFiles.toArray(
                                     new String[localWelcomeFiles.size()]);
