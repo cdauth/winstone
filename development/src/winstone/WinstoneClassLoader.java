@@ -99,7 +99,7 @@ public class WinstoneClassLoader extends URLClassLoader
     {
       StringBuffer cp = new StringBuffer();
       for (Iterator i = this.classPaths.iterator(); i.hasNext(); )
-        cp.append(((File) i.next()).getCanonicalPath()).append(';');
+        cp.append(((File) i.next()).getCanonicalPath()).append(File.pathSeparatorChar);
       return (cp.length() > 0 ? cp.substring(0, cp.length() - 1) : "");
     }
     catch (IOException err)
