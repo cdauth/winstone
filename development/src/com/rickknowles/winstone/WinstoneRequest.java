@@ -37,6 +37,18 @@ public class WinstoneRequest implements HttpServletRequest
   protected static DateFormat headerDF = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
   static  {headerDF.setTimeZone(TimeZone.getTimeZone("GMT"));}
 
+  // Request header constants
+  static final String SESSION_COOKIE_NAME    = "WinstoneHttpSessionId";
+  static final String CONTENT_LENGTH_HEADER  = "Content-Length";
+  static final String CONTENT_TYPE_HEADER    = "Content-Type";
+  static final String AUTHORIZATION_HEADER   = "Authorization";
+  static final String LOCALE_HEADER          = "Accept-Language";
+  static final String HOST_HEADER            = "Host";
+  static final String IN_COOKIE_HEADER1      = "Cookie";
+  static final String IN_COOKIE_HEADER2      = "Cookie2";
+  static final String METHOD_POST            = "POST";
+  static final String POST_PARAMETERS        = "application/x-www-form-urlencoded";
+
   protected Map attributes;
   protected Map parameters;
   protected String headers[];
@@ -54,7 +66,6 @@ public class WinstoneRequest implements HttpServletRequest
   protected WinstoneInputStream inputData;
   protected ServletConfiguration servletConfig;
   protected WebAppConfiguration webappConfig;
-  protected HttpProtocol protocolClass;
   protected Listener listener;
   protected int serverPort;
   protected String remoteIP;
@@ -87,7 +98,6 @@ public class WinstoneRequest implements HttpServletRequest
   public void cleanUp()
   {
     this.listener = null;
-    this.protocolClass = null;
     this.attributes.clear();
     this.parameters.clear();
     this.headers = null;
@@ -145,11 +155,11 @@ public class WinstoneRequest implements HttpServletRequest
   public WebAppConfiguration getWebAppConfig()  {return this.webappConfig;}
   public String getEncoding()                   {return this.encoding;}
   public Boolean getParsedParameters()          {return this.parsedParameters;}
+  public List getListLocales()                  {return this.locales;}
 
   public void setInputStream(WinstoneInputStream inputData) {this.inputData = inputData;}
   public void setWebAppConfig(WebAppConfiguration webappConfig)  {this.webappConfig = webappConfig;}
   public void setListener(Listener listener) {this.listener = listener;}
-  public void setProtocolClass(HttpProtocol protocolClass) {this.protocolClass = protocolClass;}
 
   public void setServerPort(int port)       {this.serverPort = port;}
   public void setRemoteIP(String remoteIP)  {this.remoteIP = remoteIP;}
@@ -163,17 +173,280 @@ public class WinstoneRequest implements HttpServletRequest
   public void setScheme(String scheme)            {this.scheme = scheme;}
   public void setServletPath(String servletPath)  {this.servletPath = servletPath;}
   public void setProtocol(String protocolString)  {this.protocol = protocolString;}
+  public void setRemoteUser(AuthenticationPrincipal user) {this.authenticatedUser = user;}
 
-  public void setHeaders(String headers[])  {this.headers = headers;}
-  public void setCookies(Cookie cookies[])  {this.cookies = cookies;}
   public void setContentLength(int len)     {this.contentLength = len;}
   public void setContentType(String type)   {this.contentType = type;}
   public void setAuthorization(String auth) {this.authorization = auth;}
   public void setLocales(List locales)      {this.locales = locales;}
   public void setSessionCookie(String sc)   {this.sessionCookie = sc;}
-  public void setRemoteUser(AuthenticationPrincipal user) {this.authenticatedUser = user;}
   public void setEncoding(String encoding)  {this.encoding = encoding;}
   public void setParsedParameters(Boolean parsed) {this.parsedParameters = parsed;}
+
+  /**
+   * Gets parameters from the url encoded parameter string
+   */
+  public Map extractParameters(String urlEncodedParams)
+  {
+    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParsingParameters") + urlEncodedParams);
+    Map params = new Hashtable();
+    StringTokenizer st = new StringTokenizer(urlEncodedParams, "&", false);
+    while (st.hasMoreTokens())
+    {
+      String token = st.nextToken();
+      int equalPos = token.indexOf('=');
+      if (equalPos == -1)
+        Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.IgnoringBadParameter") + token);
+      else try
+      {
+        String decodedName = decodeURLToken(token.substring(0, equalPos));
+        String decodedValue = decodeURLToken(token.substring(equalPos + 1));
+        Object already = params.get(decodedName);
+        if (already == null)
+          params.put(decodedName, decodedValue);
+        else if (already instanceof String)
+        {
+          String pair[] = new String[2];
+          pair[0] = (String) already;
+          pair[1] = decodedValue;
+          params.put(decodedName, pair);
+        }
+        else if (already instanceof String[])
+        {
+          String alreadyArray[] = (String []) already;
+          String oneMore[] = new String[alreadyArray.length + 1];
+          System.arraycopy(alreadyArray, 0, oneMore, 0, alreadyArray.length);
+          oneMore[oneMore.length - 1] = decodedValue;
+          params.put(decodedName, oneMore);
+        }
+        else
+          Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.UnknownParameterType",
+              "[#name]", decodedName + " = " + decodedValue.getClass()));
+      }
+      catch (Exception err)
+        {Logger.log(Logger.ERROR, resources.getString("WinstoneRequest.ErrorParameters"), err);}
+    }
+    return params;
+  }
+
+  /**
+   * For decoding the URL encoding used on query strings
+   */
+  private static String decodeURLToken(String in)
+  {
+    StringBuffer workspace = new StringBuffer();
+    for (int n = 0; n < in.length(); n++)
+    {
+      char thisChar = in.charAt(n);
+      if (thisChar == '+')
+        workspace.append(' ');
+      else if (thisChar == '%')
+      {
+        int decoded = Integer.parseInt(in.substring(n + 1, n + 3), 16);
+        workspace.append((char) decoded);
+        n += 2;
+      }
+      else
+        workspace.append(thisChar);
+    }
+    return workspace.toString();
+  }
+
+  /**
+   * This takes the parameters in the body of the request and puts them into
+   * the parameters map.
+   */
+  public Boolean parseRequestParameters(InputStream inData,
+                                        Boolean parsedParameters,
+                                        String method,
+                                        String contentType,
+                                        int contentLength,
+                                        Map params)
+  {
+    if ((parsedParameters != null) && !parsedParameters.booleanValue())
+    {
+      Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.BothMethodsCalled"));
+      return new Boolean(true);
+    }
+    else if (parsedParameters == null)
+    try
+    {
+      Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParsingBodyParameters"));
+      if (method.equals(METHOD_POST) &&
+          (contentType != null) && contentType.equals(POST_PARAMETERS))
+      {
+        // Parse params
+        byte paramBuffer[] = new byte[contentLength];
+        int readCount = inData.read(paramBuffer);
+        if (readCount != contentLength)
+          Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.IncorrectContentLength",
+            "[#contentLength]", contentLength + "", "[#readCount]", readCount + ""));
+        String paramLine = new String(paramBuffer);
+        Map postParams = extractParameters(paramLine.trim());
+        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParamLine") + postParams);
+        params.putAll(postParams);
+      }
+      return new Boolean(true);
+    }
+    catch (Throwable err)
+    {
+      Logger.log(Logger.ERROR, resources.getString("WinstoneRequest.ErrorBodyParameters"), err);
+      return null;
+    }
+    else
+      return parsedParameters;
+  }
+
+  /**
+   * Go through the list of headers, and build the headers/cookies arrays for
+   * the request object.
+   */
+  public void parseHeaders(List headerList)
+  {
+    // Iterate through headers
+    List outHeaderList = new ArrayList();
+    List cookieList = new ArrayList();
+    for (Iterator i = headerList.iterator(); i.hasNext(); )
+    {
+      String header = (String) i.next();
+      int colonPos = header.indexOf(':');
+      String name = header.substring(0, colonPos);
+      String value = header.substring(colonPos + 1).trim();
+      int nextColonPos = value.indexOf(':');
+
+      // Add it to out headers if it's not a cookie
+      if (!name.equalsIgnoreCase(IN_COOKIE_HEADER1) &&
+          !name.equalsIgnoreCase(IN_COOKIE_HEADER2))
+        outHeaderList.add(header);
+
+      if (name.equalsIgnoreCase(AUTHORIZATION_HEADER))
+        this.authorization = value;
+      else if (name.equalsIgnoreCase(LOCALE_HEADER))
+        this.locales = parseLocales(value);
+      else if (name.equalsIgnoreCase(CONTENT_LENGTH_HEADER))
+        this.contentLength = Integer.parseInt(value);
+      else if (name.equalsIgnoreCase(HOST_HEADER))
+        this.serverName = nextColonPos == -1 ? value : value.substring(0, nextColonPos);
+      else if (name.equalsIgnoreCase(CONTENT_TYPE_HEADER))
+      {
+        this.contentType = value;
+        int semicolon = value.lastIndexOf(';');
+        if (semicolon != -1)
+        {
+          String encodingClause = value.substring(semicolon + 1).trim();
+          if (encodingClause.startsWith("charset="))
+            this.encoding = encodingClause.substring(8);
+        }
+      }
+      else if (name.equalsIgnoreCase(IN_COOKIE_HEADER1) ||
+               name.equalsIgnoreCase(IN_COOKIE_HEADER2))
+      {
+        StringTokenizer st = new StringTokenizer(value, ";", false);
+        while (st.hasMoreTokens())
+        {
+          String cookieLine = st.nextToken().trim();
+          int equalPos = cookieLine.indexOf('=');
+          if (equalPos != -1)
+          {
+            Cookie thisCookie = new Cookie(cookieLine.substring(0, equalPos),
+                                           cookieLine.substring(equalPos + 1));
+            thisCookie.setVersion(name.equals(IN_COOKIE_HEADER2) || isSecure() ? 1 : 0);
+            thisCookie.setSecure(isSecure());
+            cookieList.add(thisCookie);
+            Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.CookieFound",
+                  "[#cookieName]", thisCookie.getName(), "[#cookieValue]", thisCookie.getValue()));
+            if (thisCookie.getName().equals(SESSION_COOKIE_NAME))
+            {
+              this.sessionCookie = thisCookie.getValue();
+              Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.SessionCookieFound", "[#cookieValue]", thisCookie.getValue()));
+            }
+          }
+        }
+      }
+    }
+    this.headers = (String []) outHeaderList.toArray(new String[outHeaderList.size()]);
+    this.cookies = (Cookie []) cookieList.toArray(new Cookie[cookieList.size()]);
+  }
+
+  private List parseLocales(String header)
+  {
+    // Strip out the whitespace
+    StringBuffer lb = new StringBuffer();
+    for (int n = 0; n < header.length(); n++)
+    {
+      char c = header.charAt(n);
+      if (!Character.isWhitespace(c))
+        lb.append(c);
+    }
+
+    // Tokenize by commas
+    Map localeEntries = new HashMap();
+    StringTokenizer commaTK = new StringTokenizer(lb.toString(), ",", false);
+    for (; commaTK.hasMoreTokens(); )
+    {
+      String clause = commaTK.nextToken();
+
+      // Tokenize by semicolon
+      Float quality = new Float(1);
+      if (clause.indexOf(";q=") != -1)
+      {
+        int pos = clause.indexOf(";q=");
+        try
+          {quality = new Float(clause.substring(pos + 3));}
+        catch (NumberFormatException err) {quality = new Float(0);}
+        clause = clause.substring(0, pos);
+      }
+
+      // Build the locale
+      String language = "";
+      String country = "";
+      String variant = "";
+      int dpos = clause.indexOf('-');
+      if (dpos == -1)
+        language = clause;
+      else
+      {
+        language = clause.substring(0, dpos);
+        String remainder = clause.substring(dpos + 1);
+        int d2pos = remainder.indexOf('-');
+        if (d2pos == -1)
+          country = remainder;
+        else
+        {
+          country = remainder.substring(0, d2pos);
+          variant = remainder.substring(d2pos + 1);
+        }
+      }
+      Locale loc = new Locale(language, country, variant);
+
+      // Put into list by quality
+      List localeList = (List) localeEntries.get(quality);
+      if (localeList == null)
+      {
+        localeList = new ArrayList();
+        localeEntries.put(quality, localeList);
+      }
+      localeList.add(loc);
+    }
+
+    // Extract and build the list
+    Float orderKeys[] = (Float []) new ArrayList(localeEntries.keySet())
+                                          .toArray(new Float[localeEntries.size()]);
+    Arrays.sort(orderKeys);
+    List outputLocaleList = new ArrayList();
+    for (int n = 0; n < orderKeys.length; n++)
+    {
+      // Skip backwards through the list of maps and add to the output list
+      int reversedIndex = (orderKeys.length - 1) - n;
+      if ((orderKeys[reversedIndex].floatValue() <= 0) || (orderKeys[reversedIndex].floatValue() > 1))
+        continue;
+      List localeList = (List) localeEntries.get(orderKeys[reversedIndex]);
+      for (Iterator i = localeList.iterator(); i.hasNext(); )
+        outputLocaleList.add(i.next());
+    }
+
+    return outputLocaleList;
+  }
 
   // Implementation methods for the servlet request stuff
   public Object getAttribute(String name)         {return this.attributes.get(name);}
@@ -215,12 +488,8 @@ public class WinstoneRequest implements HttpServletRequest
 
   public String getParameter(String name)
   {
-    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
-                                                           this.parsedParameters,
-                                                           this.method,
-                                                           this.contentType,
-                                                           this.contentLength,
-                                                           this.parameters);
+    Boolean parsed = parseRequestParameters(this.inputData, this.parsedParameters, this.method,
+                                            this.contentType, this.contentLength, this.parameters);
     this.parsedParameters = parsed;
     Object param = this.parameters.get(name);
     if (param == null)
@@ -235,24 +504,16 @@ public class WinstoneRequest implements HttpServletRequest
 
   public Enumeration getParameterNames()
   {
-    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
-                                                           this.parsedParameters,
-                                                           this.method,
-                                                           this.contentType,
-                                                           this.contentLength,
-                                                           this.parameters);
+    Boolean parsed = parseRequestParameters(this.inputData, this.parsedParameters, this.method,
+                                            this.contentType, this.contentLength, this.parameters);
     this.parsedParameters = parsed;
     return Collections.enumeration(this.parameters.keySet());
   }
 
   public String[] getParameterValues(String name)
   {
-    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
-                                                           this.parsedParameters,
-                                                           this.method,
-                                                           this.contentType,
-                                                           this.contentLength,
-                                                           this.parameters);
+    Boolean parsed = parseRequestParameters(this.inputData, this.parsedParameters, this.method,
+                                            this.contentType, this.contentLength, this.parameters);
     this.parsedParameters = parsed;
     Object param = this.parameters.get(name);
     if (param == null)
@@ -272,12 +533,8 @@ public class WinstoneRequest implements HttpServletRequest
 
   public Map getParameterMap()
   {
-    Boolean parsed = this.protocolClass.parseRequestParameters(this.inputData,
-                                                           this.parsedParameters,
-                                                           this.method,
-                                                           this.contentType,
-                                                           this.contentLength,
-                                                           this.parameters);
+    Boolean parsed = parseRequestParameters(this.inputData, this.parsedParameters, this.method,
+                                            this.contentType, this.contentLength, this.parameters);
     this.parsedParameters = parsed;
     return new Hashtable(this.parameters);
   }
@@ -343,7 +600,7 @@ public class WinstoneRequest implements HttpServletRequest
   public boolean isRequestedSessionIdFromURL()      {return false;}
   public boolean isRequestedSessionIdValid()
   {
-    WinstoneSession ws = (WinstoneSession) this.webappConfig.getSessions().get(getSessionId());
+    WinstoneSession ws = this.webappConfig.getSessionById(getSessionId(), false);
     if (ws == null)
       return false;
     else
@@ -368,11 +625,11 @@ public class WinstoneRequest implements HttpServletRequest
 
     // Now get the session object
     long nowDate = System.currentTimeMillis();
-    WinstoneSession session = (WinstoneSession) this.webappConfig.getSessions().get(cookieValue);
+    WinstoneSession session = this.webappConfig.getSessionById(cookieValue, false);
     if (session != null)
       session = validationCheck(session, nowDate, create);
     else if (create)
-      session = (WinstoneSession) this.webappConfig.getSessions().get(makeNewSession());
+      session = this.webappConfig.getSessionById(makeNewSession(), false);
 
     // Set last accessed time
     if (session != null)
@@ -392,7 +649,7 @@ public class WinstoneRequest implements HttpServletRequest
       session.invalidate();
       Logger.log(Logger.DEBUG, resources.getString("WinstoneRequest.InvalidateSession") + session.getId());
       if (create)
-        session = (WinstoneSession) this.webappConfig.getSessions().get(makeNewSession());
+        session = this.webappConfig.getSessionById(makeNewSession(), false);
       else
         session = null;
     }
@@ -410,11 +667,13 @@ public class WinstoneRequest implements HttpServletRequest
     this.webappConfig.makeNewSession(cookieValue);
     return cookieValue;
   }
+
   /**
    * @deprecated
    */
   public String getRealPath(String path)
     {return this.webappConfig.getRealPath(path);}
+
   /**
    * @deprecated
    */

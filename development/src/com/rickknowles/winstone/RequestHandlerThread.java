@@ -29,15 +29,13 @@ import javax.servlet.ServletException;
  */
 public class RequestHandlerThread implements Runnable
 {
-  //private Socket socket;
   private boolean interrupted;
   private Thread thread;
 
   private WebAppConfiguration webAppConfig;
-  private Launcher launcher;
+  private ObjectPool objectPool;
   private String prefix;
 
-  private HttpProtocol protocol;
   private WinstoneInputStream inData;
   private WinstoneOutputStream outData;
   private WinstoneRequest req;
@@ -46,6 +44,7 @@ public class RequestHandlerThread implements Runnable
   private Socket socket;
   private String threadName;
   private WinstoneResourceBundle resources;
+  private long requestStartTime;
 
   public Object startupMonitor = new Boolean(true);
   private Object processingMonitor = new Boolean(true);
@@ -54,13 +53,13 @@ public class RequestHandlerThread implements Runnable
    * Constructor - this is called by the handler pool, and just sets up
    * for when a real request comes along.
    */
-  public RequestHandlerThread(WebAppConfiguration webAppConfig, Launcher launcher,
+  public RequestHandlerThread(WebAppConfiguration webAppConfig, ObjectPool objectPool,
                               WinstoneResourceBundle resources, int threadIndex)
   {
     this.resources = resources;
     this.webAppConfig = webAppConfig;
     this.prefix = webAppConfig.getPrefix();
-    this.launcher = launcher;
+    this.objectPool = objectPool;
     this.interrupted = false;
     this.threadName = resources.getString("RequestHandlerThread.ThreadName", "[#threadNo]", "" + threadIndex);
 
@@ -99,7 +98,8 @@ public class RequestHandlerThread implements Runnable
               this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
               continue;
             }
-            String servletURI = this.listener.parseURI(this.req, this.inData, this.socket, iAmFirst);
+            String servletURI = this.listener.parseURI(this, this.req, this.inData, this.socket, iAmFirst);
+            long headerParseTime = getRequestProcessTime();
             iAmFirst = false;
 
             Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.StartRequest",
@@ -125,10 +125,12 @@ public class RequestHandlerThread implements Runnable
               rsp.verifyContentLength();
 
               // Process keep-alive
-              continueFlag = this.listener.processKeepAlive(req, rsp, inSocket, this.protocol);
+              continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
               this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
               Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.FinishRequest",
                 "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
+              Logger.log(Logger.SPEED, resources.getString("RequestHandlerThread.RequestTime",
+                "[#path]", servletURI, "[#time]", "" + getRequestProcessTime()));
               continue;
             }
 
@@ -143,8 +145,11 @@ public class RequestHandlerThread implements Runnable
               "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
 
             // Process keep-alive
-            continueFlag = this.listener.processKeepAlive(req, rsp, inSocket, this.protocol);
+            continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
             this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
+            Logger.log(Logger.SPEED, resources.getString("RequestHandlerThread.RequestTime",
+              "[#path]", servletURI, "[#headerTime]", "" + headerParseTime,
+              "[#totalTime]", "" + getRequestProcessTime()));
           }
           catch (InterruptedIOException errIO)
           {
@@ -167,7 +172,7 @@ public class RequestHandlerThread implements Runnable
         Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.RequestError"), err);
       }
 
-      this.launcher.releaseRequestHandler(this);
+      this.objectPool.releaseRequestHandler(this);
 
       // Suspend this thread until we get assigned and woken up
       Logger.log(Logger.FULL_DEBUG, this.resources.getString("RequestHandlerThread.EnterWaitState", "[#threadName]", Thread.currentThread().getName()));
@@ -216,11 +221,9 @@ public class RequestHandlerThread implements Runnable
    * Assign a socket to the handler
    */
   public void commenceRequestHandling(Socket socket,
-                                      Listener listener,
-                                      HttpProtocol protocol)
+                                      Listener listener)
   {
     this.listener = listener;
-    this.protocol = protocol;
     this.socket = socket;
     if (this.thread.isAlive())
       synchronized (this.processingMonitor) {this.processingMonitor.notifyAll();}
@@ -234,6 +237,9 @@ public class RequestHandlerThread implements Runnable
   public void setInStream(WinstoneInputStream inStream)    {this.inData  = inStream;}
   public void setOutStream(WinstoneOutputStream outStream) {this.outData = outStream;}
 
+  public void setRequestStartTime() {this.requestStartTime = System.currentTimeMillis();}
+  public long getRequestProcessTime() {return System.currentTimeMillis() - this.requestStartTime;}
+  
   /**
    * Trigger the thread destruction for this handler
    */

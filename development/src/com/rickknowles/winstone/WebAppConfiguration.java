@@ -497,10 +497,10 @@ public class WebAppConfiguration implements ServletContext
 
   public String getPrefix()             {return this.prefix;}
   public String getWebroot()            {return this.webRoot;}
-  public Map getSessions()              {return this.sessions;}
   public Map getErrorPagesByException() {return this.errorPagesByException;}
   public Map getErrorPagesByCode()      {return this.errorPagesByCode;}
   public String[] getWelcomeFiles()     {return this.welcomeFiles;}
+  public boolean isDistributable()      {return this.distributable;}
 
   /**
    * Iterates through each of the servlets/filters and calls destroy on them
@@ -623,23 +623,68 @@ public class WebAppConfiguration implements ServletContext
       return (path.indexOf(pattern.substring(first, last)) != -1);
   }
 
+  /**
+   * Constructs a session instance with the given sessionId
+   * 
+   * @param sessionId The sessionID for the new session
+   * @return A valid session object
+   */
   public WinstoneSession makeNewSession(String sessionId)
   {
-    WinstoneSession ws = new WinstoneSession(sessionId, this,
-        this.sessionListeners, this.sessionAttributeListeners,
-        this.distributable, this.resources);
+    WinstoneSession ws = new WinstoneSession(sessionId, this, this.distributable);
+    setSessionListeners(ws);
     if ((this.sessionTimeout != null) && (this.sessionTimeout.intValue() > 0))
       ws.setMaxInactiveInterval(this.sessionTimeout.intValue() * 60);
     else
       ws.setMaxInactiveInterval(-1);
     this.sessions.put(sessionId, ws);
+    ws.sendCreatedNotifies();
     return ws;
   }
 
+  /**
+   * Retrieves the session by id. If the web app is distributable, it asks the
+   * other members of the cluster if it doesn't have it itself.
+   * 
+   * @param sessionId The id of the session we want
+   * @return A valid session instance
+   */
+  public WinstoneSession getSessionById(String sessionId, boolean localOnly)
+  {
+    WinstoneSession session = (WinstoneSession) this.sessions.get(sessionId);
+    if (session != null)
+      return session;
+    
+    // If I'm distributable ...
+    if (this.distributable && !localOnly && (this.launcher.getCluster() != null))
+    {
+      session = this.launcher.getCluster().askClusterForSession(sessionId, this);
+      if (session != null)
+        this.sessions.put(sessionId, session);
+      return session;
+    }
+    else 
+      return null;
+  }
+
+  /**
+   * Remove the session from the collection
+   */
+  public void removeSessionById(String sessionId) 
+    {this.sessions.remove(sessionId);}
+  
+  public void setSessionListeners(WinstoneSession session)
+  {
+    session.setSessionActivationListeners(this.sessionActivationListeners);
+    session.setSessionAttributeListeners(this.sessionAttributeListeners);
+    session.setSessionListeners(this.sessionListeners);
+    session.setResources(this.resources);
+  }
+  
   /**************************************************************************
    *
    * OK ... from here to the end is the interface implementation methods for
-   * the servletContext interface ... not much useful here.
+   * the servletContext interface.
    *
    **************************************************************************/
 
@@ -654,6 +699,7 @@ public class WebAppConfiguration implements ServletContext
       for (Iterator i = this.contextAttributeListeners.iterator(); i.hasNext(); )
         ((ServletContextAttributeListener) i.next()).attributeRemoved(new ServletContextAttributeEvent(this, name, me));
   }
+  
   public void setAttribute(String name, Object object)
   {
     Object me = this.attributes.get(name);
@@ -802,18 +848,22 @@ public class WebAppConfiguration implements ServletContext
     }
     return out;
   }
+  
   /**
    * @deprecated
    */
-  public javax.servlet.Servlet getServlet(String name)        {return null;}
+  public javax.servlet.Servlet getServlet(String name) {return null;}
+  
   /**
    * @deprecated
    */
-  public Enumeration getServletNames()                        {return Collections.enumeration(new ArrayList());}
+  public Enumeration getServletNames() {return Collections.enumeration(new ArrayList());}
+  
   /**
    * @deprecated
    */
-  public Enumeration getServlets()                            {return Collections.enumeration(new ArrayList());}
+  public Enumeration getServlets() {return Collections.enumeration(new ArrayList());}
+  
   /**
    * @deprecated
    */

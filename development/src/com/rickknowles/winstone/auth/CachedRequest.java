@@ -47,6 +47,7 @@ public class CachedRequest extends WinstoneRequest
     // Stash the relevant pieces of info
     this.attributes.putAll(request.getAttributes());
     this.parameters.putAll((request.getParameters()));
+    this.locales = request.getListLocales();
     this.method = request.getMethod();
     this.scheme = request.getScheme();
     this.serverName = request.getServerName();
@@ -86,6 +87,7 @@ public class CachedRequest extends WinstoneRequest
   {
     request.getAttributes().putAll(this.attributes);
     request.getParameters().putAll(this.parameters);
+    request.setLocales(this.locales);
     request.setMethod(this.method);
     request.setScheme(this.scheme);
     request.setServerName(this.serverName);

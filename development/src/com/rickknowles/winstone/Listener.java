@@ -58,8 +58,8 @@ public interface Listener
    * for this connection's protocol if the keep-alive period expires (ie closing
    * sockets, etc).
    */
-  public String parseURI(WinstoneRequest req, WinstoneInputStream inData,
-    Socket socket, boolean iAmFirst) throws IOException;
+  public String parseURI(RequestHandlerThread handler, WinstoneRequest req, 
+    WinstoneInputStream inData, Socket socket, boolean iAmFirst) throws IOException;
 
   /**
    * Called by the request handler thread, because it needs specific shutdown code
@@ -77,8 +77,7 @@ public interface Listener
    */
   public boolean processKeepAlive(WinstoneRequest request,
                                   WinstoneResponse response,
-                                  InputStream inSocket,
-                                  HttpProtocol protocol)
+                                  InputStream inSocket)
     throws IOException, InterruptedException;
 }
 

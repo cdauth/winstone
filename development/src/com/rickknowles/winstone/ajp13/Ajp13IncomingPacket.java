@@ -54,14 +54,15 @@ public class Ajp13IncomingPacket
   /**
    * Constructor
    */
-  public Ajp13IncomingPacket(InputStream in, WinstoneResourceBundle resources)
-    throws IOException
+  public Ajp13IncomingPacket(InputStream in, WinstoneResourceBundle resources,
+    RequestHandlerThread handler) throws IOException
   {
     this.resources = resources;
 
     // Get the incoming packet flag
     byte headerBuffer[] = new byte[4];
     int headerBytesRead = in.read(headerBuffer);
+    handler.setRequestStartTime();
     if (headerBytesRead != 4)
       throw new WinstoneException(this.resources.getString("Ajp13IncomingPacket.InvalidHeader"));
     else if ((headerBuffer[0] != 0x12) || (headerBuffer[1] != 0x34))

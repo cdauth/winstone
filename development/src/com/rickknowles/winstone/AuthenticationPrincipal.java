@@ -18,6 +18,8 @@
 package com.rickknowles.winstone;
 
 import java.util.Arrays;
+import java.security.Principal;
+import java.io.Serializable;
 
 /**
  * Implements the principal method - basically just a way of identifying
@@ -26,7 +28,7 @@ import java.util.Arrays;
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class AuthenticationPrincipal implements java.security.Principal
+public class AuthenticationPrincipal implements Principal, Serializable
 {
   private String userName;
   private String password;

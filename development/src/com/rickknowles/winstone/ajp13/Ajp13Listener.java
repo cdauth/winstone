@@ -40,20 +40,23 @@ public class Ajp13Listener implements Listener, Runnable
   private int KEEP_ALIVE_SLEEP     = 50;
   private int KEEP_ALIVE_SLEEP_MAX = 500;
 
-  private WinstoneResourceBundle resources;
-  private Launcher launcher;
+  private static final String LOCAL_RESOURCE_FILE    = "com.rickknowles.winstone.ajp13.LocalStrings";
+
+  private WinstoneResourceBundle mainResources;
+  private WinstoneResourceBundle localResources;
+  private ObjectPool objectPool;
   private int listenPort;
-  private HttpProtocol protocol;
   private boolean interrupted;
 
   /**
    * Constructor
    */
-  public Ajp13Listener(Map args, WinstoneResourceBundle resources, Launcher launcher)
+  public Ajp13Listener(Map args, WinstoneResourceBundle resources, ObjectPool objectPool)
   {
     // Load resources
-    this.resources = resources;
-    this.launcher = launcher;
+    this.mainResources = resources;
+    this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
+    this.objectPool = objectPool;
 
     //this.arguments = args;
     this.listenPort = (args.get("ajp13Port") == null ? DEFAULT_PORT
@@ -62,7 +65,6 @@ public class Ajp13Listener implements Listener, Runnable
     if (this.listenPort < 0)
       throw new WinstoneException("disabling ajp13 connector");
 
-    this.protocol = new HttpProtocol(this.resources);
     this.interrupted = false;
 
     // Start me running
@@ -80,7 +82,7 @@ public class Ajp13Listener implements Listener, Runnable
     {
       ServerSocket ss = new ServerSocket(this.listenPort);
       ss.setSoTimeout(LISTENER_TIMEOUT);
-      Logger.log(Logger.INFO, resources.getString("Ajp13Listener.StartupOK",
+      Logger.log(Logger.INFO, localResources.getString("Ajp13Listener.StartupOK",
                               "[#port]", this.listenPort + ""));
 
       // Enter the main loop
@@ -94,16 +96,16 @@ public class Ajp13Listener implements Listener, Runnable
 
         // if we actually got a socket, process it. Otherwise go around again
         if (s != null)
-          this.launcher.handleRequest(s, this, this.protocol);
+          this.objectPool.handleRequest(s, this);
       }
 
       // Close server socket
       ss.close();
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, resources.getString("Ajp13Listener.ShutdownError"), err);}
+      {Logger.log(Logger.ERROR, localResources.getString("Ajp13Listener.ShutdownError"), err);}
 
-    Logger.log(Logger.INFO, resources.getString("Ajp13Listener.ShutdownOK"));
+    Logger.log(Logger.INFO, localResources.getString("Ajp13Listener.ShutdownOK"));
   }
 
   /**
@@ -124,19 +126,17 @@ public class Ajp13Listener implements Listener, Runnable
     OutputStream outSocket, RequestHandlerThread handler, boolean iAmFirst)
     throws SocketException, IOException
   {
-    WinstoneRequest req = this.launcher.getRequestFromPool();
-    WinstoneResponse rsp = this.launcher.getResponseFromPool();
+    WinstoneRequest req = this.objectPool.getRequestFromPool();
+    WinstoneResponse rsp = this.objectPool.getResponseFromPool();
     req.setListener(this);
-    req.setProtocolClass(this.protocol);
     rsp.setRequest(req);
-    rsp.setProtocolClass(this.protocol);
     rsp.updateContentTypeHeader("text/html");
 
     if (iAmFirst || (KEEP_ALIVE_TIMEOUT == -1))
       socket.setSoTimeout(CONNECTION_TIMEOUT);
     else
       socket.setSoTimeout(KEEP_ALIVE_TIMEOUT);
-    Ajp13IncomingPacket headers = new Ajp13IncomingPacket(inSocket, this.resources);
+    Ajp13IncomingPacket headers = new Ajp13IncomingPacket(inSocket, localResources, handler);
     socket.setSoTimeout(CONNECTION_TIMEOUT);
 
     if (headers.getPacketLength() > 0)
@@ -144,7 +144,7 @@ public class Ajp13Listener implements Listener, Runnable
       headers.parsePacket("8859_1");
       parseSocketInfo(headers, req);
       String servletURI = parseURILine(headers, req);
-      this.protocol.parseHeaders(req, Arrays.asList(headers.getHeaders()));
+      req.parseHeaders(Arrays.asList(headers.getHeaders()));
 
       // If content-length present and non-zero, download the other packets
       WinstoneInputStream inData = null;
@@ -158,20 +158,20 @@ public class Ajp13Listener implements Listener, Runnable
           outSocket.write(getBodyRequestPacket(Math.min(contentLength - position, 8184)));
           position = getBodyResponsePacket(inSocket, bodyContent, position);
           Logger.log(Logger.FULL_DEBUG,
-              this.resources.getString("Ajp13Listener.ReadBodyProgress",
+          localResources.getString("Ajp13Listener.ReadBodyProgress",
                     "[#position]", "" + position, "[#total]", "" + contentLength));
 
         }
-        inData = new WinstoneInputStream(bodyContent, this.resources);
+        inData = new WinstoneInputStream(bodyContent, mainResources);
         inData.setContentLength(contentLength);
       }
       else
-        inData = new WinstoneInputStream(new byte[0], this.resources);
+        inData = new WinstoneInputStream(new byte[0], mainResources);
       req.setInputStream(inData);
 
       // Build input/output streams, plus request/response
       WinstoneOutputStream outData = new Ajp13OutputStream(socket.getOutputStream(),
-          resources, this.protocol, "8859_1");
+          mainResources, localResources, "8859_1");
       outData.setResponse(rsp);
       rsp.setOutputStream(outData);
 
@@ -197,17 +197,17 @@ public class Ajp13Listener implements Listener, Runnable
     handler.setRequest(null);
     handler.setResponse(null);
     if (req != null)
-      this.launcher.releaseRequestToPool(req);
+      this.objectPool.releaseRequestToPool(req);
     if (rsp != null)
-      this.launcher.releaseResponseToPool(rsp);
+      this.objectPool.releaseResponseToPool(rsp);
   }
 
   /**
    * This is kind of a hack, since we have already parsed the uri to get the
    * input stream. Just pass back the request uri
    */
-  public String parseURI(WinstoneRequest req, WinstoneInputStream inData,
-    Socket socket, boolean iAmFirst) throws IOException
+  public String parseURI(RequestHandlerThread handler, WinstoneRequest req, 
+    WinstoneInputStream inData, Socket socket, boolean iAmFirst) throws IOException
     {return req.getServletPath();}
 
   /**
@@ -220,7 +220,7 @@ public class Ajp13Listener implements Listener, Runnable
   public void releaseSocket(Socket socket, InputStream inSocket, OutputStream outSocket)
     throws IOException
   {
-    Logger.log(Logger.FULL_DEBUG, "Releasing socket: " + Thread.currentThread().getName());
+    //Logger.log(Logger.FULL_DEBUG, "Releasing socket: " + Thread.currentThread().getName());
     inSocket.close();
     outSocket.close();
     socket.close();
@@ -262,7 +262,7 @@ public class Ajp13Listener implements Listener, Runnable
       {
         String qs = (String) headers.getAttributes().get("query_string");
         req.setQueryString(qs);
-        req.getParameters().putAll(this.protocol.extractParameters(qs));
+        req.getParameters().putAll(req.extractParameters(qs));
         req.setRequestURI(headers.getURI() + "?" + qs);
       }
       else if (attName.equals("ssl_cert"))
@@ -303,8 +303,7 @@ public class Ajp13Listener implements Listener, Runnable
    */
   public boolean processKeepAlive(WinstoneRequest request,
                                   WinstoneResponse response,
-                                  InputStream inSocket,
-                                  HttpProtocol protocol)
+                                  InputStream inSocket)
     throws IOException, InterruptedException
     {return true;}
 
@@ -329,9 +328,9 @@ public class Ajp13Listener implements Listener, Runnable
     byte headerBuffer[] = new byte[4];
     int headerBytesRead = in.read(headerBuffer);
     if (headerBytesRead != 4)
-      throw new WinstoneException(this.resources.getString("Ajp13Listener.InvalidHeader"));
+      throw new WinstoneException(localResources.getString("Ajp13Listener.InvalidHeader"));
     else if ((headerBuffer[0] != 0x12) || (headerBuffer[1] != 0x34))
-      throw new WinstoneException(this.resources.getString("Ajp13Listener.InvalidHeader"));
+      throw new WinstoneException(localResources.getString("Ajp13Listener.InvalidHeader"));
 
     // Read in the whole packet
     int packetLength = ((headerBuffer[2] & 0xFF) << 8) + (headerBuffer[3] & 0xFF);
@@ -345,7 +344,7 @@ public class Ajp13Listener implements Listener, Runnable
     int packetBytesRead = in.read(buffer, offset, bodyLength);
 
     if (packetBytesRead < bodyLength)
-      throw new WinstoneException(this.resources.getString("Ajp13Listener.ShortPacket"));
+      throw new WinstoneException(localResources.getString("Ajp13Listener.ShortPacket"));
     else
       return packetBytesRead + offset;
   }

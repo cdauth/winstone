@@ -40,21 +40,18 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
   //private boolean headersWritten;
   protected WinstoneResourceBundle resources;
   protected WinstoneResponse owner;
-  protected HttpProtocol protocolClass;
 
   /**
    * Constructor
    */
   public WinstoneOutputStream(OutputStream out,
-                              WinstoneResourceBundle resources,
-                              HttpProtocol protocolClass)
+                              WinstoneResourceBundle resources)
   {
     this.resources = resources;
     this.outStream = out;
     setBufferSize(DEFAULT_BUFFER_SIZE);
     this.committed = false;
     //this.headersWritten = false;
-    this.protocolClass = protocolClass;
     this.buffer = new ByteArrayOutputStream();
   }
 
@@ -85,7 +82,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
     // If we haven't written the headers yet, write them out
     if (!this.committed)
     {
-      this.protocolClass.validateHeaders(this.owner);
+      this.owner.validateHeaders();
 
       PrintStream headerStream = new PrintStream(this.outStream, true);
       String statusLine = this.owner.getProtocol() + " " + this.owner.getStatus();
@@ -105,7 +102,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
         for (Iterator i = this.owner.getCookies().iterator(); i.hasNext(); )
         {
           Cookie cookie = (Cookie) i.next();
-          String cookieText = this.protocolClass.writeCookie(cookie);
+          String cookieText = this.owner.writeCookie(cookie);
           headerStream.println(cookieText);
           Logger.log(Logger.FULL_DEBUG, "Header: " + cookieText);
         }
@@ -144,5 +141,6 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
     this.outStream.flush();
     this.outStream = null;
   }
+  
 }
 

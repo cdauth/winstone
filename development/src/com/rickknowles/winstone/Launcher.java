@@ -22,7 +22,6 @@ import java.net.*;
 import java.util.*;
 import java.util.jar.*;
 import java.lang.reflect.*;
-import javax.servlet.UnavailableException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -49,49 +48,33 @@ public class Launcher implements EntityResolver, Runnable
 
   final String HTTP_LISTENER_CLASS = "com.rickknowles.winstone.HttpListener";
   final String AJP_LISTENER_CLASS  = "com.rickknowles.winstone.ajp13.Ajp13Listener";
+  final String CLUSTER_CLASS       = "com.rickknowles.winstone.cluster.SimpleCluster";
 
   static final String RESOURCE_FILE    = "com.rickknowles.winstone.LocalStrings";
   static final String WEB_ROOT = "webroot";
   static final String WEB_INF  = "WEB-INF";
   static final String WEB_XML  = "web.xml";
+  
+  static final byte SHUTDOWN_TYPE = (byte) '0';
 
   private int CONTROL_TIMEOUT = 10; // wait 5s for control connection
   private int DEFAULT_CONTROL_PORT = -1;
   private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
-  private int STARTUP_REQUEST_HANDLERS_IN_POOL = 5;
-  private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 50;
-  private int MAX_REQUEST_HANDLERS_IN_POOL = 300;
-
-  private int START_REQUESTS_IN_POOL  = 10;
-  private int MAX_REQUESTS_IN_POOL    = 100;
-
-  private int START_RESPONSES_IN_POOL = 10;
-  private int MAX_RESPONSES_IN_POOL   = 100;
-
   private WinstoneResourceBundle resources;
   private int controlPort;
-  private List unusedRequestHandlerThreads;
-  private List usedRequestHandlerThreads;
   private WebAppConfiguration webAppConfig;
-
-  private List usedRequestPool;
-  private List unusedRequestPool;
-  private List usedResponsePool;
-  private List unusedResponsePool;
-
-  private Object requestPoolSemaphore  = new Boolean(true);
-  private Object responsePoolSemaphore = new Boolean(true);
-  private Object requestHandlerSemaphore = new Boolean(true);
-
-  private int threadIndex = 0;
+  private ObjectPool objectPool;
 
   private List listeners;
   private boolean interrupted;
   private Map args;
 
+  private Cluster cluster;
+
   /**
-   * Constructor
+   * Constructor - initialises the web app, object pools, control port and the
+   * available protocol listeners.
    */
   public Launcher(Map args, WinstoneResourceBundle resources) throws IOException
   {
@@ -109,33 +92,33 @@ public class Launcher implements EntityResolver, Runnable
     else
       initWebApp((String) args.get("prefix"), webRoot);
 
-    // Build the initial pool of handler threads
-    this.unusedRequestHandlerThreads = new Vector();
-    this.usedRequestHandlerThreads = new Vector();
+    this.objectPool = new ObjectPool(args, resources, this.webAppConfig);
 
-    // Build the request/response pools
-    this.usedRequestPool    = new ArrayList();
-    this.usedResponsePool   = new ArrayList();
-    this.unusedRequestPool  = new ArrayList();
-    this.unusedResponsePool = new ArrayList();
-
-    // Start the base set of handler threads
-    for (int n = 0; n < STARTUP_REQUEST_HANDLERS_IN_POOL; n++)
-      this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
-
-    // Initialise the request/response pools
-    for (int n = 0; n < START_REQUESTS_IN_POOL; n++)
-      this.unusedRequestPool.add(new WinstoneRequest(this.resources));
-    for (int n = 0; n < START_RESPONSES_IN_POOL; n++)
-      this.unusedResponsePool.add(new WinstoneResponse(this.resources));
+    String useCluster = (String) args.get("useCluster");
+    boolean switchOnCluster  = (useCluster != null) && (useCluster.equalsIgnoreCase("true") || useCluster.equalsIgnoreCase("yes"));
+    if (switchOnCluster)
+    {
+      if (this.controlPort < 0)
+        Logger.log(Logger.DEBUG, this.resources.getString("Launcher.ClusterOffNoControlPort"));
+      else if (!this.webAppConfig.isDistributable())
+        Logger.log(Logger.DEBUG, this.resources.getString("Launcher.ClusterOffNotDistributable"));
+      else try
+      {
+        Class clusterClass = Class.forName(CLUSTER_CLASS);
+        Constructor clusterConstructor = clusterClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, Integer.class});
+        this.cluster = (Cluster) clusterConstructor.newInstance(new Object[] {args, resources, new Integer(this.controlPort)});
+      }
+      catch (Throwable err)
+        {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"));}
+    }
 
     // Create connectors (http and ajp)
     this.listeners = new ArrayList();
     try
     {
       Class httpClass = Class.forName(HTTP_LISTENER_CLASS);
-      Constructor httpConstructor = httpClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, Launcher.class});
-      Listener httpListener = (Listener) httpConstructor.newInstance(new Object[] {args, resources, this});
+      Constructor httpConstructor = httpClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, ObjectPool.class});
+      Listener httpListener = (Listener) httpConstructor.newInstance(new Object[] {args, resources, this.objectPool});
       this.listeners.add(httpListener);
     }
     catch (Throwable err)
@@ -143,8 +126,8 @@ public class Launcher implements EntityResolver, Runnable
     try
     {
       Class ajpClass = Class.forName(AJP_LISTENER_CLASS);
-      Constructor ajpConstructor = ajpClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, Launcher.class});
-      Listener ajpListener = (Listener) ajpConstructor.newInstance(new Object[] {args, resources, this});
+      Constructor ajpConstructor = ajpClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, ObjectPool.class});
+      Listener ajpListener = (Listener) ajpConstructor.newInstance(new Object[] {args, resources, this.objectPool});
       this.listeners.add(ajpListener);
     }
     catch (Throwable err)
@@ -152,7 +135,8 @@ public class Launcher implements EntityResolver, Runnable
   }
 
   public WebAppConfiguration getWebAppConfig() {return this.webAppConfig;}
-
+  public Cluster getCluster() {return this.cluster;}
+  
   /**
    * Setup the webroot. If a warfile is supplied, extract any files that the
    * war file is newer than. If none is supplied, use the default temp directory.
@@ -228,6 +212,7 @@ public class Launcher implements EntityResolver, Runnable
     try
     {
       ServerSocket controlSocket = null;
+
       if (this.controlPort > 0)
       {
         controlSocket = new ServerSocket(this.controlPort);
@@ -243,31 +228,36 @@ public class Launcher implements EntityResolver, Runnable
       // Enter the main loop
       while (!interrupted)
       {
-        // Check max idle requestHandler count
-        synchronized (this.requestHandlerSemaphore)
-        {
-          // If we have too many idle request handlers
-          while (this.unusedRequestHandlerThreads.size() > MAX_IDLE_REQUEST_HANDLERS_IN_POOL)
-          {
-            RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
-            rh.destroy();
-            this.unusedRequestHandlerThreads.remove(rh);
-          }
-        }
-
+        this.objectPool.removeUnusedRequestHandlers();
+        
         // Check for control request
-        try
+        try 
         {
           if (controlSocket != null)
           {
-            Socket cs = controlSocket.accept();
-            interrupted = true; //any connection on control port is interpreted as a shutdown
-            cs.close();
+            Socket csAccepted = controlSocket.accept();
+         
+            if (csAccepted == null)
+              continue;         
+            InputStream inSocket = csAccepted.getInputStream();
+            int reqType = inSocket.read();
+            if ((byte) reqType == SHUTDOWN_TYPE)
+             interrupted = true; //any connection on control port is interpreted as a shutdown
+            else if (this.cluster != null)
+            {
+              OutputStream outSocket = csAccepted.getOutputStream();
+              this.cluster.clusterRequest((byte) reqType, inSocket, outSocket, csAccepted, this.webAppConfig);
+              outSocket.close();
+            }
+            inSocket.close();
+            csAccepted.close();
           }
           else
             Thread.sleep(CONTROL_TIMEOUT);
-        }
+        } 
         catch (InterruptedIOException err) {}
+        catch (Throwable err)
+          {Logger.log(Logger.ERROR, resources.getString("Launcher.ShutdownError"), err);}
       }
 
       // Close server socket
@@ -276,10 +266,8 @@ public class Launcher implements EntityResolver, Runnable
       // Release all listeners/handlers/webapps
       for (Iterator i = this.listeners.iterator(); i.hasNext(); )
         ((Listener) i.next()).destroy();
-      for (Iterator i = this.usedRequestHandlerThreads.iterator(); i.hasNext(); )
-        releaseRequestHandler((RequestHandlerThread) i.next());
-      for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
-        ((RequestHandlerThread) i.next()).destroy();
+      this.objectPool.destroy();
+      if (this.cluster != null) this.cluster.destroy();
       destroyWebApp(this.webAppConfig);
 
       Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownOK"));
@@ -288,6 +276,12 @@ public class Launcher implements EntityResolver, Runnable
       {Logger.log(Logger.ERROR, resources.getString("Launcher.ShutdownError"), err);}
   }
 
+  /**
+   * Destroy this webapp instance. Kills the webapps, plus any servlets, 
+   * attributes, etc
+   * 
+   * @param webApp The webapp to destroy
+   */
   public void destroyWebApp(WebAppConfiguration webApp)
   {
     webApp.destroy();
@@ -320,14 +314,6 @@ public class Launcher implements EntityResolver, Runnable
                                                 ? DEFAULT_INVOKER_PREFIX
                                                 : this.args.get("invokerPrefix"));
 
-    // Get handler pool options
-    if (args.get("handlerCountStartup") != null)
-      STARTUP_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) this.args.get("handlerCountStartup"));
-    if (args.get("handlerCountMax") != null)
-      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) this.args.get("handlerCountMax"));
-    if (args.get("handlerCountMaxIdle") != null)
-      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) this.args.get("handlerCountMaxIdle"));
-
     // Build switch values
     boolean switchOnDirLists  = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
     boolean switchOnJasper    = (useJasper != null)  && (useJasper.equalsIgnoreCase("true")  || useJasper.equalsIgnoreCase("yes"));
@@ -350,156 +336,6 @@ public class Launcher implements EntityResolver, Runnable
   }
 
   public void shutdown() {this.interrupted = true;}
-
-  /**
-   * Once the socket request comes in, this method is called. It reserves a
-   * request handler, then delegates the socket to that class. When it finishes,
-   * the handler is released back into the pool.
-   */
-  public void handleRequest(Socket socket, Listener listener, HttpProtocol protocol)
-    throws IOException, UnavailableException, InterruptedException
-  {
-    synchronized (this.requestHandlerSemaphore)
-    {
-      // If we have any spare, get it from the pool
-      if (this.unusedRequestHandlerThreads.size() > 0)
-      {
-        RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
-        this.unusedRequestHandlerThreads.remove(rh);
-        this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.UsingRHPoolThread",
-            "[#used]", "" + this.usedRequestHandlerThreads.size(),
-            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
-        rh.commenceRequestHandling(socket, listener, protocol);
-      }
-
-      // If we are out (and not over our limit), allocate a new one
-      else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL)
-      {
-        RequestHandlerThread rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
-        this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.NewRHPoolThread",
-            "[#used]", "" + this.usedRequestHandlerThreads.size(),
-            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
-        rh.commenceRequestHandling(socket, listener, protocol);
-      }
-
-      // otherwise throw fail message - we've blown our limit
-      else
-      {
-        // Possibly insert a second chance here ? Delay and one retry ?
-        // Remember to release the lock first
-        socket.close();
-        //throw new UnavailableException("NoHandlersAvailable");
-      }
-    }
-  }
-
-  /**
-   * Release the handler back into the pool
-   */
-  public void releaseRequestHandler(RequestHandlerThread rh)
-  {
-    synchronized (this.requestHandlerSemaphore)
-    {
-      if (this.usedRequestHandlerThreads.contains(rh))
-      {
-        this.usedRequestHandlerThreads.remove(rh);
-        this.unusedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.ReleasingRHPoolThread",
-            "[#used]", "" + this.usedRequestHandlerThreads.size(),
-            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
-      }
-      else
-        Logger.log(Logger.WARNING, resources.getString("Launcher.UnknownRHPoolThread"));
-    }
-  }
-
-  /**
-   * An attempt at pooling request objects for reuse.
-   */
-  public WinstoneRequest getRequestFromPool() throws IOException
-  {
-    WinstoneRequest req = null;
-    synchronized (this.requestPoolSemaphore)
-    {
-      // If we have any spare, get it from the pool
-      if (this.unusedRequestPool.size() > 0)
-      {
-        req = (WinstoneRequest) this.unusedRequestPool.get(0);
-        this.unusedRequestPool.remove(req);
-        this.usedRequestPool.add(req);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.UsingRequestFromPool",
-            "[#unused]", "" + this.unusedRequestPool.size()));
-      }
-      // If we are out, allocate a new one
-      else if (this.usedRequestPool.size() < MAX_REQUESTS_IN_POOL)
-      {
-        req = new WinstoneRequest(this.resources);
-        this.usedRequestPool.add(req);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.NewRequestForPool",
-            "[#used]", "" + this.usedRequestPool.size()));
-      }
-      else
-        throw new WinstoneException(this.resources.getString("HttpListener.PoolRequestLimitExceeded"));
-    }
-    return req;
-  }
-
-  public void releaseRequestToPool(WinstoneRequest req)
-  {
-    req.cleanUp();
-    synchronized (this.requestPoolSemaphore)
-    {
-      this.usedRequestPool.remove(req);
-      this.unusedRequestPool.add(req);
-      Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.RequestReleased",
-          "[#unused]", "" + this.unusedRequestPool.size()));
-    }
-  }
-
-  /**
-   * An attempt at pooling request objects for reuse.
-   */
-  public WinstoneResponse getResponseFromPool() throws IOException
-  {
-    WinstoneResponse rsp = null;
-    synchronized (this.responsePoolSemaphore)
-    {
-      // If we have any spare, get it from the pool
-      if (this.unusedResponsePool.size() > 0)
-      {
-        rsp = (WinstoneResponse) this.unusedResponsePool.get(0);
-        this.unusedResponsePool.remove(rsp);
-        this.usedResponsePool.add(rsp);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.UsingResponseFromPool",
-            "[#unused]", "" + this.unusedResponsePool.size()));
-      }
-      // If we are out, allocate a new one
-      else if (this.usedResponsePool.size() < MAX_RESPONSES_IN_POOL)
-      {
-        rsp = new WinstoneResponse(this.resources);
-        this.usedResponsePool.add(rsp);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.NewResponseForPool",
-            "[#used]", "" + this.usedResponsePool.size()));
-      }
-      else
-        throw new WinstoneException(this.resources.getString("HttpListener.PoolResponseLimitExceeded"));
-    }
-    return rsp;
-  }
-
-  public void releaseResponseToPool(WinstoneResponse rsp)
-  {
-    rsp.cleanUp();
-    synchronized (this.responsePoolSemaphore)
-    {
-      this.usedResponsePool.remove(rsp);
-      this.unusedResponsePool.add(rsp);
-      Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.ResponseReleased",
-          "[#unused]", "" + this.unusedResponsePool.size()));
-    }
-  }
 
   /**
    * Get a parsed XML DOM from the given inputstream. Used to process the web.xml

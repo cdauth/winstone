@@ -40,10 +40,9 @@ public class HttpListener implements Listener, Runnable
   private int KEEP_ALIVE_SLEEP_MAX = 500;
 
   private WinstoneResourceBundle resources;
-  private Launcher launcher;
+  private ObjectPool objectPool;
   private boolean doHostnameLookups;
   private int listenPort;
-  private HttpProtocol protocol;
   private boolean interrupted;
 
   protected HttpListener() {}
@@ -51,12 +50,12 @@ public class HttpListener implements Listener, Runnable
   /**
    * Constructor
    */
-  public HttpListener(Map args, WinstoneResourceBundle resources, Launcher launcher)
+  public HttpListener(Map args, WinstoneResourceBundle resources, ObjectPool objectPool)
     throws IOException
   {
     // Load resources
     this.resources = resources;
-    this.launcher = launcher;
+    this.objectPool = objectPool;
     this.listenPort = (args.get("httpPort") == null ? DEFAULT_PORT
                           : Integer.parseInt((String) args.get("httpPort")));
 
@@ -65,7 +64,6 @@ public class HttpListener implements Listener, Runnable
 
     String hnl = (String) args.get("httpDoHostnameLookups");
     this.doHostnameLookups = (hnl == null ? DEFAULT_HNL : (hnl.equalsIgnoreCase("yes") || hnl.equalsIgnoreCase("true")));
-    this.protocol = new HttpProtocol(this.resources);
     this.interrupted = false;
 
     Thread thread = new Thread(this);
@@ -98,7 +96,7 @@ public class HttpListener implements Listener, Runnable
 
         // if we actually got a socket, process it. Otherwise go around again
         if (s != null)
-          this.launcher.handleRequest(s, this, this.protocol);
+          this.objectPool.handleRequest(s, this);
       }
 
       // Close server socket
@@ -133,16 +131,14 @@ public class HttpListener implements Listener, Runnable
 
     // Build input/output streams, plus request/response
     WinstoneInputStream inData = new WinstoneInputStream(inSocket, this.resources);
-    WinstoneOutputStream outData = new WinstoneOutputStream(outSocket, resources, this.protocol);
-    WinstoneRequest req = this.launcher.getRequestFromPool();
-    WinstoneResponse rsp = this.launcher.getResponseFromPool();
+    WinstoneOutputStream outData = new WinstoneOutputStream(outSocket, resources);
+    WinstoneRequest req = this.objectPool.getRequestFromPool();
+    WinstoneResponse rsp = this.objectPool.getResponseFromPool();
     outData.setResponse(rsp);
     req.setInputStream(inData);
     req.setListener(this);
-    req.setProtocolClass(this.protocol);
     rsp.setOutputStream(outData);
     rsp.setRequest(req);
-    rsp.setProtocolClass(this.protocol);
     rsp.updateContentTypeHeader("text/html");
 
     // Set the handler's member variables so it can execute the servlet
@@ -166,13 +162,13 @@ public class HttpListener implements Listener, Runnable
     handler.setRequest(null);
     handler.setResponse(null);
     if (req != null)
-      this.launcher.releaseRequestToPool(req);
+      this.objectPool.releaseRequestToPool(req);
     if (rsp != null)
-      this.launcher.releaseResponseToPool(rsp);
+      this.objectPool.releaseResponseToPool(rsp);
   }
 
-  public String parseURI(WinstoneRequest req, WinstoneInputStream inData,
-    Socket socket, boolean iAmFirst) throws IOException
+  public String parseURI(RequestHandlerThread handler, WinstoneRequest req, 
+    WinstoneInputStream inData, Socket socket, boolean iAmFirst) throws IOException
   {
     parseSocketInfo(socket, req);
 
@@ -182,11 +178,12 @@ public class HttpListener implements Listener, Runnable
       socket.setSoTimeout(KEEP_ALIVE_TIMEOUT);
     byte uriBuffer[] = inData.readLine();
     socket.setSoTimeout(CONNECTION_TIMEOUT);
+    handler.setRequestStartTime();
 
     // Get header data (eg protocol, method, uri, headers, etc)
     String uriLine = new String(uriBuffer);
-    String servletURI = this.protocol.parseURILine(uriLine, req);
-    this.protocol.parseHeaders(req, inData);
+    String servletURI = parseURILine(uriLine, req);
+    parseHeaders(req, inData);
     int contentLength = req.getContentLength();
     if (contentLength != -1)
       inData.setContentLength(contentLength);
@@ -203,7 +200,7 @@ public class HttpListener implements Listener, Runnable
   public void releaseSocket(Socket socket, InputStream inSocket, OutputStream outSocket)
     throws IOException
   {
-    Logger.log(Logger.FULL_DEBUG, "Releasing socket: " + Thread.currentThread().getName());
+    //Logger.log(Logger.FULL_DEBUG, "Releasing socket: " + Thread.currentThread().getName());
     inSocket.close();
     outSocket.close();
     socket.close();
@@ -236,13 +233,104 @@ public class HttpListener implements Listener, Runnable
    */
   public boolean processKeepAlive(WinstoneRequest request,
                                   WinstoneResponse response,
-                                  InputStream inSocket,
-                                  HttpProtocol protocol)
+                                  InputStream inSocket)
     throws IOException, InterruptedException
   {
     // Try keep alive if allowed
-    boolean continueFlag = !protocol.closeAfterRequest(request, response);
+    boolean continueFlag = !response.closeAfterRequest();
     return continueFlag;
+  }
+  
+  /**
+   * 
+   */
+  private String parseURILine(String uriLine, WinstoneRequest req)
+  {
+    // Method
+    int spacePos = uriLine.indexOf(' ');
+    if (spacePos == -1)
+      throw new WinstoneException(resources.getString("HttpProtocol.ErrorUriLine") + uriLine);
+    String method = uriLine.substring(0, spacePos).toUpperCase();
+    String servletURI = null;
+    String fullURI = null;
+
+    // URI
+    String remainder = uriLine.substring(spacePos + 1);
+    spacePos = remainder.indexOf(' ');
+    if (spacePos == -1)
+    {
+      fullURI = trimHostName(remainder.trim());
+      req.setProtocol("HTTP/0.9");
+    }
+    else
+    {
+      fullURI = trimHostName(remainder.substring(0, spacePos).trim());
+      req.setProtocol(remainder.substring(spacePos + 1).trim().toUpperCase());
+    }
+    int questionPos = fullURI.indexOf('?');
+    if ((questionPos != -1) && (method != null))
+    {
+      servletURI = fullURI.substring(0, questionPos);
+      String queryString = fullURI.substring(questionPos + 1);
+      req.setQueryString(queryString);
+      req.getParameters().putAll(req.extractParameters(queryString));
+    }
+    else
+      servletURI = fullURI;
+
+    req.setMethod(method);
+    req.setRequestURI(fullURI);
+    req.setServletPath(servletURI);
+    return servletURI;
+  }
+  
+  private String trimHostName(String input)
+  {
+    if (input == null)
+      return null;
+    else if (input.startsWith("/"))
+      return input;
+
+    int hostStart = input.indexOf("://");
+    if (hostStart == -1)
+      return input;
+    String hostName = input.substring(hostStart + 3);
+    int pathStart = hostName.indexOf('/');
+    if (pathStart == -1)
+      return "/";
+    else
+      return hostName.substring(pathStart);
+  }
+  
+
+  /**
+   * Parse the incoming stream into a list of headers (stopping at the first
+   * blank line), then call the parseHeaders(req, list) method on that list.
+   */
+  public void parseHeaders(WinstoneRequest req, WinstoneInputStream inData) throws IOException
+  {
+    List headerList = new ArrayList();
+
+    if (!req.getProtocol().startsWith("HTTP/0"))
+    {
+      // Loop to get headers
+      byte headerBuffer[] = inData.readLine();
+      String headerLine = new String(headerBuffer);
+
+      while (headerLine.trim().length() > 0)
+      {
+        if (headerLine.indexOf(':') != -1)
+        {
+          headerList.add(headerLine.trim());
+          Logger.log(Logger.FULL_DEBUG, "Header: " + headerLine.trim());
+        }
+        headerBuffer = inData.readLine();
+        headerLine = new String(headerBuffer);
+      }
+    }
+
+    // If no headers available, parse an empty list
+    req.parseHeaders(headerList);
   }
 }
 

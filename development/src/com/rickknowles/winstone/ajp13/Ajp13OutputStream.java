@@ -58,11 +58,13 @@ public class Ajp13OutputStream extends WinstoneOutputStream
   }
 
   private String headerEncoding;
+  private WinstoneResourceBundle localResources;
 
-  public Ajp13OutputStream(OutputStream outStream, WinstoneResourceBundle resources,
-    HttpProtocol protocolClass, String headerEncoding)
+  public Ajp13OutputStream(OutputStream outStream, WinstoneResourceBundle mainResources, 
+    WinstoneResourceBundle localResources, String headerEncoding)
   {
-    super(outStream, resources, protocolClass);
+    super(outStream, mainResources);
+    this.localResources = localResources;
     this.headerEncoding = headerEncoding;
   }
 
@@ -74,7 +76,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream
     // If we haven't written the headers yet, write them out
     if (!this.committed)
     {
-      this.protocolClass.validateHeaders(this.owner);
+      this.owner.validateHeaders();
 
       ByteArrayOutputStream headerArrayStream = new ByteArrayOutputStream();
       for (Iterator i = this.owner.getHeaders().iterator(); i.hasNext(); )
@@ -82,7 +84,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream
         String header = (String) i.next();
         int colonPos = header.indexOf(':');
         if (colonPos == -1)
-          throw new WinstoneException(this.resources.getString("Ajp13OutputStream.NoColonHeader", "[#header]", header));
+          throw new WinstoneException(localResources.getString("Ajp13OutputStream.NoColonHeader", "[#header]", header));
         String headerName = header.substring(0, colonPos).trim();
         String headerValue = header.substring(colonPos + 1).trim();
         byte headerCode[] = (byte[]) headerCodes.get(headerName.toLowerCase());
@@ -93,10 +95,10 @@ public class Ajp13OutputStream extends WinstoneOutputStream
       for (Iterator i = this.owner.getCookies().iterator(); i.hasNext(); )
       {
         Cookie cookie = (Cookie) i.next();
-        String cookieText = this.protocolClass.writeCookie(cookie);
+        String cookieText = this.owner.writeCookie(cookie);
         int colonPos = cookieText.indexOf(':');
         if (colonPos == -1)
-          throw new WinstoneException(this.resources.getString("Ajp13OutputStream.NoColonHeader", "[#header]", cookieText));
+          throw new WinstoneException(localResources.getString("Ajp13OutputStream.NoColonHeader", "[#header]", cookieText));
         String headerName = cookieText.substring(0, colonPos).trim();
         String headerValue = cookieText.substring(colonPos + 1).trim();
         byte headerCode[] = (byte[]) headerCodes.get(headerName.toLowerCase());

@@ -37,15 +37,28 @@ public class WinstoneResponse implements HttpServletResponse
   protected static DateFormat df = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
   static  {df.setTimeZone(TimeZone.getTimeZone("GMT"));}
 
+  static final String SESSION_COOKIE_NAME    = "WinstoneHttpSessionId";
+  static final String CONTENT_LENGTH_HEADER  = "Content-Length";
+  static final String CONTENT_TYPE_HEADER    = "Content-Type";
+
+  // Response header constants
+  static final String KEEP_ALIVE_HEADER      = "Connection";
+  static final String ENCODING_HEADER        = "Transfer-Encoding";
+  static final String KEEP_ALIVE_OPEN        = "Keep-Alive";
+  static final String KEEP_ALIVE_CLOSE       = "Close";
+  static final String DATE_HEADER            = "Date";
+  static final String SERVER_HEADER          = "Server";
+  static final String LOCATION_HEADER        = "Location";
+  static final String OUT_COOKIE_HEADER1     = "Set-Cookie";
+  static final String OUT_COOKIE_HEADER2     = "Set-Cookie2";
+
   private int statusCode;
   private WinstoneRequest req;
   private WebAppConfiguration webAppConfig;
-  private HttpProtocol protocolClass;
   private WinstoneOutputStream outputStream;
   private List headers;
   private String encoding;
   private List cookies;
-  //private int contentLength;
   private Writer outWriter;
 
   private WinstoneResourceBundle resources;
@@ -81,7 +94,6 @@ public class WinstoneResponse implements HttpServletResponse
 
   public void setOutputStream(WinstoneOutputStream outData) {this.outputStream = outData;}
   public void setWebAppConfig(WebAppConfiguration webAppConfig) {this.webAppConfig = webAppConfig;}
-  public void setProtocolClass(HttpProtocol protocolClass) {this.protocolClass = protocolClass;}
   public void setRequest(WinstoneRequest req) {this.req = req;}
 
   public String getProtocol()   {return this.req.getProtocol();}
@@ -105,7 +117,7 @@ public class WinstoneResponse implements HttpServletResponse
     }
     String header = sb.toString().substring(0, sb.length() - 1) +
                    (this.encoding == null ? "" : ";charset=" + this.encoding);
-    setHeader(this.protocolClass.CONTENT_TYPE_HEADER, header);
+    setHeader(CONTENT_TYPE_HEADER, header);
   }
 
   /**
@@ -113,7 +125,7 @@ public class WinstoneResponse implements HttpServletResponse
    */
   public void verifyContentLength()
   {
-    String length = getHeader(this.protocolClass.CONTENT_LENGTH_HEADER);
+    String length = getHeader(CONTENT_LENGTH_HEADER);
     if (length != null)
     {
       int contentLength = 0;
@@ -132,22 +144,142 @@ public class WinstoneResponse implements HttpServletResponse
     String sessionCookie = req.getSessionCookie();
     if (sessionCookie != null)
     {
-      WinstoneSession session = (WinstoneSession) req.getWebAppConfig().getSessions().get(sessionCookie);
+      WinstoneSession session = req.getWebAppConfig().getSessionById(sessionCookie, false);
       if ((session != null) && session.isNew())
       {
         session.setIsNew(false);
-        Cookie cookie = new Cookie(this.protocolClass.SESSION_COOKIE_NAME, sessionCookie);
+        Cookie cookie = new Cookie(SESSION_COOKIE_NAME, sessionCookie);
         cookie.setMaxAge(-1);
         cookie.setPath(req.getWebAppConfig().getPrefix() + "/");
         addCookie(cookie);
       }
     }
   }
-  /*public void writeHeaders(PrintStream writeTo) throws IOException
+  
+  /**
+   * This ensures the bare minimum correct http headers are present
+   */
+  public void validateHeaders()
   {
-    this.protocolClass.writeHeaders(this.req, this, this.req.getWebAppConfig().getPrefix(),
-                                writeTo, this.headers, this.cookies);
-  }*/
+    //rsp.setHeader(ENCODING_HEADER, "chunked");
+    String contentLength = this.getHeader(CONTENT_LENGTH_HEADER);
+    this.setHeader(KEEP_ALIVE_HEADER,
+                  (contentLength != null) && !closeAfterRequest()
+                            ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
+    if (this.getHeader(DATE_HEADER) == null)
+      this.setDateHeader(DATE_HEADER, System.currentTimeMillis());
+
+    // If we don't have a webappConfig, exit here, cause we definitely don't have a session
+    WinstoneRequest req = this.getRequest();
+    if (req.getWebAppConfig() == null)
+      return;
+
+    // Write out the new session cookie if it's present
+    String sessionCookie = req.getSessionCookie();
+    if (sessionCookie != null)
+    {
+      WinstoneSession session = req.getWebAppConfig().getSessionById(sessionCookie, false);
+      if ((session != null) && session.isNew())
+      {
+        session.setIsNew(false);
+        Cookie cookie = new Cookie(SESSION_COOKIE_NAME, sessionCookie);
+        cookie.setMaxAge(-1);
+        cookie.setSecure(req.isSecure());
+        cookie.setVersion(req.isSecure() ? 1 : 0);
+        cookie.setPath(req.getWebAppConfig().getPrefix());
+        this.addCookie(cookie);
+      }
+    }
+  }
+
+  /**
+   * Writes out the http header for a single cookie
+   */
+  public String writeCookie(Cookie cookie) throws IOException
+  {
+    StringBuffer out = new StringBuffer();
+    if (cookie.getVersion() == 1)
+    {
+      out.append(OUT_COOKIE_HEADER2).append(": ");
+      out.append(cookie.getName()).append("=");
+      quote(cookie.getValue(), out);
+      out.append("; Version=1");
+      if (cookie.getDomain() != null)
+      {
+        out.append("; Domain=");
+        quote(cookie.getDomain(), out);
+      }
+      if (cookie.getSecure())
+        out.append("; Secure");
+
+      if (cookie.getMaxAge() >= 0)
+        out.append("; Max-Age=").append(cookie.getMaxAge());
+      else
+        out.append("; Discard");
+      if (cookie.getPath() != null)
+      {
+        out.append("; Path=");
+        quote(cookie.getPath(), out);
+      }
+    }
+    else
+    {
+      out.append(OUT_COOKIE_HEADER1).append(": ");
+      out.append(cookie.getName()).append("=").append(cookie.getValue());
+      if (cookie.getMaxAge() >= 0)
+        out.append("; Max-Age=").append(cookie.getMaxAge());
+      else
+        out.append("; Discard");
+      if (cookie.getPath() != null)
+        out.append("; Path=").append(cookie.getPath());
+    }
+    return out.toString();
+  }
+
+  /**
+   * Quotes the necessary strings in a cookie header. The quoting is only
+   * applied if the string contains special characters.
+   */
+  protected void quote(String value, StringBuffer out)
+  {
+    boolean containsSpecial = false;
+    for (int n = 0; n < value.length(); n++)
+    {
+      char thisChar = value.charAt(n);
+      if ((thisChar < 32) || (thisChar >= 127) ||
+          (specialCharacters.indexOf(thisChar) != -1))
+      {
+        containsSpecial = true;
+        break;
+      }
+    }
+    if (containsSpecial)
+      out.append('"').append(value).append('"');
+    else
+      out.append(value);
+  }
+
+  final String specialCharacters = "()<>@,;:\\\"/[]?={} \t";  
+
+  /**
+   * Based on request/response headers and the protocol, determine whether
+   * or not this connection should operate in keep-alive mode.
+   */
+  public boolean closeAfterRequest()
+  {
+    String inKeepAliveHeader = req.getHeader(KEEP_ALIVE_HEADER);
+    String outKeepAliveHeader = this.getHeader(KEEP_ALIVE_HEADER);
+    if (req.getProtocol().startsWith("HTTP/0"))
+      return true;
+    else if ((inKeepAliveHeader == null) && (outKeepAliveHeader == null))
+      return req.getProtocol().equals("HTTP/1.0") ? true : false;
+    else if (outKeepAliveHeader != null)
+      return outKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE);
+    else if (inKeepAliveHeader != null)
+      return inKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE);
+    else
+      return false;
+  }
 
   // ServletResponse interface methods
   public void flushBuffer() throws IOException
@@ -188,7 +320,7 @@ public class WinstoneResponse implements HttpServletResponse
   public boolean isCommitted() {return this.outputStream.isCommitted();}
   public void reset() {this.outWriter = null; this.outputStream.reset();}
   public void resetBuffer() {reset();}
-  public void setContentLength(int len) {setIntHeader(this.protocolClass.CONTENT_LENGTH_HEADER, len);}
+  public void setContentLength(int len) {setIntHeader(CONTENT_LENGTH_HEADER, len);}
 
   // HttpServletResponse interface methods
   public void addCookie(Cookie cookie) {this.cookies.add(cookie);}
@@ -283,7 +415,7 @@ public class WinstoneResponse implements HttpServletResponse
   public void sendRedirect(String location) throws IOException
   {
     this.statusCode = HttpServletResponse.SC_MOVED_TEMPORARILY;
-    setHeader(this.protocolClass.LOCATION_HEADER, location);
+    setHeader(LOCATION_HEADER, location);
     setContentLength(0);
     getWriter().close();
   }
