@@ -5,17 +5,54 @@ CFLAGS = -ffast-math -funroll-loops
 WINSTONE_BASE = ./winstone/development/src
 CRIMSON_BASE = ./crimson-src
 
-WINSTONE_O = winstone.o winstone_res1.o
+WINSTONE_LITE_O = winstone_lite.o winstone_res1.o
+WINSTONE_AJP_O = winstone_ajp.o winstone_ajp_res1.o
+WINSTONE_AUTH_O = winstone_auth.o winstone_realm.o winstone_auth_res1.o winstone_realm_res1.o
+WINSTONE_CLUSTER_O = winstone_cluster.o winstone_cluster_res1.o
+WINSTONE_JNDI_O = winstone_jndi.o winstone_jndi_res1.o winstone_jndi_res2.o
 SERVLET_O = servlet.o servlet_res1.o servlet_res2.o
 CRIMSON_O = crimson.o crimson_res1.o crimson_res2.o javax_xml.o xml_api.o
 
-all:	$(WINSTONE_O) $(SERVLET_O) $(CRIMSON_O)
-	$(CC) $(CFLAGS) --main=com.rickknowles.winstone.Listener -o winstone_bin $(WINSTONE_O) $(SERVLET_O) $(CRIMSON_O)
+all:	$(WINSTONE_LITE_O) $(WINSTONE_AJP_O) $(WINSTONE_AUTH_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(SERVLET_O) $(CRIMSON_O)
+	$(CC) $(CFLAGS) --main=com.rickknowles.winstone.Launcher -o winstone_lite $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O)
+	$(CC) $(CFLAGS) --main=com.rickknowles.winstone.Launcher -o winstone_full $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O) $(WINSTONE_AUTH_O) $(WINSTONE_AJP_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O)
 
-winstone.o: $(WINSTONE_BASE)/com/rickknowles/winstone/*.java
-	$(CC) $(CFLAGS) -o winstone.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/com/rickknowles/winstone/*.java
+winstone_lite.o: $(WINSTONE_BASE)/com/rickknowles/winstone/*.java
+	$(CC) $(CFLAGS) -o winstone_lite.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/com/rickknowles/winstone/*.java
 winstone_res1.o: $(WINSTONE_BASE)/com/rickknowles/winstone/LocalStrings.properties
 	$(CC) $(CFLAGS) -o winstone_res1.o --resource=com/rickknowles/winstone/LocalStrings.properties -c $(WINSTONE_BASE)/com/rickknowles/winstone/LocalStrings.properties
+
+winstone_ajp.o: $(WINSTONE_BASE)/com/rickknowles/winstone/ajp13/*.java
+	$(CC) $(CFLAGS) -o winstone_ajp.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/com/rickknowles/winstone/ajp13/*.java
+winstone_ajp_res1.o: $(WINSTONE_BASE)/com/rickknowles/winstone/ajp13/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_ajp_res1.o --resource=com/rickknowles/winstone/ajp13/LocalStrings.properties -c $(WINSTONE_BASE)/com/rickknowles/winstone/ajp13/LocalStrings.properties
+
+winstone_auth.o: $(WINSTONE_BASE)/com/rickknowles/winstone/auth/*.java
+	$(CC) $(CFLAGS) -o winstone_auth.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/com/rickknowles/winstone/auth/*.java
+winstone_auth_res1.o: $(WINSTONE_BASE)/com/rickknowles/winstone/auth/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_auth_res1.o --resource=com/rickknowles/winstone/auth/LocalStrings.properties -c $(WINSTONE_BASE)/com/rickknowles/winstone/auth/LocalStrings.properties
+
+winstone_realm.o: $(WINSTONE_BASE)/com/rickknowles/winstone/realm/*.java
+	$(CC) $(CFLAGS) -o winstone_realm.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/com/rickknowles/winstone/realm/*.java
+winstone_realm_res1.o: $(WINSTONE_BASE)/com/rickknowles/winstone/realm/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_realm_res1.o --resource=com/rickknowles/winstone/realm/LocalStrings.properties -c $(WINSTONE_BASE)/com/rickknowles/winstone/realm/LocalStrings.properties
+
+winstone_cluster.o: $(WINSTONE_BASE)/com/rickknowles/winstone/cluster/*.java
+	$(CC) $(CFLAGS) -o winstone_cluster.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c $(WINSTONE_BASE)/com/rickknowles/winstone/cluster/*.java
+winstone_cluster_res1.o: $(WINSTONE_BASE)/com/rickknowles/winstone/cluster/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_cluster_res1.o --resource=com/rickknowles/winstone/cluster/LocalStrings.properties -c $(WINSTONE_BASE)/com/rickknowles/winstone/cluster/LocalStrings.properties
+
+winstone_jndi.o: $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/*.java \
+                 $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/java/*.java \
+                 $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/resourceFactories/*.java
+	$(CC) $(CFLAGS) -o winstone_jndi.o --classpath=$(WINSTONE_BASE):$(CRIMSON_BASE) -c \
+                 $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/*.java \
+                 $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/java/*.java \
+                 $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/resourceFactories/*.java
+winstone_jndi_res1.o: $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_jndi_res1.o --resource=com/rickknowles/winstone/jndi/LocalStrings.properties -c $(WINSTONE_BASE)/com/rickknowles/winstone/jndi/LocalStrings.properties
+winstone_jndi_res2.o: $(WINSTONE_BASE)/jndi.properties
+	$(CC) $(CFLAGS) -o winstone_jndi_res2.o --resource=jndi.properties -c $(WINSTONE_BASE)/jndi.properties
 
 servlet.o: $(WINSTONE_BASE)/javax/servlet/*.java $(WINSTONE_BASE)/javax/servlet/http/*.java
 	$(CC) $(CFLAGS) -o servlet.o --classpath=$(WINSTONE_BASE) -c $(WINSTONE_BASE)/javax/servlet/*.java $(WINSTONE_BASE)/javax/servlet/http/*.java
