@@ -242,7 +242,7 @@ public class HttpListener implements Listener, Runnable
   }
   
   /**
-   * 
+   * Processes the uri line into it's component parts, determining protocol, method and uri
    */
   private String parseURILine(String uriLine, WinstoneRequest req)
   {
@@ -280,7 +280,7 @@ public class HttpListener implements Listener, Runnable
 
     req.setMethod(method);
     req.setRequestURI(fullURI);
-    req.setServletPath(servletURI);
+    //req.setServletPath(servletURI);
     return servletURI;
   }
   

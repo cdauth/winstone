@@ -136,6 +136,7 @@ public class RequestHandlerThread implements Runnable
             }
 
             // Lookup a dispatcher, then process with it
+            req.setServletPath(path);
             req.setWebAppConfig(this.webAppConfig);
             rsp.setWebAppConfig(this.webAppConfig);
             processRequest(req, rsp, path);

@@ -251,7 +251,7 @@ public class Ajp13Listener implements Listener, Runnable
   {
     req.setMethod(headers.getMethod());
     req.setProtocol(headers.getProtocol());
-    req.setServletPath(headers.getURI());
+    //req.setServletPath(headers.getURI());
     req.setRequestURI(headers.getURI());
 
     // Get query string if supplied
