@@ -200,7 +200,7 @@ public class WinstoneResponse implements HttpServletResponse
         cookie.setMaxAge(-1);
         cookie.setSecure(req.isSecure());
         cookie.setVersion(req.isSecure() ? 1 : 0);
-        cookie.setPath(req.getWebAppConfig().getPrefix());
+        cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/" : req.getWebAppConfig().getPrefix());
         this.addCookie(cookie);
       }
     }
