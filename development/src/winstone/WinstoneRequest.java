@@ -558,9 +558,15 @@ public class WinstoneRequest implements HttpServletRequest
   public String getContentType() {return this.contentType;}
 
   public Locale getLocale()
-    {return this.locales.isEmpty() ? null : (Locale) this.locales.get(0);}
+    {return this.locales.isEmpty() ? Locale.getDefault() : (Locale) this.locales.get(0);}
 
-  public Enumeration getLocales() {return Collections.enumeration(this.locales);}
+  public Enumeration getLocales() 
+  {
+    List sendLocales = this.locales;
+    if (sendLocales.isEmpty())
+      sendLocales.add(Locale.getDefault());
+    return Collections.enumeration(sendLocales);
+  }
 
   public String getProtocol()             {return this.protocol;}
   public String getScheme()               {return this.scheme;}
