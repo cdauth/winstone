@@ -70,6 +70,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
   private int CONTROL_TIMEOUT = 10; // wait 5s for control connection
   private int DEFAULT_CONTROL_PORT = -1;
 
+  private Thread controlThread;
+  
   private WinstoneResourceBundle resources;
   private int controlPort;
   private WebAppConfiguration webAppConfig;
@@ -189,6 +191,12 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
     }
     catch (Throwable err)
       {Logger.log(Logger.DEBUG, this.resources, "Launcher.AJPNotFound");}
+    
+    this.controlThread = new Thread(this, 
+            resources.getString("Launcher.ThreadName", "" + this.controlPort));
+    this.controlThread.setDaemon(false);
+    this.controlThread.start();
+
   }
 
   public WebAppConfiguration getWebAppConfig() {return this.webAppConfig;}
@@ -301,7 +309,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
             if ((byte) reqType == SHUTDOWN_TYPE)
             {
               Logger.log(Logger.INFO, resources, "Launcher.ShutdownRequestReceived");
-              interrupted = true; 
+              shutdown();
             }
             else if ((byte) reqType == RELOAD_TYPE)
             {
@@ -327,16 +335,9 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       }
 
       // Close server socket
-      controlSocket.close();
+      if (controlSocket != null)
+        controlSocket.close();
 
-      // Release all listeners/handlers/webapps
-      for (Iterator i = this.listeners.iterator(); i.hasNext(); )
-        ((Listener) i.next()).destroy();
-      this.objectPool.destroy();
-      if (this.cluster != null) this.cluster.destroy();
-      destroyWebApp(this.webAppConfig);
-
-      Logger.log(Logger.INFO, resources, "Launcher.ShutdownOK");
     }
     catch (Throwable err)
       {Logger.log(Logger.ERROR, resources, "Launcher.ShutdownError", err);}
@@ -350,7 +351,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
    */
   public void destroyWebApp(WebAppConfiguration webApp)
   {
-    webApp.destroy();
+    if (this.webAppConfig != null)
+      webApp.destroy();
     this.webAppConfig = null; // since we only hold one webapp right now
   }
 
@@ -378,7 +380,22 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
         this.commonLibCL, this.commonLibCLPaths);
   }
 
-  public void shutdown() {this.interrupted = true;}
+  public void shutdown() 
+  {
+    // Release all listeners/handlers/webapps
+    for (Iterator i = this.listeners.iterator(); i.hasNext(); )
+      ((Listener) i.next()).destroy();
+    this.objectPool.destroy();
+    if (this.cluster != null) this.cluster.destroy();
+    destroyWebApp(this.webAppConfig);
+    this.controlThread = null;
+
+    Logger.log(Logger.INFO, resources, "Launcher.ShutdownOK");
+      
+    this.interrupted = true;
+    if (this.controlThread != null)
+      this.controlThread.interrupt();
+  }
 
   /**
    * Get a parsed XML DOM from the given inputstream. Used to process the web.xml
@@ -552,9 +569,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       try
       {
         Launcher launcher = new Launcher(args, resources);
-        Thread th = new Thread(launcher, resources.getString("Launcher.ThreadName", "" + launcher.controlPort));
-        th.setDaemon(false);
-        th.start();
+        Runtime.getRuntime().addShutdownHook(new ShutdownHook(launcher));
       }
       catch (WinstoneException err) {System.err.println(err.getMessage()); err.printStackTrace();}
     }
