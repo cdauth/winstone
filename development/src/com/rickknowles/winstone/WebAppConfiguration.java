@@ -482,8 +482,10 @@ public class WebAppConfiguration implements ServletContext
         this.authenticationHandler = (AuthenticationHandler) authConstr.newInstance(new Object[] 
           {loginConfigNode, constraintNodes, resources, authenticationRealm});
       }
+      catch (ClassNotFoundException err)
+        {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfiguration.AuthDisabled", "[#auth]", authMethod));}
       catch (Throwable err)
-        {Logger.log(Logger.WARNING, this.resources.getString("WebAppConfig.AuthDisabled", 
+        {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfig.AuthError", 
           "[#authClassName]", authClassName, "[#realmClassName]", realmClassName), err);}
     }
     

@@ -95,6 +95,9 @@ public class ArgumentsRealm implements AuthenticationRealm
    */
   public AuthenticationPrincipal retrieveUser(String userName)
   {
-    return new AuthenticationPrincipal(userName, (String) this.passwords.get(userName), (List) this.roles.get(userName));
+    if (userName == null)
+      return null;
+    else
+      return new AuthenticationPrincipal(userName, (String) this.passwords.get(userName), (List) this.roles.get(userName));
   }
 }

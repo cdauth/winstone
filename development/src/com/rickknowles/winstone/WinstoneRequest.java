@@ -25,6 +25,7 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
+import java.security.*;
 
 /**
  * Implements the request interface required by the servlet spec.
@@ -78,6 +79,7 @@ public class WinstoneRequest implements HttpServletRequest
   protected AuthenticationPrincipal authenticatedUser;
 
   private WinstoneResourceBundle resources;
+  private MessageDigest md5Digester;
 
   /**
    * InputStream factory method.
@@ -90,6 +92,10 @@ public class WinstoneRequest implements HttpServletRequest
     this.locales = new ArrayList();
     this.contentLength = -1;
     this.isSecure = false;
+    try
+      {this.md5Digester = MessageDigest.getInstance("MD5");}
+    catch (NoSuchAlgorithmException err)
+      {throw new WinstoneException("MD5 digester unavailable - what the ...?");}
   }
 
   /**
@@ -663,9 +669,21 @@ public class WinstoneRequest implements HttpServletRequest
   {
     String cookieValue = "Winstone_" + this.remoteIP + "_" + this.serverPort + "_" +
                     System.currentTimeMillis();
-    this.sessionCookie = cookieValue;
-    this.webappConfig.makeNewSession(cookieValue);
-    return cookieValue;
+    byte digestBytes[] = this.md5Digester.digest(cookieValue.getBytes());
+    
+    // Write out in hex format
+    char outArray[] = new char[32];
+    for (int n = 0; n < digestBytes.length; n++)
+    {
+      int hiNibble = (digestBytes[n] & 0xFF) >> 4;
+      int loNibble = (digestBytes[n] & 0xF);
+      outArray[2*n]     = (hiNibble > 9 ? (char) (hiNibble + 87) : (char) (hiNibble + 48));
+      outArray[2*n + 1] = (loNibble > 9 ? (char) (loNibble + 87) : (char) (loNibble + 48));
+    }
+    
+    this.sessionCookie = new String(outArray);
+    this.webappConfig.makeNewSession(this.sessionCookie);
+    return this.sessionCookie;
   }
 
   /**

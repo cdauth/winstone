@@ -19,11 +19,8 @@ package com.rickknowles.winstone.auth;
 
 import org.w3c.dom.Node;
 
-import com.rickknowles.winstone.Logger;
-import com.rickknowles.winstone.WebAppConfiguration;
-import com.rickknowles.winstone.WinstoneRequest;
-import com.rickknowles.winstone.WinstoneResourceBundle;
-
+import com.rickknowles.winstone.*;
+import javax.servlet.http.*;
 import java.util.*;
 
 /**
@@ -125,7 +122,7 @@ public class SecurityConstraint
   /**
    * Call this to evaluate the security constraint - is this operation allowed ?
    */
-  public boolean isAllowed(WinstoneRequest request)
+  public boolean isAllowed(HttpServletRequest request)
   {
     for (int n = 0; n < this.rolesAllowed.length; n++)
     {

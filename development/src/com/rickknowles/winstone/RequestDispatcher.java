@@ -24,6 +24,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.SingleThreadModel;
 import java.io.IOException;
 import java.util.Map;
+import javax.servlet.http.*;
 
 /**
  * Implements the sending of a request to a specific servlet instance,
@@ -91,8 +92,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       this.securityChecked = true;
       if (this.authHandler != null)
         continueAfterSecurityCheck =
-              this.authHandler.processAuthentication((WinstoneRequest) request,
-                                                     (WinstoneResponse) response,
+              this.authHandler.processAuthentication((HttpServletRequest) request,
+                                                     (HttpServletResponse) response,
                                                      this.requestedPath);
     }
 
@@ -143,8 +144,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       this.securityChecked = true;
       if (this.authHandler != null)
         continueAfterSecurityCheck =
-              this.authHandler.processAuthentication((WinstoneRequest) request,
-                                                     (WinstoneResponse) response,
+              this.authHandler.processAuthentication((HttpServletRequest) request,
+                                                     (HttpServletResponse) response,
                                                      this.requestedPath);
     }
 

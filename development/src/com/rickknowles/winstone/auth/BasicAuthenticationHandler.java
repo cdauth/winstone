@@ -19,8 +19,7 @@ package com.rickknowles.winstone.auth;
 
 import com.rickknowles.winstone.*;
 import java.util.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.*;
 import java.io.IOException;
 import org.w3c.dom.*;
 
@@ -43,8 +42,8 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler
   /**
    * Call this once we know that we need to authenticate
    */
-  protected void requestAuthentication(WinstoneRequest request,
-    WinstoneResponse response, String pathRequested) throws IOException
+  protected void requestAuthentication(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested) throws IOException
   {
     // Return unauthorized, and set the realm name
     response.setHeader("WWW-Authenticate", "Basic Realm=\"" + this.realmName + "\"");
@@ -55,8 +54,8 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler
   /**
    * Handling the (possible) response
    */
-  protected boolean validatePossibleAuthenticationResponse(WinstoneRequest request,
-    WinstoneResponse response, String pathRequested) throws IOException
+  protected boolean validatePossibleAuthenticationResponse(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested) throws IOException
   {
     String authorization = request.getHeader("Authorization");
     if ((authorization != null) && authorization.toLowerCase().startsWith("basic"))
@@ -70,7 +69,18 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler
         if (principal != null)
         {
           principal.setAuthType(HttpServletRequest.BASIC_AUTH);
-          request.setRemoteUser(principal);
+          if (request instanceof WinstoneRequest)
+            ((WinstoneRequest) request).setRemoteUser(principal);
+          else if (request instanceof HttpServletRequestWrapper)
+          {
+            HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
+            if (wrapper.getRequest() instanceof WinstoneRequest)
+              ((WinstoneRequest) wrapper.getRequest()).setRemoteUser(principal);
+            else
+              Logger.log(Logger.WARNING, this.resources.getString("BasicAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+          }
+          else
+            Logger.log(Logger.WARNING, this.resources.getString("BasicAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
         }
       }
     }

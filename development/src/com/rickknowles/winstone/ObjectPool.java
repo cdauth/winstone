@@ -58,7 +58,8 @@ public class ObjectPool
   //private Launcher launcher;
   
   /**
-   * 
+   * Constructs an instance of the object pool, including handlers, requests
+   * and responses
    */
   public ObjectPool(Map args, WinstoneResourceBundle resources, 
     WebAppConfiguration webAppConfig) throws IOException

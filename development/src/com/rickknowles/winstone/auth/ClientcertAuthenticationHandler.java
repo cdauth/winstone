@@ -21,8 +21,7 @@ import org.w3c.dom.Node;
 import java.io.IOException;
 import java.util.*;
 import com.rickknowles.winstone.*;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.*;
 import java.security.cert.X509Certificate;
 
 /**
@@ -42,8 +41,8 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler
   /**
    * Call this once we know that we need to authenticate
    */
-  protected void requestAuthentication(WinstoneRequest request,
-    WinstoneResponse response, String pathRequested) throws IOException
+  protected void requestAuthentication(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested) throws IOException
   {
     // Return unauthorized, and set the realm name
     response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
@@ -53,8 +52,8 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler
   /**
    * Handling the (possible) response
    */
-  protected boolean validatePossibleAuthenticationResponse(WinstoneRequest request,
-    WinstoneResponse response, String pathRequested) throws IOException
+  protected boolean validatePossibleAuthenticationResponse(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested) throws IOException
   {
     // Check for certificates in the request attributes
     X509Certificate certificateArray[] = (X509Certificate []) request
@@ -72,7 +71,18 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler
         if (principal != null)
         {
           principal.setAuthType(HttpServletRequest.CLIENT_CERT_AUTH);
-          request.setRemoteUser(principal);
+          if (request instanceof WinstoneRequest)
+            ((WinstoneRequest) request).setRemoteUser(principal);
+          else if (request instanceof HttpServletRequestWrapper)
+          {
+            HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
+            if (wrapper.getRequest() instanceof WinstoneRequest)
+              ((WinstoneRequest) wrapper.getRequest()).setRemoteUser(principal);
+            else
+              Logger.log(Logger.WARNING, this.resources.getString("ClientCertAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+          }
+          else
+            Logger.log(Logger.WARNING, this.resources.getString("ClientCertAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
         }
       }
     }

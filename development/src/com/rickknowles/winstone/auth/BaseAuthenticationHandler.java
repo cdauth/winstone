@@ -23,10 +23,9 @@ import org.w3c.dom.Node;
 import com.rickknowles.winstone.AuthenticationHandler;
 import com.rickknowles.winstone.AuthenticationRealm;
 import com.rickknowles.winstone.Logger;
-import com.rickknowles.winstone.WinstoneRequest;
 import com.rickknowles.winstone.WinstoneResourceBundle;
-import com.rickknowles.winstone.WinstoneResponse;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -79,8 +78,8 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
    * authenticate.
    * @return A boolean indicating whether to continue after this request
    */
-  public boolean processAuthentication(WinstoneRequest request,
-    WinstoneResponse response, String pathRequested)
+  public boolean processAuthentication(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested)
     throws IOException, ServletException
   {
     Logger.log(Logger.FULL_DEBUG, this.resources.getString("BaseAuthenticationHandler.StartAuthCheck"));
@@ -136,15 +135,15 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
   /**
    * The actual auth request implementation.
    */
-  protected abstract void requestAuthentication(WinstoneRequest request,
-  WinstoneResponse response, String pathRequested) 
+  protected abstract void requestAuthentication(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested) 
       throws IOException, ServletException;
 
   /**
    * Handling the (possible) response
    */
   protected abstract boolean validatePossibleAuthenticationResponse(
-    WinstoneRequest request, WinstoneResponse response, String pathRequested)
+    HttpServletRequest request, HttpServletResponse response, String pathRequested)
       throws ServletException, IOException;
 }
 

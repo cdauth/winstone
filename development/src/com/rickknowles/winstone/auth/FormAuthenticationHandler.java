@@ -20,7 +20,7 @@ package com.rickknowles.winstone.auth;
 import java.io.IOException;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.*;
 import javax.servlet.ServletException;
 import org.w3c.dom.Node;
 
@@ -88,7 +88,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
    * authenticate.
    * @return A boolean indicating whether to continue after this request
    */
-  public boolean processAuthentication(WinstoneRequest request,
+  public boolean processAuthentication(HttpServletRequest request,
     WinstoneResponse response, String pathRequested)
     throws IOException, ServletException
   {
@@ -101,12 +101,26 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
   /**
    * Call this once we know that we need to authenticate
    */
-  protected void requestAuthentication(WinstoneRequest request,
-  WinstoneResponse response, String pathRequested) throws ServletException, IOException
+  protected void requestAuthentication(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested) throws ServletException, IOException
   {
     // Save the critical details of the request into the session map
-    WinstoneSession session = (WinstoneSession) request.getSession(true);
-    session.setCachedRequest(new CachedRequest(request, this.resources));
+    WinstoneRequest actualRequest = null;
+    if (request instanceof WinstoneRequest)
+      actualRequest = (WinstoneRequest) request;
+    else if (request instanceof HttpServletRequestWrapper)
+    {
+      HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
+      if (wrapper.getRequest() instanceof WinstoneRequest)
+        actualRequest = (WinstoneRequest) wrapper.getRequest();
+      else
+        Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+    }
+    else
+      Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+    
+    WinstoneSession session = (WinstoneSession) actualRequest.getSession(true);
+    session.setCachedRequest(new CachedRequest(actualRequest, this.resources));
         
     // Forward on to the login page
     Logger.log(Logger.FULL_DEBUG, "Forwarding to the login page");
@@ -118,8 +132,8 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
    * Check the response - is it a response to the login page ?
    * @return A boolean indicating whether to continue with the request or not
    */
-  protected boolean validatePossibleAuthenticationResponse(WinstoneRequest request,
-    WinstoneResponse response, String pathRequested) throws ServletException, IOException
+  protected boolean validatePossibleAuthenticationResponse(HttpServletRequest request,
+    HttpServletResponse response, String pathRequested) throws ServletException, IOException
   {
     // Check if this is a j_security_check uri
     if (pathRequested.endsWith(FORM_ACTION))
@@ -139,14 +153,28 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
       else
       {
         // Get the stashed request
-        WinstoneSession session = (WinstoneSession) request.getSession(true);
+        WinstoneRequest actualRequest = null;
+        if (request instanceof WinstoneRequest)
+          actualRequest = (WinstoneRequest) request;
+        else if (request instanceof HttpServletRequestWrapper)
+        {
+          HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
+          if (wrapper.getRequest() instanceof WinstoneRequest)
+            actualRequest = (WinstoneRequest) wrapper.getRequest();
+          else
+            Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+        }
+        else
+          Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+
+        WinstoneSession session = (WinstoneSession) actualRequest.getSession(true);
         principal.setAuthType(HttpServletRequest.FORM_AUTH);
         session.setAuthenticatedUser(principal);
         String previousLocation = this.loginPage;
         if (session.getCachedRequest() != null)
         {
           // Repopulate this request from the params we saved
-          ((CachedRequest)session.getCachedRequest()).transferContent(request);
+          ((CachedRequest)session.getCachedRequest()).transferContent(actualRequest);
           previousLocation = request.getServletPath();
           session.setCachedRequest(null);
         }
@@ -161,10 +189,24 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
     // If it's not a login, get the session, and look up the auth user variable
     else
     {
-      WinstoneSession session = (WinstoneSession) request.getSession(false);
+      WinstoneRequest actualRequest = null;
+      if (request instanceof WinstoneRequest)
+        actualRequest = (WinstoneRequest) request;
+      else if (request instanceof HttpServletRequestWrapper)
+      {
+        HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
+        if (wrapper.getRequest() instanceof WinstoneRequest)
+          actualRequest = (WinstoneRequest) wrapper.getRequest();
+        else
+          Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+      }
+      else
+        Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+
+      WinstoneSession session = (WinstoneSession) actualRequest.getSession(false);
       if ((session != null) && (session.getAuthenticatedUser() != null))
       {
-        request.setRemoteUser(session.getAuthenticatedUser());
+        actualRequest.setRemoteUser(session.getAuthenticatedUser());
         Logger.log(Logger.FULL_DEBUG, "Got authenticated user from session");
       }
       return true;
