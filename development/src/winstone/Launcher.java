@@ -536,7 +536,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       try
       {
         Launcher launcher = new Launcher(args, resources);
-        Thread th = new Thread(launcher);
+        Thread th = new Thread(launcher, resources.getString("Launcher.ThreadName", "" + launcher.controlPort));
         th.setDaemon(false);
         th.start();
       }
