@@ -56,9 +56,9 @@ public class WinstoneClassLoader extends URLClassLoader
       File classesFolder = new File(webInfFolder, CLASSES);
       if (classesFolder.exists())
       {
+        Logger.log(Logger.DEBUG, resources, "WinstoneClassLoader.WebAppClasses");
         addURL(new URL("file", null, classesFolder.getCanonicalPath() + "/"));
         classPaths.add(classesFolder);
-        Logger.log(Logger.DEBUG, resources, "WinstoneClassLoader.WebAppClasses");
       }
       else
         Logger.log(Logger.WARNING, resources, "WinstoneClassLoader.NoWebAppClasses", classesFolder.toString());
@@ -73,10 +73,9 @@ public class WinstoneClassLoader extends URLClassLoader
           String jarName = jars[n].getCanonicalPath().toLowerCase();
           if (jarName.endsWith(".jar") || jarName.endsWith(".zip"))
           {
+            Logger.log(Logger.DEBUG, resources, "WinstoneClassLoader.WebAppLib", jars[n].getName());
             addURL(jars[n].toURL());
             classPaths.add(jars[n]);
-            Logger.log(Logger.DEBUG, resources, "WinstoneClassLoader.WebAppLib",
-              jars[n].getName());
           }
         }
       }
