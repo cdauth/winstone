@@ -18,6 +18,7 @@ Long-term
      - Add a JSP compiler ?
 
 DONE - Added HTTPS listener class
+DONE - Fixed the path separator bug in the classpath under linux
 
 v0.6.3
 DONE - Fixed the errorPage directive bug

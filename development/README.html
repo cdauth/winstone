@@ -628,12 +628,13 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
       because it was only US$39 per year. Java doesn't recognise the CA, but IE should.
       It doesn't really matter for testing purposes.</li>
     <li>Once you get the approved certificate back, import it into the key store you 
-      were using (just say OK to any messages about trusting the unknown CA). You 
-      should now have only a key pair and a certificate. Save the key store, using the 
-      same password you used before.</li>
+      were using (just say OK to any messages about trusting the unknown CA). </li>
+    <li>Import the CA reply (Tools -> import CA reply). You should now have only a 
+      key pair and a certificate. Save the key store, using the same password you used 
+      before.</li>
     <li>Start winstone with the following command:
       <pre>java -jar winstone.jar --webroot=&lt;webroot&gt;
-                       --httpsListenPort=443 
+                       --httpsPort=443 
                        --httpsKeyStore=&lt;keystore file&gt; 
                        --httpsKeyStorePassword=&lt;password&gt;</pre>  
     </li>
