@@ -71,7 +71,7 @@ public class IncludeResponse extends HttpServletResponseWrapper
     }
     out.write(bodyBlock);
     out.flush();
-    out.close();
+    //out.close();
   }
   
   public void addCookie(Cookie cookie)  {}
