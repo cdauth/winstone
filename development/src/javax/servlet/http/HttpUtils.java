@@ -81,10 +81,20 @@ public class HttpUtils
         continue;
       String name = token.substring(0, equalPos);
       String value = token.substring(equalPos + 1);
-      try
-        {params.put(decodeURLToken(name), decodeURLToken(value));}
-      catch (Exception err)
-        {throw new IllegalArgumentException("Error parsing requestParams - " + err.getMessage());}
+      String decodedName = decodeURLToken(name);
+      String decodedValue = decodeURLToken(value);
+      
+      Object already = params.get(decodedName);
+      if (already == null)
+        params.put(decodedName, new String[] {decodedValue});
+      else if (already instanceof String[])
+      {
+        String alreadyArray[] = (String []) already;
+        String oneMore[] = new String[alreadyArray.length + 1];
+        System.arraycopy(alreadyArray, 0, oneMore, 0, alreadyArray.length);
+        oneMore[oneMore.length - 1] = decodedValue;
+        params.put(decodedName, oneMore);
+      }
     }
     return params;
   }
