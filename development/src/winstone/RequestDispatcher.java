@@ -21,6 +21,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.ServletResponseWrapper;
 import javax.servlet.SingleThreadModel;
 import java.io.IOException;
 import java.util.Map;
@@ -110,15 +111,20 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     }
     else
     {
+    	// Small hack to get around jasper include bug
+    	ServletResponse inclResponse = response;
+      if (response instanceof ServletResponseWrapper)
+        inclResponse = ((ServletResponseWrapper) response).getResponse();
+        
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.requestedPath != null)
         request.setAttribute(JSP_FILE, this.requestedPath);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
-          {this.instance.service(request, response);}
+          {this.instance.service(request, inclResponse);}
       else
-        this.instance.service(request, response);
+        this.instance.service(request, inclResponse);
       Thread.currentThread().setContextClassLoader(cl);
     }
   }

@@ -175,7 +175,6 @@ public class WebAppConfiguration implements ServletContext
         ? new WinstoneClassLoader(this, this.getClass().getClassLoader(), this.resources)
         : this.getClass().getClassLoader());
 
-
     this.attributes = new Hashtable();
     this.initParameters = new HashMap();
     this.sessions = new Hashtable();
