@@ -19,17 +19,9 @@ package winstone.auth;
 
 import java.util.*;
 import org.w3c.dom.Node;
-
-
-import winstone.AuthenticationHandler;
-import winstone.AuthenticationRealm;
-import winstone.Logger;
-import winstone.WinstoneResourceBundle;
-
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.ServletException;
+import winstone.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
 import java.io.IOException;
 
 /**
@@ -80,11 +72,14 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
    * authenticate.
    * @return A boolean indicating whether to continue after this request
    */
-  public boolean processAuthentication(HttpServletRequest request,
-    HttpServletResponse response, String pathRequested)
+  public boolean processAuthentication(ServletRequest inRequest,
+    ServletResponse inResponse, String pathRequested)
     throws IOException, ServletException
   {
     Logger.log(Logger.FULL_DEBUG, this.resources.getString("BaseAuthenticationHandler.StartAuthCheck"));
+    
+    HttpServletRequest request = (HttpServletRequest) inRequest;
+    HttpServletResponse response = (HttpServletResponse) inResponse;
     
     // Give previous attempts a chance to be validated
     if (!validatePossibleAuthenticationResponse(request, response, pathRequested))

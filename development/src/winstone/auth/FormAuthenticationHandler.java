@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.servlet.http.*;
-import javax.servlet.ServletException;
+import javax.servlet.*;
 import org.w3c.dom.Node;
 
 import winstone.*;
@@ -88,8 +88,8 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
    * authenticate.
    * @return A boolean indicating whether to continue after this request
    */
-  public boolean processAuthentication(HttpServletRequest request,
-      HttpServletResponse response, String pathRequested)
+  public boolean processAuthentication(ServletRequest request,
+      ServletResponse response, String pathRequested)
     throws IOException, ServletException
   {
     if (pathRequested.equals(this.loginPage) || pathRequested.equals(this.errorPage))

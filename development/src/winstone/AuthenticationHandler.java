@@ -19,7 +19,7 @@ package winstone;
 
 import java.io.IOException;
 import javax.servlet.ServletException;
-import javax.servlet.http.*;
+import javax.servlet.*;
 
 /**
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
@@ -33,6 +33,6 @@ public interface AuthenticationHandler
    * authenticate.
    * @return A boolean indicating whether to continue after this request
    */
-  public boolean processAuthentication(HttpServletRequest request, HttpServletResponse response, 
+  public boolean processAuthentication(ServletRequest request, ServletResponse response, 
     String pathRequested) throws IOException, ServletException;
 }

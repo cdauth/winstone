@@ -418,6 +418,9 @@ public class WinstoneResponse implements HttpServletResponse
     {sendError(sc, null);}
   public void sendError(int sc, String msg) throws IOException
   {
+    Logger.log(Logger.DEBUG, this.resources.getString("WinstoneResponse.SendingError", 
+            "[#code]", "" + sc, "[#msg]", msg));
+    
     boolean found = false;
     if ((this.webAppConfig != null) && (this.req != null) &&
         (this.webAppConfig.getErrorPagesByCode().get("" + sc) != null))

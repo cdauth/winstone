@@ -20,7 +20,6 @@ package winstone;
 import javax.servlet.*;
 import java.io.IOException;
 import java.util.Map;
-import javax.servlet.http.*;
 
 /**
  * Implements the sending of a request to a specific servlet instance,
@@ -45,7 +44,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   private String filterPatterns[];
   private int filterPatternsEvaluated;
   private int filterPatternCount;
-  private boolean doInclude;
+  //private boolean doInclude;
   private boolean securityChecked;
   private AuthenticationHandler authHandler;
 
@@ -84,7 +83,10 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
                       ServletResponse response)
     throws ServletException, IOException
   {
-    Logger.log(Logger.FULL_DEBUG, "INCLUDE: " + this.name);
+    
+    // On the first call
+    if (this.filterPatternsEvaluated == 0)
+      Logger.log(Logger.DEBUG, "INCLUDE: servlet=" + this.name + ", path=" + this.requestedPath);
 
     // Have we eval'd security constraints yet ?
     boolean continueAfterSecurityCheck = true;
@@ -92,10 +94,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     {
       this.securityChecked = true;
       if (this.authHandler != null)
-        continueAfterSecurityCheck =
-              this.authHandler.processAuthentication((HttpServletRequest) request,
-                                                     (HttpServletResponse) response,
-                                                     this.requestedPath);
+        continueAfterSecurityCheck = this.authHandler.processAuthentication
+                                              (request, response, this.requestedPath);
     }
 
     // Make sure that failed attempts get routed through to login page
@@ -103,16 +103,16 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       return;
 
     // Make sure the filter chain is exhausted first
-    else if ((this.filterPatternCount > 0) &&
-        (this.filterPatternsEvaluated < this.filterPatternCount))
-    {
-      this.doInclude = true;
-      doFilter(request, response);
-    }
+    //else if ((this.filterPatternCount > 0) &&
+    //    (this.filterPatternsEvaluated < this.filterPatternCount))
+    //{
+    //  this.doInclude = true;
+    //  doFilter(request, response);
+    //}
     else
     {
       IncludeResponse includer = new IncludeResponse(response, this.resources);
-          
+
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.jspFile != null)
@@ -136,10 +136,31 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
                       javax.servlet.ServletResponse response)
     throws ServletException, IOException
   {
-    Logger.log(Logger.FULL_DEBUG, "FORWARD: " + this.name);
-    if (response.isCommitted())
-      throw new IllegalStateException(resources.getString("RequestDispatcher.ForwardCommitted"));
-    response.resetBuffer();
+    ServletRequest bareRequest = request;
+    ServletResponse bareResponse = response;
+
+    // On the first call
+    if (this.filterPatternsEvaluated == 0)
+    {
+      Logger.log(Logger.DEBUG, "FORWARD: servlet=" + this.name + ", path=" + this.requestedPath);
+      
+      if (response.isCommitted())
+        throw new IllegalStateException(resources.getString("RequestDispatcher.ForwardCommitted"));
+      response.resetBuffer();
+
+      // Strip back to bare request/response - set up for filters
+      if (request instanceof ServletRequestWrapper)
+        bareRequest = ((ServletRequestWrapper) request).getRequest();
+      if (request instanceof ServletResponseWrapper)
+        bareResponse = ((ServletResponseWrapper) response).getResponse();
+      
+      if (bareRequest instanceof WinstoneRequest)
+      {
+        WinstoneRequest req = (WinstoneRequest) bareRequest;
+        req.setServletPath(this.requestedPath);
+        req.setRequestURI(this.prefix + this.requestedPath);
+      }
+    }
 
     // Have we eval'd security constraints yet ?
     boolean continueAfterSecurityCheck = true;
@@ -147,10 +168,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     {
       this.securityChecked = true;
       if (this.authHandler != null)
-        continueAfterSecurityCheck =
-              this.authHandler.processAuthentication((HttpServletRequest) request,
-                                                     (HttpServletResponse) response,
-                                                     this.requestedPath);
+        continueAfterSecurityCheck = this.authHandler.processAuthentication
+                                       (bareRequest, bareResponse, this.requestedPath);
     }
 
     // Make sure that failed attempts get routed through to login page
@@ -163,21 +182,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       doFilter(request, response);
     else
     {
-      // Strip back to bare request/response
-      ServletRequest bareRequest = request;
-      if (request instanceof ServletRequestWrapper)
-        bareRequest = ((ServletRequestWrapper) request).getRequest();
-      ServletResponse bareResponse = response;
-      if (request instanceof ServletResponseWrapper)
-        bareResponse = ((ServletResponseWrapper) response).getResponse();
-      
-      if (bareRequest instanceof WinstoneRequest)
-      {
-        WinstoneRequest req = (WinstoneRequest) bareRequest;
-        req.setServletPath(this.requestedPath);
-        req.setRequestURI(this.prefix + this.requestedPath);
-      }
-
       // Execute
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
@@ -229,7 +233,10 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         FilterConfiguration filter = (FilterConfiguration) this.filters.get(filterName);
         Logger.log(Logger.DEBUG, this.resources.getString(
           "RequestDispatcher.ExecutingFilter", "[#filterName]", filterName));
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.loader);
         filter.getFilter().doFilter(request, response, this);
+        Thread.currentThread().setContextClassLoader(cl);
         return;
       }
       else
@@ -239,9 +246,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     }
 
     // Forward / include as requested in the beginning
-    if (this.doInclude)
-      include(request, response);
-    else
+//    if (this.doInclude)
+//      include(request, response);
+//    else
       forward(request, response);
   }
 }
