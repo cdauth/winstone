@@ -17,6 +17,8 @@ Long-term
      - Publish apidocs
      - Add a JSP compiler ?
 
+DONE - Added HTTPS listener class
+
 v0.6.3
 DONE - Fixed the errorPage directive bug
 DONE - Fixed bugs related to requestDispatcher and non-existants urls

@@ -13,7 +13,7 @@
   <meta name="revisit-after" content="7 Days"/>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.6.3</h1></center>
+<center><h1>Winstone Servlet Container v0.6.4</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
   <hr width="90%" size="1" noshade="noshade"/>
@@ -54,6 +54,7 @@
     <li><a href="#cluster">Cluster support</a></li>
     <li><a href="#controlPort">Control port functions/protocol</a></li>
     <li><a href="#jndi">JNDI support</a></li>
+    <li><a href="#https">HTTPS support</a></li>
   </ul>
   <h3>Additional:</h3>
   <ul>
@@ -121,7 +122,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.6.3.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.6.4.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -130,11 +131,11 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.3.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.4.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.3.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.4.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p>The winstone.jar file will be in the winstone/dist directory after the build is complete.</p>
 
@@ -142,7 +143,7 @@
 
   <pre>
 Syntax:
-  java -jar winstone_v0.6.3.jar [--option=value] [--option=value] etc
+  java -jar winstone_v0.6.4.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile
    --webroot                = set document root folder.
@@ -158,10 +159,15 @@ Other options:
    --debug                  = set the level of debug msgs (1-9). Default is 5 (INFO level)
 
    --httpPort               = set the http listening port. -1 to disable, Default is 8080
-   --httpListenAddress      = set the http listening address. Default is all interfaces\n\
+   --httpListenAddress      = set the http listening address. Default is all interfaces
    --httpDoHostnameLookups  = enable host name lookups on http connections. Default is true
+   --httpsPort              = set the https listening port. -1 to disable, Default is disabled
+   --httpsListenAddress     = set the https listening address. Default is all interfaces
+   --httpsDoHostnameLookups = enable host name lookups on https connections. Default is true
+   --httpsKeyStore          = the location of the SSL KeyStore file. Default is ./winstone.ks
+   --httpsKeyStorePassword  = the password for the SSL KeyStore file. Default is null
    --ajp13Port              = set the ajp13 listening port. -1 to disable, Default is 8009
-   --ajp13ListenAddress     = set the ajp13 listening address. Default is all interfaces\n\
+   --ajp13ListenAddress     = set the ajp13 listening address. Default is all interfaces
    --controlPort            = set the shutdown/control port. -1 to disable, Default disabled
 
    --handlerCountStartup    = set the no of worker threads to spawn at startup. Default is 5
@@ -210,13 +216,15 @@ Security options:
   <ul>
     <li>Winstone only supports a single web application per server. This is a deliberate limitation,
       intended to reduce complexity and therefore size.</li>
-    <li>There are two connectors supplied with Winstone:
+    <li>There are now three connectors supplied with Winstone:
       <ol>
         <li>An internal HTTP connector - allows plain HTTP/1.1 connections only</li>
+        <li>An internal HTTPS connector - allows HTTP/1.1 connections over SSL</li>
         <li>An AJP13 connector - allows connection to Apache/IIS/iPlanet, etc</li>
       </ol>
-      There is no internal HTTPS/SSL connector included. If you need HTTPS support, I recommend using 
-      Apache 2.0 with the AJP13 connector (instructions below).</li>
+      While there is an internal HTTPS/SSL connector included, I recommend using 
+      Apache 2.0 with the AJP13 connector (instructions below). It has way more configuration
+      options than Winstone's connector does.</li>
     <li>HttpSession support is cookie-based only (no URL rewriting). URL rewriting introduces a lot of 
       unnecessary complex request body processing, and given that browser cookie support is common these
       days (and no-one I know uses URL rewriting), I plan not to implement this.</li>
@@ -256,6 +264,7 @@ Security options:
     <li>Many minor features such as <b>range downloads</b> on static resources, a <b>logfile</b>
       directive for writing log messages to a file, and many MANY performance enhancements and 
       bugfixes. See the TODO.txt file in the source distribution for a full list.</li>
+    <li><b>Update: June 28, 2004</b> - Added <b>HTTPS</b> support to version v0.6.4</li>
   </ul>
 
   <p>New features in v0.5:</p>
@@ -596,6 +605,42 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
                         --jndi.param.jdbc/connPool.username=foo \
                         --jndi.param.jdbc/connPool.password=bar
 </pre>
+
+<h2><a name="https">HTTPS support</a></h2>
+
+  <p>Somebody asked me to add HTTPS support, using the JDK 1.4 SSL socket classes, and
+    so I decided to give it a try. It was a lot easier than expected - the API was really
+    nice to use. Unfortunately the hard work seems to be in the configuration, rather
+    than the programming.</p>
+    
+  <p>I recommend using a shareware tool called KeyStore Explorer, available 
+    <a href="http://www.lazgosoftware.com/kse/index.html">here</a>. It's much easier than
+    all that messy CLI stuff.</p>  
+    
+  <p>The steps are basically as follows:</p>
+  
+  <ol>
+    <li>Create an empty keystore of type JKS</li>
+    <li>Generate a key pair (Tools -> Generate Key Pair). I chose RSA 2048 bit, and used
+      "MD5 with RSA" for the algorithm. Set a password and remember it.</li>
+    <li>Generate a CSR (right click, Generate CSR).</li>
+    <li>Send the CSR to a Certifying Authority (CA) for processing. I used FreeSSL.com,
+      because it was only US$39 per year. Java doesn't recognise the CA, but IE should.
+      It doesn't really matter for testing purposes.</li>
+    <li>Once you get the approved certificate back, import it into the key store you 
+      were using (just say OK to any messages about trusting the unknown CA). You 
+      should now have only a key pair and a certificate. Save the key store, using the 
+      same password you used before.</li>
+    <li>Start winstone with the following command:
+      <pre>java -jar winstone.jar --webroot=&lt;webroot&gt;
+                       --httpsPort=443 
+                       --httpsKeyStore=&lt;keystore file&gt; 
+                       --httpsKeyStorePassword=&lt;password&gt;</pre>  
+    </li>
+    <li>Set your hosts file (/etc/hosts or c:/Winnt/system32/drivers/etc/hosts) to 
+      point the name on your certificate to 127.0.0.1), then try to browse to 
+      https://hostname/</li>
+  </ol>
 
 <h2><a name="gcj">Compiling with GCJ</a></h2>
 
