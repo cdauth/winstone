@@ -130,7 +130,8 @@ public class RequestHandlerThread implements Runnable
               Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.FinishRequest",
                 "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
               Logger.log(Logger.SPEED, resources.getString("RequestHandlerThread.RequestTime",
-                "[#path]", servletURI, "[#time]", "" + getRequestProcessTime()));
+							"[#path]", servletURI, "[#headerTime]", "" + headerParseTime,
+							"[#totalTime]", "" + getRequestProcessTime()));
               continue;
             }
 

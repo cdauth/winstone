@@ -893,7 +893,13 @@ public class WebAppConfiguration implements ServletContext
     if (path.startsWith("/"))
       path = path.substring(1);
     try
-      {return new File(this.webRoot, path).getCanonicalPath();}
+    {
+   	  File res = new File(this.webRoot, path);
+   	  if (res.isDirectory())
+      	return res.getCanonicalPath() + "/";
+      else
+      	return res.getCanonicalPath();
+    }
     catch (IOException err) {return null;}
   }
 
