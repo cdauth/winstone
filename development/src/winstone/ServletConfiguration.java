@@ -48,30 +48,34 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   private ServletContext webAppConfig;
   private ClassLoader loader;
   private int loadOnStartup;
+  private String prefix;
 
   private WinstoneResourceBundle resources;
   private Object servletSemaphore = new Boolean(true);
 
   protected ServletConfiguration(ServletContext webAppConfig,
                                  ClassLoader loader,
-                                 WinstoneResourceBundle resources)
+                                 WinstoneResourceBundle resources,
+                                 String prefix)
   {
     this.webAppConfig = webAppConfig;
     this.loader = loader;
     this.initParameters = new Hashtable();
     this.loadOnStartup = -1;
     this.resources = resources;
+    this.prefix = prefix;
   }
 
   public ServletConfiguration(ServletContext webAppConfig,
                               ClassLoader loader,
                               WinstoneResourceBundle resources,
+                              String prefix,
                               String servletName,
                               String className,
                               Map initParams,
                               int loadOnStartup)
   {
-    this(webAppConfig, loader, resources);
+    this(webAppConfig, loader, resources, prefix);
     if (initParams != null)
       this.initParameters.putAll(initParams);
     this.servletName = servletName;
@@ -82,9 +86,10 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   public ServletConfiguration(ServletContext webAppConfig,
                               ClassLoader loader,
                               WinstoneResourceBundle resources,
+                              String prefix,
                               Node elm)
   {
-    this(webAppConfig, loader, resources);
+    this(webAppConfig, loader, resources, prefix);
 
     // Parse the web.xml file entry
     for (int n = 0; n < elm.getChildNodes().getLength(); n++)
@@ -163,7 +168,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
 
     // Build filter chain
     return new RequestDispatcher(this.instance, this.servletName, this.loader,
-        this.servletSemaphore, requestedPath, this.resources, filters, filterPatterns, authHandler);
+        this.servletSemaphore, requestedPath, this.resources, filters, 
+        filterPatterns, authHandler, this.prefix);
   }
 
   public int getLoadOnStartup()               {return this.loadOnStartup;}

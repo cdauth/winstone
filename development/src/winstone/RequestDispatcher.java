@@ -35,6 +35,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
 
   private Servlet instance;
   private String name;
+  private String prefix;
   private ClassLoader loader;
   private Object semaphore;
   private String requestedPath;
@@ -54,7 +55,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
    */
   public RequestDispatcher(Servlet instance, String name, ClassLoader loader,
     Object semaphore, String requestedPath, WinstoneResourceBundle resources,
-    Map filters, String filterPatterns[], AuthenticationHandler authHandler)
+    Map filters, String filterPatterns[], AuthenticationHandler authHandler,
+    String prefix)
   {
     this.resources = resources;
     this.instance = instance;
@@ -63,6 +65,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.semaphore = semaphore;
     this.requestedPath = requestedPath;
     this.authHandler = authHandler;
+    this.prefix = prefix;
     this.filters = filters;
     this.filterPatterns = filterPatterns;
 
@@ -125,7 +128,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   /**
    * Forwards to another servlet, and when it's finished executing
    * that other servlet, cut off execution.
-   * Note: current implementation is actually just an include
+   * 
    */
   public void forward(javax.servlet.ServletRequest request,
                       javax.servlet.ServletResponse response)
@@ -158,6 +161,21 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       doFilter(request, response);
     else
     {
+      // Strip back to bare request/response
+      ServletRequest bareRequest = request;
+      if (request instanceof ServletRequestWrapper)
+        bareRequest = ((ServletRequestWrapper) request).getRequest();
+      ServletResponse bareResponse = response;
+      if (request instanceof ServletResponseWrapper)
+        bareResponse = ((ServletResponseWrapper) response).getResponse();
+      
+      if (bareRequest instanceof WinstoneRequest)
+      {
+        WinstoneRequest req = (WinstoneRequest) bareRequest;
+        req.setServletPath(this.requestedPath);
+        req.setRequestURI(this.prefix + this.requestedPath);
+      }
+
       // Execute
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);

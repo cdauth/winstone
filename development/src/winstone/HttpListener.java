@@ -280,7 +280,7 @@ public class HttpListener implements Listener, Runnable
       servletURI = fullURI;
 
     req.setMethod(method);
-    req.setRequestURI(fullURI);
+    req.setRequestURI(servletURI);
     //req.setServletPath(servletURI);
     return servletURI;
   }

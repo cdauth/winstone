@@ -136,8 +136,8 @@ public class InvokerServlet extends HttpServlet
           Class servletClass = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
           sc = new ServletConfiguration(this.getServletContext(),
               Thread.currentThread().getContextClassLoader(), this.resources,
-              getServletConfig().getServletName() + ":" + pathName, className,
-              new Hashtable(), -1);
+              this.prefix, getServletConfig().getServletName() + ":" + pathName, 
+              className, new Hashtable(), -1);
           this.mountedInstances.put(pathName, sc);
           Logger.log(Logger.DEBUG, this.resources.getString("InvokerServlet.MountingServlet",
               "[#className]", className, "[#invokerName]", getServletConfig().getServletName()));

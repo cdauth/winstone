@@ -218,7 +218,7 @@ public class WebAppConfiguration implements ServletContext
       jspParams.put("logVerbosityLevel", JSP_SERVLET_LOG_LEVEL);
       jspParams.put("fork", "false");
       ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
-        JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
+        this.prefix, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
       this.servletInstances.put(JSP_SERVLET_NAME, sc);
       startupServlets.add(sc);
       processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, this.exactServletMatchMounts,
@@ -232,7 +232,7 @@ public class WebAppConfiguration implements ServletContext
       invokerParams.put("prefix", this.prefix);
       invokerParams.put("invokerPrefix", invokerPrefix);
       ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
-        INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams, 3);
+          this.prefix, INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams, 3);
       this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
       processMapping(INVOKER_SERVLET_NAME, invokerPrefix + STAR, this.exactServletMatchMounts,
                      localServletPatterns, localServletPatternMounts);
@@ -303,7 +303,7 @@ public class WebAppConfiguration implements ServletContext
         // Construct the servlet instances
         else if (nodeName.equals(ELEM_SERVLET))
         {
-          ServletConfiguration instance = new ServletConfiguration(this, this.loader, this.resources, child);
+          ServletConfiguration instance = new ServletConfiguration(this, this.loader, this.resources, this.prefix, child);
           this.servletInstances.put(instance.getServletName(), instance);
           if (instance.getLoadOnStartup() >= 0)
             startupServlets.add(instance);
@@ -561,7 +561,7 @@ public class WebAppConfiguration implements ServletContext
     for (int n = 0; n < this.welcomeFiles.length; n++)
       staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
     this.staticResourceProcessor = new ServletConfiguration(this, this.loader,
-      this.resources, STATIC_SERVLET_NAME, STATIC_SERVLET_CLASS, staticParams, 0);
+      this.resources, this.prefix, STATIC_SERVLET_NAME, STATIC_SERVLET_CLASS, staticParams, 0);
     this.staticResourceProcessor.getRequestDispatcher(null, this.filterInstances,
       this.filterPatterns, this.authenticationHandler);
 
