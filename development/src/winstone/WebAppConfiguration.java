@@ -180,7 +180,8 @@ public class WebAppConfiguration implements ServletContext, Comparator
                              Map startupArgs,
                              Node elm,
                              WinstoneResourceBundle resources,
-                             ClassLoader parentClassLoader)
+                             ClassLoader parentClassLoader,
+                             List parentClassPaths)
   {
     this.launcher = launcher;
     this.resources = resources;
@@ -202,16 +203,16 @@ public class WebAppConfiguration implements ServletContext, Comparator
     {
       Class reloaderClass = Class.forName(RELOADING_CL_CLASS);
       Constructor reloadConstr = reloaderClass.getConstructor(new Class[] 
-        {this.getClass(), ClassLoader.class, WinstoneResourceBundle.class});
+        {this.getClass(), ClassLoader.class, List.class, WinstoneResourceBundle.class});
       this.loader = (ClassLoader) reloadConstr.newInstance(new Object[] 
-        {this, parentClassLoader, this.resources});
+        {this, parentClassLoader, parentClassPaths, this.resources});
     }
     catch (Throwable err)
       {Logger.log(Logger.ERROR, "Erroring setting class loader", err);}
 
     if (this.loader == null)
       this.loader = (useWCL
-        ? new WinstoneClassLoader(this, parentClassLoader, this.resources)
+        ? new WinstoneClassLoader(this, parentClassLoader, parentClassPaths, this.resources)
         : parentClassLoader);
 
     this.attributes = new Hashtable();

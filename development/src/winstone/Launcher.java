@@ -81,6 +81,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
   private Map args;
   private File webRoot;
   private ClassLoader commonLibCL;
+  private List commonLibCLPaths;
   
   private Cluster cluster;
 
@@ -96,6 +97,41 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
     this.controlPort = (args.get("controlPort") == null ?
                        DEFAULT_CONTROL_PORT :
                        Integer.parseInt((String) args.get("controlPort")));
+    
+    // Check for java home
+    List jars = new ArrayList();
+    this.commonLibCLPaths = new ArrayList();
+    String javaHome = WebAppConfiguration.stringArg(args, "javaHome", System.getProperty("java.home"));
+    Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingJavaHome", "[#javaHome]", javaHome));
+    File toolsJar = new File(javaHome, "lib/tools.jar");
+    if (toolsJar.exists())
+    {
+      jars.add(toolsJar.toURL());
+      this.commonLibCLPaths.add(toolsJar);
+      Logger.log(Logger.DEBUG, resources.getString("Launcher.AddedCommonLibJar", "[#path]", toolsJar.getName()));
+    }
+    else if (WebAppConfiguration.booleanArg(args, "useJasper", false))
+      Logger.log(Logger.WARNING, resources.getString("Launcher.ToolsJarNotFound"));
+    
+    // Set up common lib class loader
+    String commonLibCLFolder = WebAppConfiguration.stringArg(args, "commonLibFolder", "lib");
+    File libFolder = new File(commonLibCLFolder);
+    if (libFolder.exists() && libFolder.isDirectory())
+    {
+      Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingCommonLib", "[#path]", libFolder.getCanonicalPath()));
+      File children[] = libFolder.listFiles();
+      for (int n = 0; n < children.length; n++)
+        if (children[n].getName().endsWith(".jar") ||
+            children[n].getName().endsWith(".zip"))
+        {
+          jars.add(children[n].toURL());
+          this.commonLibCLPaths.add(children[n]);
+          Logger.log(Logger.DEBUG, resources.getString("Launcher.AddedCommonLibJar", "[#path]", children[n].getName()));
+        }
+    }
+    else
+      Logger.log(Logger.DEBUG, resources.getString("Launcher.NoCommonLib"));
+    this.commonLibCL = new URLClassLoader((URL []) jars.toArray(new URL[jars.size()]), getClass().getClassLoader());
 
     // Get the parsed webapp xml deployment descriptor
     this.webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"), resources);
@@ -105,20 +141,6 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       initWebApp((String) args.get("prefix"), webRoot);
 
     this.objectPool = new ObjectPool(args, resources, this.webAppConfig);
-    
-    // Set up common lib class loader
-    String commonLibCLFolder = WebAppConfiguration.stringArg(args, "commonLibFolder", "lib");
-    File libFolder = new File(commonLibCLFolder);
-    if (libFolder.exists() && libFolder.isDirectory())
-    {
-      File children[] = libFolder.listFiles();
-      List jars = new ArrayList();
-      for (int n = 0; n < children.length; n++)
-        if (children[n].getName().endsWith(".jar") ||
-            children[n].getName().endsWith(".zip"))
-          jars.add(children[n].toURL());
-      this.commonLibCL = new URLClassLoader((URL []) jars.toArray(new URL[jars.size()]));
-    }
     
     String useCluster = (String) args.get("useCluster");
     boolean switchOnCluster  = (useCluster != null) && (useCluster.equalsIgnoreCase("true") || useCluster.equalsIgnoreCase("yes"));
@@ -269,9 +291,13 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
             InputStream inSocket = csAccepted.getInputStream();
             int reqType = inSocket.read();
             if ((byte) reqType == SHUTDOWN_TYPE)
+            {
+              Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownRequestReceived"));
               interrupted = true; 
+            }
             else if ((byte) reqType == RELOAD_TYPE)
             {
+              Logger.log(Logger.INFO, resources.getString("Launcher.ReloadRequestReceived"));
               destroyWebApp(this.webAppConfig);
               initWebApp((String) args.get("prefix"), this.webRoot);
             }
@@ -338,8 +364,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
 
     // Instantiate the webAppConfig
     this.webAppConfig = new WebAppConfiguration(this, webRoot.getCanonicalPath(),
-        prefix, this.objectPool, args, webXMLParentNode, this.resources,
-        this.commonLibCL == null ? this.getClass().getClassLoader() : this.commonLibCL);
+        prefix, this.objectPool, args, webXMLParentNode, this.resources, 
+        this.commonLibCL, this.commonLibCLPaths);
   }
 
   public void shutdown() {this.interrupted = true;}

@@ -62,12 +62,19 @@ public class WinstoneControl
         operation = option;
     }
     
-
     if (operation.equals(""))
+    {
       printUsage(resources);
+      return;
+    }
     
-    String host = options.get("host") != null ? (String) options.get("host") : "";
-    String port = options.get("port") != null ? (String) options.get("port") : "";
+    Logger.setCurrentDebugLevel(Integer.parseInt(WebAppConfiguration.stringArg(options, "debug", "5")));
+    
+    String host = WebAppConfiguration.stringArg(options, "host", "localhost");
+    String port = WebAppConfiguration.stringArg(options, "port", "8081");
+    
+    Logger.log(Logger.INFO, resources.getString("WinstoneControl.UsingHostPort", 
+        "[#host]", host, "[#port]", port));
     
     // Check for shutdown
     if (operation.equalsIgnoreCase(OPERATION_SHUTDOWN))
@@ -77,7 +84,8 @@ public class WinstoneControl
       OutputStream out = socket.getOutputStream();
       out.write(Launcher.SHUTDOWN_TYPE);
       out.close();
-      Logger.log(Logger.INFO, "Successfully sent server shutdown command to " + host + ":" + port);
+      Logger.log(Logger.INFO, resources.getString("WinstoneControl.ShutdownOK", 
+          "[#host]", host, "[#port]", port));
     }
 
     // check for reload
@@ -88,7 +96,8 @@ public class WinstoneControl
       OutputStream out = socket.getOutputStream();
       out.write(Launcher.RELOAD_TYPE);
       out.close();
-      Logger.log(Logger.INFO, "Successfully sent webapp reload command to " + host + ":" + port);
+      Logger.log(Logger.INFO, resources.getString("WinstoneControl.ReloadOK", 
+          "[#host]", host, "[#port]", port));
     }
     
     else

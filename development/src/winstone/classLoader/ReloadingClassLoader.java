@@ -43,9 +43,9 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
   private WinstoneResourceBundle localResources;
 
   public ReloadingClassLoader(WebAppConfiguration webAppConfig, ClassLoader parent,
-    WinstoneResourceBundle resources)
+    List parentClassPaths, WinstoneResourceBundle resources)
   {
-    super(webAppConfig, parent, resources);
+    super(webAppConfig, parent, parentClassPaths, resources);
     this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
     
     // Start the file date changed monitoring thread

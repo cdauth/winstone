@@ -18,7 +18,39 @@
 
   <p>Author: Rick Knowles (contact details below)</p>
 
-<h2>What is Winstone ?</h2>
+  <h2>Contents</h2>
+  <h3>About:</h3>
+  <ul>
+    <li><a href="#whatIs">What is Winstone ?</a></li>
+    <li><a href="#whyCalled">Why is it called Winstone ?</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#authorContact">Contacting the Author</a></li>
+  </ul>
+  <h3>Introduction:</h3>
+  <ul>
+    <li><a href="#using">Using Winstone</a></li>
+    <li><a href="#commandLine">Command-line options</a></li>
+    <li><a href="#configFile">Configuration file</a></li>
+    <li><a href="#caveats">Caveats</a></li>
+    <li><a href="#security">Security Warnings</a></li>
+    <li><a href="#recent">Recent Additions</a></li>
+  </ul>
+  <h3>Usage tips:</h3>
+  <ul>
+    <li><a href="#xerces">Using Xerces as an XML parser (required for v2.4 webapps)</a></li>
+    <li><a href="#jasper">JSPs (aka using with Jasper)</a></li>
+    <li><a href="#apache">Connecting to Apache</a></li>
+    <li><a href="#authRealms">Using Authentication Realms</a></li>
+    <li><a href="#cluster">Cluster support</a></li>
+    <li><a href="#controlPort">Control port functions/protocol</a></li>
+    <li><a href="#jndi">JNDI support</a></li>
+  </ul>
+  <h3>Additional:</h3>
+  <ul>
+    <li><a href="#gcj">Compiling with GCJ</a></li>
+  </ul>
+
+<h2><a name="whatIs">What is Winstone ?</a></h2>
 
   <p>Winstone is a servlet container that was written out of a desire to provide servlet
     functionality without the bloat that full J2EE compliance introduces.</p>
@@ -33,7 +65,7 @@
   <p>The original goals in writing Winstone were:</p>
     <ul>
       <li>Supply fast, reliable servlet container functionality for a single webapp per server</li>
-      <li>Keep the size of the core distribution jar as low as possible (currently 120KB)</li>
+      <li>Keep the size of the core distribution jar as low as possible (currently 138KB)</li>
       <li>Keep configuration files to an absolute minimum, using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -41,7 +73,37 @@
       <li>Optionally support JSP compilation using Apache's Jasper. (http://jakarta.apache.org)</li>
     </ul>
 
-<h2>Using Winstone</h2>
+<h2><a name="whyCalled">Why is it called Winstone ?</a></h2>
+
+  <p>The short version (because the long version is way too politically incorrect) is as follows: </p>
+
+  <p>Winstone is the name of a rather large Jamaican man a friend of mine met one night, while 
+    he was out clubbing in the Roppongi area of Tokyo one night. He (my friend) was a little 
+    liquored up at the time, and when Winstone suggested they head to "this really cool club" 
+    he knew, he didn't think anything was wrong. It wasn't until Winstone led him down a dark 
+    stairwell and dropped his trousers that my friend clued in and ran like hell.</p>
+
+  <p>It was too good a story to let die, so I named this project Winstone so that said friend 
+    will continue to be reminded of it. Heheheh ....</p>
+
+<h2><a name="license">License</a></h2>
+
+  <p>The Web-App DTD files (everything in the src/javax/servlet/resources and 
+    src/javax/servlet/jsp/resources folders) are covered by the licenses described 
+    at the top of each file (usually as licensed by Sun Microsystems).</p>
+
+  <p>All other files are covered by the GNU Public License, as described in LICENSE.txt.</p>
+
+<h2><a name="authorContact">Contacting the Author</a></h2>
+
+  <p>You can contact me through the Winstone development list at sourceforge 
+    (winstone-devel@lists.sourceforge.net).  If you have any general comments or questions 
+    about Winstone please mail me on that list - I'll try to start a faq soon.</p>
+
+  <p>I'm open to help from anyone who's willing to help me meet the above goals for Winstone.
+    Just mail me at the list (winstone-devel AT lists DOT sourceforge DOT net)</p>
+
+<h2><a name="using">Using Winstone</a></h2>
 
   <p>If you want to build from source code, you will need to download and install Apache Ant. The
     following instructions assume you have already installed Ant and have the ant shell script in
@@ -66,7 +128,7 @@
 
   <p>The winstone.jar file will be in the winstone/dist directory after the build is complete.</p>
 
-<h2>Command-line options:</h2>
+<h2><a name="commandLine">Command-line options:</a></h2>
 
   <pre>
 Syntax:
@@ -77,14 +139,19 @@ Required options: either --webroot OR --warfile
    --warfile                = set location of warfile to extract from.
 
 Other options:
+   --javaHome               = Override the JAVA_HOME variable
+   --toolsJar               = The location of tools.jar (default is JAVA_HOME/lib/tools.jar) 
    --config                 = load configuration properties from here(if supplied).
-   --prefix                 = add this prefix to all URLs. (eg http://host/prefix/etc) Default is none
+   --prefix                 = add this prefix to all URLs. (eg http://host/prefix/etc).
+   --commonLibFolder        = folder for additional jar files. Default is ./lib
    --logfile                = redirect winstone log messages to this file
    --debug                  = set the level of debug msgs (1-9). Default is 5 (INFO level)
 
    --httpPort               = set the http listening port. -1 to disable, Default is 8080
-   --httpDoHostnameLookups  = enable host name lookups on http connections (true/false). Default is true
+   --httpListenAddress      = set the http listening address. Default is all interfaces\n\
+   --httpDoHostnameLookups  = enable host name lookups on http connections. Default is true
    --ajp13Port              = set the ajp13 listening port. -1 to disable, Default is 8009
+   --ajp13ListenAddress     = set the ajp13 listening address. Default is all interfaces\n\
    --controlPort            = set the shutdown/control port. -1 to disable, Default disabled
 
    --handlerCountStartup    = set the no of worker threads to spawn at startup. Default is 5
@@ -101,46 +168,33 @@ Other options:
 
 Cluster options:
    --useCluster             = enable cluster support (true/false). Default is false
-   --clusterNodes           = a comma separated list of node addresses (IP:ControlPort,IP:ControlPort,etc)
+   --clusterNodes           = a list of node addresses (eg IP:ControlPort,IP:ControlPort,etc)
 
 JNDI options:
-   --useJNDI                      = enable JNDI support (true/false). Default is false
-   --jndi.resource.&lt;name&gt;         = set the class to be used for the resource marked &lt;name&gt;
-   --jndi.param.&lt;name&gt;.&lt;attName&gt;  = set an attribute &lt;attName&gt; to be associated with the resource marked &lt;name&gt;
+   --useJNDI                 = enable JNDI support (true/false). Default is false
+   --jndi.resource.&lt;name&gt;    = set the class to be used for the resource marked &lt;name&gt;
+   --jndi.param.&lt;name&gt;.&lt;att&gt; = set an attribute &lt;att&gt; for the resource marked &lt;name&gt;
 
 Security options:
-   --realmClass                   = Set the realm class to use for user authentication. Defaults to ArgumentsRealm class
-   --argumentsRealm.passwd.&lt;user&gt; = Password for user &lt;user&gt;. Only valid for the ArgumentsRealm realm class
-   --argumentsRealm.roles.&lt;user&gt;  = Roles for user &lt;user&gt; (comma separated). Only valid for the ArgumentsRealm realm class
-   --fileRealm.configFile         = File containing users/passwds/roles. Only valid for the FileRealm realm class
+   --realmClass                = Set the authentication realm class. Default = ArgumentsRealm
+   --argumentsRealm.passwd.&lt;u&gt; = Password for user &lt;u&gt;. (for ArgumentsRealm)
+   --argumentsRealm.roles.&lt;u&gt;  = Roles for user &lt;u&gt; (comma-separated) (for ArgumentsRealm)
+   --fileRealm.configFile      = File containing users/passwds/roles. (for FileRealm)
 </pre>
 
-<h2>Configuration file</h2>
+<h2><a name="configFile">Configuration file</a></h2>
 
   <p>You don't really need a config file, but sometimes it's handy to be able to use the same settings
     each time without running through the command history.</p>
 
-  <p>Winstone looks for a config file winstone.properties in the current directory (or in the location 
+  <p>Winstone looks for a config file <code>winstone.properties</code> in the current directory (or in the location 
     specified with --config) at startup. It loads the properties in this file, overrides them with any
     supplied command line properties, and then starts itself.</p>
 
   <p>This is just intended as a handy feature for people who want to cache regular startup options, rather
     than using batch files.</p>
 
-<h2>Why is it called Winstone ?</h2>
-
-  <p>The short version (because the long version is way too politically incorrect) is as follows: </p>
-
-  <p>Winstone is the name of a rather large Jamaican man a friend of mine met one night, while 
-    he was out clubbing in the Roppongi area of Tokyo one night. He (my friend) was a little 
-    liquored up at the time, and when Winstone suggested they head to "this really cool club" 
-    he knew, he didn't think anything was wrong. It wasn't until Winstone led him down a dark 
-    stairwell and dropped his trousers that my friend clued in and ran like hell.</p>
-
-  <p>It was too good a story to let die, so I named this project Winstone so that said friend 
-    will continue to be reminded of it. Heheheh ....</p>
-
-<h2>Caveats</h2>
+<h2><a name="caveats">Caveats</a></h2>
 
   <p>As a result of the design goals, there are some things Winstone doesn't do</p>
   <ul>
@@ -160,7 +214,39 @@ Security options:
       bundles, but no translations yet.</li>
   </ul>
 
-<h2>Recent additions</h2>
+<h2><a name="security">Security Warning</a></h2>
+
+  <p>If you enable the controlPort, be aware that there is no password protection at all on this port. 
+    Anyone who can get access to this port can stop or restart the server. I plan to 
+    add some simple authentication to this at some point, but not just yet.</p>
+
+  <p>The controlPort is disabled by default. If you choose not to enable it, the only way to shut
+    Winstone down is to kill the process (either by Ctrl-C or kill command).</p>
+
+<h2><a name="recent">Recent additions</a></h2>
+
+  <p>New features in v0.6:</p>
+
+  <ul>
+    <li>Updated to <b>Servlet 2.4</b> specification compliance. although I haven't yet
+      run Sun's Test Compatibility Kit on it yet. I'm still waiting for that. It works
+      with all of the v2.4 webapps I've tried. The only caveat is that you will need
+      Apache Xerces in the system classpath to make it work (see below).</li>
+    <li>Updated to <b>JSP 2.0</b> specification compliance. This is the main cause
+      for the blowout in size of the larger jar file, but it does result in much 
+      simpler set up for Jasper (see below).</li>
+    <li>Added a <b>command-line tool</b> for accessing control port options, such as 
+      <b>shutdown</b> and <b>restart</b>. Restart is new to this version, and causes 
+      a shutdown and redeploy from scratch.</li>
+    <li>Added a <b>lib folder</b> for additional jars. This defaults to "lib" under the 
+      current directory, with any jar or zip files in this folder being added to the 
+      webapp classpath.</li>
+    <li>Extensively tested with the <b>Apache Struts and JSTL frameworks</b>. This highlighted
+      a number of bugs related to internationalisation I wouldn't have found otherwise.</li>
+    <li>Many minor features such as <b>range downloads</b> on static resources, a <b>logfile</b>
+      directive for writing log messages to a file, and many MANY performance enhancements and 
+      bugfixes. See the TODO.txt file in the source distribution for a full list.</li>
+  </ul>
 
   <p>New features in v0.5:</p>
 
@@ -177,9 +263,9 @@ Security options:
     <li>The control port has been modified to be more useful. See below for usage instructions.</li>
     <li>The distribution jar is now available in two forms:
       <ol>
-        <li><b>Complete version</b> (winstone.jar - 185KB): This contains the complete winstone feature-set, 
+        <li><b>Complete version</b> (winstone.jar): This contains the complete winstone feature-set, 
           including AJP13 Apache connectors, Authentication/Realm support and Clustering support.</li>
-        <li><b>Lite version</b> (winstone-lite.jar - 122KB): This is the core winstone feature-set only,
+        <li><b>Lite version</b> (winstone-lite.jar): This is the core winstone feature-set only,
           ie commonly used servlet features, as fast and reliable as possible, with unnecessary options 
           removed.</li>
       </ol>
@@ -217,68 +303,73 @@ Security options:
       using Tomcat's mod_jk. Try it out and see ... there's a section below on using the mod_jk connector.</li>
   </ul>
 
-<h2>Security Warning</h2>
+<h2><a name="xerces">Using Xerces as an XML parser (required for v2.4 webapps)</a></h2>
 
-  <p>If you enable the controlPort, be aware that any connection on that port whatsoever will 
-    trigger a server shutdown. As shutdown is the only purpose of the control port at the moment, 
-    it seemed fair to leave like this. As the admin features grow, I'll alter this.</p>
+  <p>As part of the upgrade in the servlet specification, the v2.4 incarnation of the
+    web.xml file is validated using XML Schema Documents (XSD) as opposed to Document Type
+    Definitions (DTD). While I still have no idea why such a change was necessary - especially 
+    given that DTD validation seems to be more than enough in this case - I did implement it. 
+    Perhaps the people on the specification committee might want to give a thought to container 
+    size next time round, as this one change multiplies the size of the distribution by five.</p>
 
-  <p>The controlPort is disabled by default. If you choose not to enable it, the only way to shut
-    Winstone down is to kill the process (either by Ctrl-C or kill command). The reason I left it 
-    disabled by default was because I don't like the idea of an nmap scan inadvertedly shutting 
-    Winstone down.</p>
+  <p>Anyway, to use Xerces, you'll need to download the latest Xerces-J parser from 
+    <a href="http://xml.apache.org/xerces2-j/">here</a>, and copy xercesImpl.jar and xml-apis.jar
+    into the jre/lib/ext folder of your JDK. Putting them in the winstone/lib folder will not work,
+    because they must be in the system classpath to override the JDK internal XML parser.</p>
 
-<h2>License</h2>
+  <p>Alternatively you can add these two files to your startup classpath, but you will have to 
+    manually specify the Winstone startup class:
+    <pre>&nbsp;&nbsp;java -cp winstone.jar;xercesImpl.jar;xml-apis.jar winstone.Launcher --webroot=...</pre>
+  </p>
 
-  <p>The Web-App DTD files (web-app_2_2.dtd &amp; web-app_2_3.dtd in the src/javax/servlet/resources 
-    folder) and the lib/jsp-servlet.jar files are covered by the Apache software license, as 
-    described at the top of each file, and at http://www.apache.org/licenses/LICENSE</p>
+<h2><a name="jasper">JSPs (aka using with Jasper)</a></h2>
 
-  <p>All other files are covered by the GNU Public License, as described in LICENSE.txt.</p>
-
-<h2>Contacting the Author</h2>
-
-  <p>You can contact me through the Winstone development list at sourceforge 
-    (winstone-devel@lists.sourceforge.net).  If you have any general comments or questions 
-    about Winstone please mail me on that list - I'll try to start a faq soon.</p>
-
-  <p>I'm open to help from anyone who's willing to help me meet the above goals for Winstone.
-    Just mail me at the list (winstone-devel AT lists DOT sourceforge DOT net)</p>
-
-<h2>JSPs (aka using with Jasper)</h2>
-
-  <p>Winstone does support JSPs, using Apache's Jasper JSP compiler. Thanks to a rather clever 
+  <p>Winstone supports JSPs using Apache's Jasper JSP compiler. Thanks to a rather clever 
     design by the Jasper team, this was much less work than I expected - well done Jasper guys.</p>
 
-  <p>In order to turn on JSP compilation, you need to include the following additional jars in 
-    the startup classpath:</p>
-    <ul>
-      <li><b>jsp-servlet.jar</b> - 
-         This is a stripped down version of the tomcat servlet.jar. I removed 
-         the javax/servlet and javax/servlet/http sections from the original 
-         servlet.jar though, to avoid conflicts with Winstone's api classes. 
-         This is in the Winstone development/lib folder.</li>
+  <p>Required steps:</p>
+  <ol>
+    <li>Add --useJasper to your startup command line, since
+      JSPs are disabled by default</li>
 
-      <li><b>jasper-compiler, jasper-runtime.jar, ant.jar</b> - 
-         Not supplied. You can get this from the standard Tomcat binary download location. 
-         Just download the latest Tomcat, and copy these three files into the startup classpath 
-         for Winstone. They will be in the tomcat_home/common/lib folder.</li>
+    <li>
+      <p>Both the v1.1 and v2.0 versions of Jasper are supported. In order to turn on JSP compilation
+        in Winstone, you'll need to place the following jar files into the lib folder under the 
+        current directory (or the folder identified by the --commonLibFolder directive).</p>
+      <ul>
+        <li><b>jasper-compiler.jar, jasper-runtime.jar, ant.jar</b> - 
+           Not supplied with Winstone. You can get this from the standard Tomcat binary download location. 
+           Just download the latest Tomcat, and copy these three files into the lib folder 
+           for Winstone. They will be in the tomcat_home/common/lib folder.</li>
 
-      <li><b>tools.jar</b> - 
-         You should already have this in the <java_home>/lib folder of your jdk. You'll need
-         to add this, cause the ant javac compile task uses it, and this is needed to turn the
-         generated .java files into .class files at runtime.</li>
-    </ul>
+        <li><b>commons-logging-api.jar, commons-el.jar (Jasper 2 only)</b> - 
+           These are required if you are using Jasper 2.0. You can get them from the 
+           tomcat binary distribution or separately from the link below.</li>
+      </ul>
+    <p>All of these are available from the <a href="http://jakarta.apache.org/site/binindex.cgi">Jakarta download site</a></p>
+    </li>
+    <li>
+      <p>You'll also need <b>tools.jar</b>, and this is handled a little differently. 
+      The ant javac compile task needs this to turn the generated .java files into 
+      .class files at runtime. You should already have this in the <java_home>/lib folder 
+      of your jdk.</p>
 
-  <p>Adding files to the startup classpath involves using a slightly different technique for 
-    starting Winstone. To start from the command line, you'll need something like:</p>
+      <p>There are two new startup arguments for Winstone --javaHome and --toolsJar. You 
+      should only need to set --javaHome to make Jasper work properly. Your startup might
+      look like this:
+      <pre>&nbsp;&nbsp;java -jar winstone.jar --useJasper \
+                         --javaHome=c:\java\jdk1.4.2 \
+                         --webroot=...</pre>
+      Additionally, you can specify the exact location of the toolsJar file like this:
+      <pre>&nbsp;&nbsp;java -jar winstone.jar --useJasper \
+                         --javaHome=c:\java\jdk1.4.2 \
+                         --toolsJar=c:\tools.jar \
+                         --webroot=...</pre>
+      </p>
+    </li>
+  </ol>
 
-    &nbsp;&nbsp;<code>java -cp ../dist/winstone_v0.6.jar:&lt;path to each jar above&gt; winstone.Launcher &lt;options&gt; </code>
-
-  <p>Tomcat is available at http://jakarta.apache.org/tomcat/index.html - but please note that the
-    license for Tomcat is not the same as Winstone. Please read carefully before packaging.</p>
-
-<h2>Connecting to Apache</h2>
+<h2><a name="apache">Connecting to Apache</a></h2>
 
   <p>These instructions are for beginners: if you know your way around Apache and Tomcat, you'll know what's going on here.</p>
 
@@ -300,10 +391,6 @@ LoadModule jk2_module modules/mod_jk2.dll
 [logger.apache2]
 level=DEBUG
 
-[shm]
-file=c:/program files/apache group/apache2/logs/shm.file
-size=1048576
-
 # Example socket channel, override port and host.
 [channel.socket:localhost:8009]
 port=8009
@@ -321,7 +408,7 @@ channel=channel.socket:localhost:8009
   <p>Please note this is not an optimal configuration for production uses. This is provided purely for those
     who need some help to get started. Read the mod_jk documentation with Tomcat for more detailed info.</p>
 
-<h2>Using Authentication Realms</h2>
+<h2><a name="authRealms">Using Authentication Realms</h2>
 
   <p>The process here is almost identical to that of Tomcat (I know this because I used the Tomcat examples
     webapp to develop against). There are two components - the web.xml component and selecting/configuring
@@ -375,7 +462,7 @@ channel=channel.socket:localhost:8009
   <p>This component is left intentionally fairly simple, and relatively extracted. I'm planning to break the realm and
     authentication stuff into an optional jar later, since not many webapps I've seen use it.</p>
 
-<h2>Cluster support</h2>
+<h2><a name="cluster">Cluster support</a></h2>
   <p>It should be pointed out in the beginning that the Cluster support currently implemented in Winstone
     is actually just session sharing. If a request comes to a node in the cluster that doesn't recognise the
     session ID supplied, that node simply asks the others "Do you know this session ?". If one does know it, 
@@ -391,7 +478,10 @@ channel=channel.socket:localhost:8009
     port of at least one other active node in the cluster. Once you have that, add the following options to
     the command line startup:
 <pre>
-java -jar winstone.jar ...&lt; other options &gt; ... --controlPort=&lt;myControlPort&gt; --useCluster --clusterNodes=&lt;IP1:controlPort1&gt;
+java -jar winstone.jar ...&lt; other options &gt; ... \
+                       --controlPort=&lt;myControlPort&gt; \
+                       --useCluster \
+                       --clusterNodes=&lt;IP1:controlPort1&gt;
 </pre>
     where IP1 is the IP address of the other node in the cluster, and myControlPort and controlPort1 are the port
     numbers to use for the control ports of this instance and the other node respectively. Note that it is necessary
@@ -411,7 +501,7 @@ java -jar winstone.jar ...&lt; other options &gt; ... --controlPort=&lt;myContro
         Winstone will throw an exception reminding you to make all session objects serializable.</li>
     </ol></p>
 
-<h2>Control port protocol</h2>
+<h2><a name="controlPort">Control port functions/protocol</a></h2>
 
   <p>From v0.5, the behaviour of the control port changes slightly. Due to increased usage of the control port
     by the clustering function, a rudimentary protocol has been added. </p>
@@ -427,11 +517,13 @@ java -jar winstone.jar ...&lt; other options &gt; ... --controlPort=&lt;myContro
       <li><b>4 (ASCII 52)</b> = request reload of web application context</li>
     </ul></p>
 
-  <p>Obviously, unless you're planning to write your own cluster extensions, the only one you will be interested
-   in is the shutdown option. To test this, simply telnet to the control port of a running Winstone server
-   and type 0 once you have connected. It should begin shutting down immediately.</p>
+  <p>Obviously, unless you're planning to write your own cluster extensions, the only two you will be interested
+   in are the shutdown and reload options. Luckily there is a wrapper class for accessing these functions, named
+   <code>winstone.tools.WinstoneControl</code>. Try the following to get a usage statement:
+     <pre>&nbsp;&nbsp;java -cp winstone.jar winstone.tools.WinstoneControl</pre>
+  </p>
 
-<h2>JNDI support</h2>
+<h2><a name="jndi">JNDI support</a></h2>
 
   <p>I know that in the introduction I said that Winstone was only going to support the core servlet APIs, but
     I've since discovered that most people use just a little more than the core servlet API offers. For 
@@ -495,7 +587,7 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
                         --jndi.param.jdbc/connPool.password=bar
 </pre></p>
 
-<h2>GCJ compilation</h2>
+<h2><a name="gcj">Compiling with GCJ</a></h2>
 
   <p>I've had a little bit of success with this recently. Under the gcj folder in the source
     distribution there is a Makefile that I used to build Winstone to a native binary. It worked

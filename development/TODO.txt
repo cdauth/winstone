@@ -3,7 +3,6 @@ List of other things to do:
 
 Short-term
      - Control port password
-     - Update to make winstone completely compliant with servlet 2.4 spec
      - Move all debugging message lookups into logger (performance)
 
 Long-term
@@ -33,6 +32,7 @@ DONE - Additional control port options, such as manual webapp forced reload oper
 DONE - Added 206 Partial Content (ie restartable downloads) to static servlet
 DONE - Added interface specific binding for ajp13 and http listeners
 DONE - Add additional listener class calls for request + attributes
+DONE - Update to make winstone completely compliant with servlet 2.4 spec
 
 (non-compliance with 2.4 spec parts completed in v0.6)
 DONE - 1.6.1 Session Destroyed call timing is not called at correct time

@@ -39,11 +39,13 @@ public class WinstoneClassLoader extends URLClassLoader
   protected WebAppConfiguration webAppConfig;
 
   public WinstoneClassLoader(WebAppConfiguration webAppConfig, ClassLoader parent,
-    WinstoneResourceBundle resources)
+    List parentClassPaths, WinstoneResourceBundle resources)
   {
     super(new URL[0], parent);
     this.resources = resources;
     this.classPaths = new ArrayList();
+    if (parentClassPaths != null)
+      this.classPaths.addAll(parentClassPaths);
     this.webAppConfig = webAppConfig;
     try
     {
