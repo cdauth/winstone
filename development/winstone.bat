@@ -13,8 +13,7 @@ set WINSTONE_OPTS=-prefix /tristero -debug 7 -webroot d:\download\neurogrid
 @rem ********************************************************************
 @rem            Uncomment for non-1.4 jdks
 @rem ********************************************************************
-@rem set CP=%CP%;%WINSTONE_HOME%\build\lib\jaxp.jar
-@rem set CP=%CP%;%WINSTONE_HOME%\build\lib\crimson.jar
+@rem set CP=%CP%;%WINSTONE_HOME%\build\lib\gnujaxp.jar
 
 @rem ********************************************************************
 @rem            Uncomment for jsp support

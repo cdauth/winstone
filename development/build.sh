@@ -20,7 +20,7 @@ fi
 
 JAVACMD=$JAVA_HOME/bin/java
 
-cp=$ANT_HOME/lib/ant.jar:./lib/crimson.jar
+cp=$ANT_HOME/lib/ant.jar:./lib/gnujaxp.jar
 cp=$cp:$ANT_HOME/lib/commons-net.jar:$ANT_HOME/lib/ant-launcher.jar
 cp=$cp:$ANT_HOME/lib/ant-commons-net.jar:$JAVA_HOME/lib/tools.jar
 
