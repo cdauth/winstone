@@ -19,6 +19,7 @@ Long-term
 
 DONE - Added HTTPS listener class
 DONE - Fixed the path separator bug in the classpath under linux
+DONE - Changed default hostname lookups to off (more stable).
 
 v0.6.3
 DONE - Fixed the errorPage directive bug

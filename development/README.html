@@ -160,10 +160,10 @@ Other options:
 
    --httpPort               = set the http listening port. -1 to disable, Default is 8080
    --httpListenAddress      = set the http listening address. Default is all interfaces
-   --httpDoHostnameLookups  = enable host name lookups on http connections. Default is true
+   --httpDoHostnameLookups  = enable host name lookups on http connections. Default is false
    --httpsPort              = set the https listening port. -1 to disable, Default is disabled
    --httpsListenAddress     = set the https listening address. Default is all interfaces
-   --httpsDoHostnameLookups = enable host name lookups on https connections. Default is true
+   --httpsDoHostnameLookups = enable host name lookups on https connections. Default is false
    --httpsKeyStore          = the location of the SSL KeyStore file. Default is ./winstone.ks
    --httpsKeyStorePassword  = the password for the SSL KeyStore file. Default is null
    --ajp13Port              = set the ajp13 listening port. -1 to disable, Default is 8009
@@ -621,16 +621,14 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
   
   <ol>
     <li>Create an empty keystore of type JKS</li>
-    <li>Generate a key pair (Tools -> Generate Key Pair). I chose RSA 2048 bit, and used
+    <li>Generate a key pair (Tools -&gt; Generate Key Pair). I chose RSA 2048 bit, and used
       "MD5 with RSA" for the algorithm. Set a password and remember it.</li>
     <li>Generate a CSR (right click, Generate CSR).</li>
     <li>Send the CSR to a Certifying Authority (CA) for processing. I used FreeSSL.com,
-      because it was only US$39 per year. Java doesn't recognise the CA, but IE should.
-      It doesn't really matter for testing purposes.</li>
-    <li>Once you get the approved certificate back, import it into the key store you 
-      were using (just say OK to any messages about trusting the unknown CA). </li>
-    <li>Import the CA reply (Tools -> import CA reply). You should now have only a 
-      key pair and a certificate. Save the key store, using the same password you used 
+      because it was only US$39 per year.</li>
+    <li>Once you get the approved certificate back, import it into the key store you
+      were using (Tools -&gt; import CA reply). You should now have only a
+      key pair and a certificate. Save the key store, using the same password you used
       before.</li>
     <li>Start winstone with the following command:
       <pre>java -jar winstone.jar --webroot=&lt;webroot&gt;
