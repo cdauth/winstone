@@ -377,9 +377,9 @@ public class Launcher implements EntityResolver, Runnable
       return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_2_URL));
     else if (publicName.equals(DTD_2_3_PUBLIC))
       return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_3_URL));
-    else if (publicName.equals(XSD_2_4_PUBLIC) &&
-        (getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL) != null))
-      return new InputSource(getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
+    //else if (publicName.equals(XSD_2_4_PUBLIC) &&
+    //    (getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL) != null))
+    //  return new InputSource(getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
     else
       return new InputSource(url);
   }

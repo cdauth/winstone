@@ -715,8 +715,8 @@ public class WinstoneRequest implements HttpServletRequest
       session = this.webappConfig.getSessionById(makeNewSession(), false);
 
     // Set last accessed time
-    if (session != null)
-      session.setLastAccessedDate(nowDate);
+    //if (session != null)
+    //  session.setLastAccessedDate(nowDate);
     return session;
 
   }

@@ -116,7 +116,9 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
   {
     synchronized (this.filterSemaphore)
     {
-      if ((this.instance == null) && !isUnavailable())
+      if (isUnavailable())
+        throw new WinstoneException(resources.getString("FilterConfiguration.FilterUnavailable"));
+      else if (this.instance == null)
       try
       {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();

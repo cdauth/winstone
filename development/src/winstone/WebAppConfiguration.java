@@ -34,6 +34,7 @@ import javax.servlet.ServletRequestListener;
 import javax.servlet.http.HttpSessionActivationListener;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionListener;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
@@ -131,6 +132,8 @@ public class WebAppConfiguration implements ServletContext, Comparator
   private HttpSessionAttributeListener sessionAttributeListeners[];
   private HttpSessionListener sessionListeners[];
 
+  private Throwable listenerError; 
+  
   private Map exactServletMatchMounts;
   private Mapping patternMatches[];
 
@@ -739,9 +742,17 @@ public class WebAppConfiguration implements ServletContext, Comparator
       Arrays.sort(this.patternMatches, (Comparator) this.patternMatches[0]);
     
     // Send init notifies
-    for (int n = 0; n < this.contextListeners.length; n++)
-      this.contextListeners[n].contextInitialized(new ServletContextEvent(this));
-
+    try
+    {
+      for (int n = 0; n < this.contextListeners.length; n++)
+        this.contextListeners[n].contextInitialized(new ServletContextEvent(this));
+    }
+    catch (Throwable err)
+    {
+      Logger.log(Logger.ERROR, resources.getString("WebAppConfig.ContextListenerError"), err);
+      this.listenerError = err;
+    }
+    
     // Initialise all the filters 
     for (Iterator i = this.filterInstances.values().iterator(); i.hasNext(); )
       ((FilterConfiguration) i.next()).getFilter();
@@ -792,19 +803,27 @@ public class WebAppConfiguration implements ServletContext, Comparator
    */
   public void destroy()
   {
-    for (Iterator i = this.filterInstances.values().iterator(); i.hasNext(); )
-      ((FilterConfiguration) i.next()).destroy();
-    for (Iterator i = this.servletInstances.values().iterator(); i.hasNext(); )
-      ((ServletConfiguration) i.next()).destroy();
+    try
+    {
+      for (Iterator i = this.filterInstances.values().iterator(); i.hasNext(); )
+        ((FilterConfiguration) i.next()).destroy();
+      for (Iterator i = this.servletInstances.values().iterator(); i.hasNext(); )
+        ((ServletConfiguration) i.next()).destroy();
 
-    // Drop all sessions
-    Collection sessions = new ArrayList(this.sessions.values());
-    for (Iterator i = sessions.iterator(); i.hasNext(); )
-      ((WinstoneSession) i.next()).invalidate();
+      // Drop all sessions
+      Collection sessions = new ArrayList(this.sessions.values());
+      for (Iterator i = sessions.iterator(); i.hasNext(); )
+        ((WinstoneSession) i.next()).invalidate();
 
-    // Send destroy notifies - backwards
-    for (int n = this.contextListeners.length - 1; n >= 0; n--)
-      this.contextListeners[n].contextDestroyed(new ServletContextEvent(this));
+      // Send destroy notifies - backwards
+      for (int n = this.contextListeners.length - 1; n >= 0; n--)
+        this.contextListeners[n].contextDestroyed(new ServletContextEvent(this));
+    }
+    catch (Throwable err)
+    {
+      Logger.log(Logger.ERROR, resources.getString("WebAppConfig.ShutdownError"), err);
+      this.listenerError = err;
+    }
 
     // Terminate class loader reloading thread if running
     if (this.loader instanceof WinstoneClassLoader)
@@ -1074,8 +1093,21 @@ public class WebAppConfiguration implements ServletContext, Comparator
       WinstoneRequest request, WinstoneResponse response) throws IOException
   {
     if (!uriInsideWebapp.equals("") && !uriInsideWebapp.startsWith("/"))
+    {
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+          resources.getString("WebAppConfig.InvalidURI", "[#path]", uriInsideWebapp));
       return null;
-  	
+    }
+    else if (this.listenerError != null)
+    {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw, true);
+      this.listenerError.printStackTrace(pw);
+      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+          resources.getString("WebAppConfig.ErrorDuringStartup", "[#stackTrace]", sw.toString()));
+      return null;
+    }
+
     // Parse the url for query string, etc 
     String queryString = "";
   	int questionPos = uriInsideWebapp.indexOf('?');

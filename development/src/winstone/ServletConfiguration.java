@@ -150,7 +150,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   {
     synchronized (this.servletSemaphore)
     {
-      if ((this.instance == null) && !isUnavailable())
+      if (isUnavailable())
+        throw new WinstoneException(resources.getString("ServletConfiguration.ServletUnavailable"));
+      else if ((this.instance == null))
       try
       {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
