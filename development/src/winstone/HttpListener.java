@@ -31,22 +31,21 @@ import java.util.*;
  */
 public class HttpListener implements Listener, Runnable
 {
-  private int LISTENER_TIMEOUT = 5000; // every 5s reset the listener socket
-  private int DEFAULT_PORT = 8080;
-  private int CONNECTION_TIMEOUT = 60000;
-  private int BACKLOG_COUNT = 1000;
-  private boolean DEFAULT_HNL = true;
+  protected static int LISTENER_TIMEOUT = 5000; // every 5s reset the listener socket
+  protected static int CONNECTION_TIMEOUT = 60000;
+  protected static int BACKLOG_COUNT = 1000;
+  protected static boolean DEFAULT_HNL = true;
 
-  private int KEEP_ALIVE_TIMEOUT   = 10000;
-  private int KEEP_ALIVE_SLEEP     = 20;
-  private int KEEP_ALIVE_SLEEP_MAX = 500;
+  protected static int KEEP_ALIVE_TIMEOUT   = 10000;
+  protected static int KEEP_ALIVE_SLEEP     = 20;
+  protected static int KEEP_ALIVE_SLEEP_MAX = 500;
 
-  private WinstoneResourceBundle resources;
-  private ObjectPool objectPool;
-  private boolean doHostnameLookups;
-  private int listenPort;
-  private String listenAddress;
-  private boolean interrupted;
+  protected WinstoneResourceBundle resources;
+  protected ObjectPool objectPool;
+  protected boolean doHostnameLookups;
+  protected int listenPort;
+  protected String listenAddress;
+  protected boolean interrupted;
 
   protected HttpListener() {}
 
@@ -59,12 +58,12 @@ public class HttpListener implements Listener, Runnable
     // Load resources
     this.resources = resources;
     this.objectPool = objectPool;
-    this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args, "httpPort", "" + DEFAULT_PORT));
-    this.listenAddress = WebAppConfiguration.stringArg(args, "httpListenAddress", null);
-    this.doHostnameLookups = WebAppConfiguration.booleanArg(args, "httpDoHostnameLookups", DEFAULT_HNL);
+    this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args, getConnectorName() + "Port", "" + getDefaultPort()));
+    this.listenAddress = WebAppConfiguration.stringArg(args, getConnectorName() + "ListenAddress", null);
+    this.doHostnameLookups = WebAppConfiguration.booleanArg(args, getConnectorName() + "DoHostnameLookups", DEFAULT_HNL);
 
     if (this.listenPort < 0)
-      throw new WinstoneException("disabling http connector");
+      throw new WinstoneException("disabling " + getConnectorName() + " connector");
 
     this.interrupted = false;
 
@@ -74,6 +73,34 @@ public class HttpListener implements Listener, Runnable
   }
 
   /**
+   * The default port to use - this is just so that we can override for the SSL
+   * connector.
+   */
+  protected int getDefaultPort() {return 8080;}
+
+  /**
+   * The name to use when getting properties - this is just so that we can 
+   * override for the SSL connector.
+   */
+  protected String getConnectorName() {return "http";}
+  
+  /**
+   * Gets a server socket - this is mostly for the purpose of allowing an 
+   * override in the SSL connector.
+   */
+  protected ServerSocket getServerSocket() throws IOException
+  {
+    ServerSocket ss = this.listenAddress == null 
+              ? new ServerSocket(this.listenPort, BACKLOG_COUNT)
+              : new ServerSocket(this.listenPort, BACKLOG_COUNT, 
+                                  InetAddress.getByName(this.listenAddress));
+    ss.setSoTimeout(LISTENER_TIMEOUT);
+    Logger.log(Logger.INFO, resources, "HttpListener.StartupOK",
+                                      this.listenPort + "");
+    return ss;
+  }
+  
+  /**
    * The main run method. This continually listens for incoming connections,
    * and allocates any that it finds to a request handler thread, before going
    * back to listen again.
@@ -82,13 +109,7 @@ public class HttpListener implements Listener, Runnable
   {
     try
     {
-      ServerSocket ss = this.listenAddress == null 
-      			? new ServerSocket(this.listenPort, BACKLOG_COUNT)
-      			: new ServerSocket(this.listenPort, BACKLOG_COUNT, 
-      			    					InetAddress.getByName(this.listenAddress));
-      ss.setSoTimeout(LISTENER_TIMEOUT);
-      Logger.log(Logger.INFO, resources, "HttpListener.StartupOK",
-                              this.listenPort + "");
+      ServerSocket ss = getServerSocket();
 
       // Enter the main loop
       while (!interrupted)
@@ -215,9 +236,10 @@ public class HttpListener implements Listener, Runnable
     socket.close();
   }
 
-  private void parseSocketInfo(Socket socket, WinstoneRequest req)
+  protected void parseSocketInfo(Socket socket, WinstoneRequest req)
+    throws IOException
   {
-    req.setScheme("http");
+    req.setScheme(getConnectorName());
     req.setServerPort(socket.getLocalPort());
     req.setLocalPort(socket.getLocalPort());
     req.setLocalAddr(socket.getLocalAddress().getHostAddress());

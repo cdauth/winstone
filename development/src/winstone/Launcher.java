@@ -181,7 +181,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       this.listeners.add(httpsListener);
     }
     catch (Throwable err)
-      {Logger.log(Logger.DEBUG, this.resources, "Launcher.AJPNotFound");}
+      {Logger.log(Logger.DEBUG, this.resources, "Launcher.HTTPSNotFound");}
     try
     {
       Class ajpClass = Class.forName(AJP_LISTENER_CLASS);

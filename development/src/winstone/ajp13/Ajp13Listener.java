@@ -291,20 +291,15 @@ public class Ajp13Listener implements Listener, Runnable
       }
       else if (attName.equals("ssl_cipher"))
       {
-        req.setAttribute("javax.servlet.request.cipher_suite",
-                         headers.getAttributes().get("ssl_cipher"));
+        String cipher = (String) headers.getAttributes().get("ssl_cipher");
+        req.setAttribute("javax.servlet.request.cipher_suite", cipher);
+        req.setAttribute("javax.servlet.request.key_size", getKeySize(cipher));
         req.setIsSecure(true);
       }
       else if (attName.equals("ssl_session"))
       {
         req.setAttribute("javax.servlet.request.ssl_session",
                          headers.getAttributes().get("ssl_session"));
-        req.setIsSecure(true);
-      }
-      else if (attName.equals("ssl_key_size"))
-      {
-        req.setAttribute("javax.servlet.request.key_size",
-                         headers.getAttributes().get("ssl_key_size"));
         req.setIsSecure(true);
       }
       else
@@ -314,6 +309,28 @@ public class Ajp13Listener implements Listener, Runnable
     return headers.getURI();
 
   }  
+  
+  private Integer getKeySize(String cipherSuite)
+  {
+    if (cipherSuite.indexOf("_WITH_NULL_") != -1)
+      return new Integer(0);
+    else if (cipherSuite.indexOf("_WITH_IDEA_CBC_") != -1)
+      return new Integer(128);
+    else if (cipherSuite.indexOf("_WITH_RC2_CBC_40_") != -1)
+      return new Integer(40);
+    else if (cipherSuite.indexOf("_WITH_RC4_40_") != -1)
+      return new Integer(40);
+    else if (cipherSuite.indexOf("_WITH_RC4_128_") != -1)
+      return new Integer(128);
+    else if (cipherSuite.indexOf("_WITH_DES40_CBC_") != -1)
+      return new Integer(40);
+    else if (cipherSuite.indexOf("_WITH_DES_CBC_") != -1)
+      return new Integer(56);
+    else if (cipherSuite.indexOf("_WITH_3DES_EDE_CBC_") != -1)
+      return new Integer(168);
+    else
+      return null;
+  }
 
   /**
    * Tries to wait for extra requests on the same socket. If any are found

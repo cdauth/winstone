@@ -56,7 +56,7 @@ public class HttpsListener extends HttpListener
    * The default port to use - this is just so that we can override for the SSL
    * connector.
    */
-  protected int getDefaultPort() {return 8081;}
+  protected int getDefaultPort() {return -1;}
 
   /**
    * The name to use when getting properties - this is just so that we can 
