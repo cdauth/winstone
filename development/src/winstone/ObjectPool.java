@@ -33,7 +33,7 @@ public class ObjectPool
 {
   private int STARTUP_REQUEST_HANDLERS_IN_POOL = 5;
   private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 50;
-  private int MAX_REQUEST_HANDLERS_IN_POOL = 300;
+  private int MAX_REQUEST_HANDLERS_IN_POOL = 1000;
 
   private int START_REQUESTS_IN_POOL  = 10;
   private int MAX_REQUESTS_IN_POOL    = 100;
