@@ -33,7 +33,10 @@ import java.text.*;
  */
 public class StaticResourceServlet extends HttpServlet
 {
-  final String JSP_FILE = "org.apache.catalina.jsp_file";
+  //final String JSP_FILE = "org.apache.catalina.jsp_file";
+  final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
+  final String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
+  
   final String CACHED_RESOURCE_DATE_HEADER = "If-Modified-Since";
   final String LAST_MODIFIED_DATE_HEADER   = "Last-Modified";
 
@@ -69,10 +72,9 @@ public class StaticResourceServlet extends HttpServlet
   public void doGet(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException
   {
-    // Trim the host name if supplied
-    String path = (String) request.getAttribute(JSP_FILE);
-    String isIncludeStr = (String) request.getAttribute("winstone.requestDispatcher.include");
-    boolean isInclude = ((isIncludeStr != null) && isIncludeStr.equals("true"));
+    boolean isInclude = (request.getAttribute(INCLUDE_PATH_INFO) != null);
+    String path = isInclude ? (String) request.getAttribute(INCLUDE_PATH_INFO)
+        										: (String) request.getAttribute(FORWARD_PATH_INFO);
     
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
     Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",

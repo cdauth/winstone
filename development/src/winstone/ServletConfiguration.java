@@ -187,7 +187,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     // Build filter chain
     return new RequestDispatcher(this, this.instance, this.servletName, this.loader,
         this.servletSemaphore, requestedPath, this.resources, filters, 
-        forwardFilterPatterns, includeFilterPatterns, authHandler, this.prefix, 
+        forwardFilterPatterns, includeFilterPatterns, authHandler, //this.prefix, 
 				this.jspFile == null ? requestedPath : this.jspFile);
   }
 

@@ -198,10 +198,9 @@ public class RequestHandlerThread implements Runnable
   private void processRequest(WinstoneRequest req, WinstoneResponse rsp, String path)
     throws IOException, ServletException
   {
-    //this.webAppConfig.setRequestResponse(req, rsp);
     try
     {
-      javax.servlet.RequestDispatcher rd = this.webAppConfig.getRequestDispatcher(path);
+      javax.servlet.RequestDispatcher rd = this.webAppConfig.getInitialDispatcher(path);
       if (rd != null)
       {
         Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.HandlingRD") + ((RequestDispatcher) rd).getName());

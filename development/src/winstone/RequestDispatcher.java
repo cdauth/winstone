@@ -35,7 +35,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   private ServletConfiguration config;
   private Servlet instance;
   private String name;
-  private String prefix;
+  //private String prefix;
   private ClassLoader loader;
   private Object semaphore;
   private String requestedPath;
@@ -71,7 +71,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   public RequestDispatcher(ServletConfiguration config, Servlet instance, 
     String name, ClassLoader loader, Object semaphore, String requestedPath, 
     WinstoneResourceBundle resources, Map filters, String forwardFilterPatterns[], 
-    String includeFilterPatterns[], AuthenticationHandler authHandler, String prefix, String jspFile)
+    String includeFilterPatterns[], AuthenticationHandler authHandler, //String prefix, 
+    String jspFile)
   {
     this.config = config;
     this.resources = resources;
@@ -82,7 +83,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.requestedPath = requestedPath;
     this.jspFile = jspFile;
     this.authHandler = authHandler;
-    this.prefix = prefix;
+    //this.prefix = prefix;
     this.filters = filters;
     this.forwardFilterPatterns = forwardFilterPatterns;
     this.includeFilterPatterns = includeFilterPatterns;
@@ -185,7 +186,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       {
         WinstoneRequest req = (WinstoneRequest) bareRequest;
         req.setServletPath(this.requestedPath);
-        req.setRequestURI(this.prefix + this.requestedPath);
+        //req.setRequestURI(this.prefix + this.requestedPath);
       }
     }
 

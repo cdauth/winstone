@@ -24,6 +24,7 @@ import java.lang.reflect.*;
 
 import org.w3c.dom.Node;
 
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContextAttributeEvent;
 import javax.servlet.ServletContextAttributeListener;
 import javax.servlet.ServletContextListener;
@@ -992,26 +993,45 @@ public class WebAppConfiguration implements ServletContext
   /**
    * Gets a dispatcher, initialising the request attributes, etc
    */
-  public javax.servlet.RequestDispatcher getRequestDispatcher(String path)
+  public javax.servlet.RequestDispatcher getRequestDispatcher(String uri)
   {
   	// Parse the url for query string, etc
   	
   	// Get the path info, servlet path, and the name of the matched instance
-  	
-  	// If none, use the default servlet
+
+    // If none, use the default servlet
   	
   	// Get dispatcher and set its request attributes
   	
   	// Return the dispatcher
   	
-    ServletConfiguration servlet = urlMatch(path);
+    ServletConfiguration servlet = urlMatch(uri);
     if (servlet != null)
-      return servlet.getRequestDispatcher(path, this.filterInstances,
+      return servlet.getRequestDispatcher(uri, this.filterInstances,
       		this.fpForward, this.fpInclude, this.authenticationHandler);
     else
     	return null;
     	//return this.staticResourceProcessor.getRequestDispatcher(path,
       //      this.filterInstances, this.filterPatterns, this.authenticationHandler);
+  }
+
+  /**
+   * Creates the dispatcher that corresponds to a request level dispatch (ie the initial
+   * entry point)
+   */
+  public RequestDispatcher getInitialDispatcher(String nonPrefixURI)
+  {
+  	// Parse the url for query string, etc
+  	
+  	// Get the path info, servlet path, and the name of the matched instance
+  	
+    // If none, use the default servlet
+  	
+  	// Get dispatcher and set its request attributes
+  	
+  	// Return the dispatcher
+  	
+    return null;
   }
 
   // Getting resources via the classloader
