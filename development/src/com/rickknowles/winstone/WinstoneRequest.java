@@ -291,7 +291,13 @@ public class WinstoneRequest implements HttpServletRequest
   public boolean isRequestedSessionIdFromUrl()      {return isRequestedSessionIdFromURL();}
   public boolean isRequestedSessionIdFromURL()      {return false;}
   public boolean isRequestedSessionIdValid()
-    {return this.webappConfig.getSessions().containsKey(getSessionId());}
+  {
+    WinstoneSession ws = (WinstoneSession) this.webappConfig.getSessions().get(getSessionId());
+    if (ws == null)
+      return false;
+    else
+      return (validationCheck(ws, System.currentTimeMillis(), false) != null);
+  }
 
   public HttpSession getSession()               {return getSession(true);}
   public HttpSession getSession(boolean create)
@@ -313,19 +319,7 @@ public class WinstoneRequest implements HttpServletRequest
     long nowDate = System.currentTimeMillis();
     WinstoneSession session = (WinstoneSession) this.webappConfig.getSessions().get(cookieValue);
     if (session != null)
-    {
-      // check if it's expired yet
-      if ((session.getMaxInactiveInterval() > 0) &&
-          (session.getMaxInactiveInterval() + (session.getLastAccessedTime() * 1000) > nowDate))
-      {
-        session.invalidate();
-        Logger.log(Logger.DEBUG, resources.getString("WinstoneRequest.InvalidateSession") + session.getId());
-        if (create)
-          session = (WinstoneSession) this.webappConfig.getSessions().get(makeNewSession());
-        else
-          session = null;
-      }
-    }
+      session = validationCheck(session, nowDate, create);
     else if (create)
       session = (WinstoneSession) this.webappConfig.getSessions().get(makeNewSession());
 
@@ -337,6 +331,22 @@ public class WinstoneRequest implements HttpServletRequest
   }
 
   private String getSessionId() {return this.sessionCookie;}
+
+  private WinstoneSession validationCheck(WinstoneSession session, long nowDate, boolean create)
+  {
+    // check if it's expired yet
+    if ((session.getMaxInactiveInterval() > 0) &&
+        (session.getMaxInactiveInterval() + (session.getLastAccessedTime() * 1000) > nowDate))
+    {
+      session.invalidate();
+      Logger.log(Logger.DEBUG, resources.getString("WinstoneRequest.InvalidateSession") + session.getId());
+      if (create)
+        session = (WinstoneSession) this.webappConfig.getSessions().get(makeNewSession());
+      else
+        session = null;
+    }
+    return session;
+  }
 
   /**
    * Make a new session, and return the id

@@ -1,11 +1,11 @@
 
-Winstone Servlet Container v0.1.1
+Winstone Servlet Container v0.2
 ------------------
 
 This is an alpha release of the Winstone Servlet Container.  The homepage for
-this project is at 'https://sourceforge.net/projects/winstone'
+this project is at 'http://winstone.sourceforge.net'
 
-Author - Rick Knowles (rick@knowleses.org)
+Author - Rick Knowles (contact details below)
 
 What is Winstone ?
 ------------------
@@ -14,11 +14,12 @@ Winstone is a servlet container that was written out of a desire to provide serv
 functionality without the bloat that full J2EE compliance introduces.
 
 It is not intended to be a completely fully functional J2EE style servlet 
-container - this is left to Tomcat, Resin, Weblogic et al. 
+container - this is left to Tomcat, Jetty, Resin, JRun, Weblogic et al. 
 
 The original goals in writing Winstone were:
  - Supply fast, reliable servlet container functionality for a single webapp per server
- - Limit the size of the core distribution jar to less than 100KB for as long as possible.
+ - Limit the size of the core distribution jar to less than 100KB for as long as possible
+   (currently 101KB ... doh !!! time to trim some comments from the DTDs)
  - Keep configuration files to an absolute minimum, using command line options to 
    optionally override sensible compiled in defaults. 
  - Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -30,7 +31,7 @@ Using Winstone
 
 To build Winstone, unpack the tree:
 
-  tar zxf winstone_src_v0.1.1.tar.gz
+  tar zxf winstone_src_v0.2.tar.gz
 
 Then build it:
 
@@ -42,25 +43,42 @@ Then build it:
 
 To run it:
 
-  java -jar winstone_v0.1.1.jar -webroot <location of webroot> (+ other options)
+  java -jar winstone_v0.2.jar -webroot <location of webroot> (+ other options)
 
 The Winstone.jar file will be in the winstone/dist directory after the build is complete.
 
 Command-line options:
 ---------------------
 
-   -webroot           = set document root folder. ** REQUIRED OPTION **
-   -prefix            = add this prefix to all URLs (eg http://localhost:8080/prefix/resource). Default is none
+   -webroot                = set document root folder. ** REQUIRED OPTION **
+   -prefix                 = add this prefix to all URLs (eg http://localhost:8080/prefix/resource). Default is none
 
-   -debug             = set the level of debug msgs (1-9). Default is 5 (INFO level)
-   -port              = set the listening port. Default is 8080
-   -controlPort       = set the listening port. -1 to disable, Default disabled
+   -debug                  = set the level of debug msgs (1-9). Default is 5 (INFO level)
+   -port                   = set the listening port. Default is 8080
+   -controlPort            = set the listening port. -1 to disable, Default disabled
 
-   -directoryListings = enable directory lists (true/false). Default is true
-   -jasper            = enable jasper JSP handling (true/false). Default is false
-   -doHostnameLookups = enable host name lookups on incoming connections (true/false). Default is true
+   -directoryListings      = enable directory lists (true/false). Default is true
+   -doHostnameLookups      = enable host name lookups on incoming connections (true/false). Default is true
+   -useJasper              = enable jasper JSP handling (true/false). Default is false
+   -useWinstoneClassLoader = enable WebApp classLoader (true/false). Default is true
+   -useInvoker             = enable the servlet invoker (true/false). Default is true
+   -invokerPrefix          = set the invoker prefix. Default is /servlet/
 
-   -usage / -help     = show usage message
+   -usage / -help          = show usage message
+
+Why is it called Winstone ?
+---------------------------
+
+The short version (because the long version is way too politically incorrect) is as follows: 
+
+Winstone is the name of a rather large Jamaican man a friend of mine met one night, while 
+he was out clubbing in the Roppongi area of Tokyo one night. He (my friend) was a little 
+liquored up at the time, and when Winstone suggested they head to "this really cool club" 
+he knew, he didn't think anything was wrong. It wasn't until Winstone lead him down a dark 
+stairwell and dropped his trousers that my friend clued in and ran like hell.
+
+It was too good a story to let die, so I named this project Winstone so that said friend 
+will continue to be reminded of it. Heheheh ....
 
 JSPs (aka using with Jasper)
 ----------------------------
@@ -82,7 +100,7 @@ the startup classpath:
 
          Not supplied. You can get this from the standard Tomcat binary download location. 
          Just download the latest Tomcat, and copy these three files into the startup classpath 
-         for Winstone. They will be in the common/lib folder.
+         for Winstone. They will be in the tomcat_home/common/lib folder.
 
   * tools.jar
 
@@ -100,7 +118,6 @@ As a result of the design goals, there are a lot of things Winstone doesn't do (
 not yet).
  - Servlet Filters are not supported (yet)
  - Servlet Attribute and Context listeners are not supported very well (yet)
- - There is no invoker servlet as in Tomcat, so you have to map absolutely every servlet
  - There is no security model at all (yet)
  - HttpSession support is cookie-based only (no URL rewriting). I don't see any reason to 
    build this, since I've never come across anyone that actually uses URL rewriting. 
@@ -121,13 +138,49 @@ The Web-App DTD files (web-app_2_2.dtd & web-app_2_3.dtd in the src/javax/servle
 folder) and the lib/jsp-servlet.jar files are covered by the Apache software license, as 
 described at the top of each file, and at http://www.apache.org/licenses/LICENSE
 
+The ant jar files (included in the ant/lib folder) are also covered by the Apache software 
+license: see http://www.apache.org/licenses/LICENSE
+
 All other files are covered by the GNU Public License, as described in LICENSE.txt.
 
 Contacting the Author
 ---------------------
 
-My email is 'rick@knowleses.org'.  If you have any general comments or
-questions about the software please mail me - I'll try to start a faq soon.
+You can contact me through the Winstone development list at sourceforge 
+(winstone-devel@lists.sourceforge.net).  If you have any general comments or questions 
+about Winstone please mail me on that list - I'll try to start a faq soon.
 
 I'm open to help from anyone who's willing to help me meet the above goals for Winstone.
 Just mail me.
+
+GCJ compilation
+---------------
+
+I've had a little bit of success with this recently. Under the gcj folder in the source
+distribution there is a Makefile that I used to build Winstone to a native binary. It worked
+quite well - and to my naked eye, looked as fast as Apache 1.3 for static pages - except for 
+one problem: class loading.
+
+The problem is this: When you call "Class.forName(className)", the effect should be the 
+same as calling "Class.forName(className, true, this.getClass().getClassLoader())", and 
+the short answer is that in recent GCJ versions, it's not.
+
+Recent GCJ versions use a "bogus" method to find the current class loader (their words 
+not mine). Basically GCJ generates a stack trace and walks back over it, trying to find a 
+class loader within recent memory. If none is found, it uses the system class loader.
+
+In most cases this is fine, but in a servlet container this is no good, because unless you
+have a webapp that has no WEB-INF/lib and WEB-INF/classes folders, you need to use a class
+loader other than the system classloader.
+
+One possible solution is to compile the webapp classes and Winstone into native binary format.
+This works except that if the servlet container tries to use another class loader anyway, you
+still have problems with which loader loaded which classes.
+
+To get around this, I have included an option "-useWinstonClassLoader true/false". This allows
+you to disable the webapp class loader, and operate entirely with a single class loader. This
+works ok for servlet-only environments, but it seems Jasper uses it's own classloader, so 
+you may still have problems in jsp + GCJ-compiled-Winstone environments.
+
+NOTE: The Makefile included uses Crimson as an XML parser, which has since been replaced 
+with the GNU XML parser due to License conflicts.

@@ -19,6 +19,8 @@ package com.rickknowles.winstone;
 
 import java.util.*;
 import org.w3c.dom.Node;
+import javax.servlet.ServletContext;
+import javax.servlet.Servlet;
 
 /**
  * This is the one that keeps a specific servlet instance's config, as
@@ -40,16 +42,16 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
 
   private String name;
   private String classFile;
-  private javax.servlet.Servlet instance;
+  private Servlet instance;
   private Map initParameters;
-  private WebAppConfiguration webAppConfig;
+  private ServletContext webAppConfig;
   private ClassLoader loader;
   private int loadOnStartup;
 
   private WinstoneResourceBundle resources;
   private Object servletSemaphore = new Boolean(true);
 
-  protected ServletConfiguration(WebAppConfiguration webAppConfig,
+  protected ServletConfiguration(ServletContext webAppConfig,
                                  ClassLoader loader,
                                  WinstoneResourceBundle resources)
   {
@@ -60,7 +62,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     this.resources = resources;
   }
 
-  public ServletConfiguration(WebAppConfiguration webAppConfig,
+  public ServletConfiguration(ServletContext webAppConfig,
                               ClassLoader loader,
                               WinstoneResourceBundle resources,
                               String name,
@@ -76,7 +78,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     this.loadOnStartup = loadOnStartup;
   }
 
-  public ServletConfiguration(WebAppConfiguration webAppConfig,
+  public ServletConfiguration(ServletContext webAppConfig,
                               ClassLoader loader,
                               WinstoneResourceBundle resources,
                               Node elm)
@@ -134,9 +136,11 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
         Thread.currentThread().setContextClassLoader(this.loader);
 
         Class servletClass = Class.forName(classFile, true, this.loader);
-        this.instance = (javax.servlet.Servlet) servletClass.newInstance();
-        Logger.log(Logger.DEBUG, this.name + ": " + resources.getString("ServletConfiguration.init") + 
-          " (classloader: " + this.instance.getClass().getClassLoader().getClass().getName() + ")");
+        this.instance = (Servlet) servletClass.newInstance();
+        Logger.log(Logger.DEBUG, this.name + ": "
+                    + resources.getString("ServletConfiguration.init")
+                    //+ " (classloader: " + this.loader.getClass().getName() + ")"
+                    );
 
         // Initialise with the correct classloader
         this.instance.init(this);

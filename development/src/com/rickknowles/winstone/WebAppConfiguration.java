@@ -45,6 +45,9 @@ public class WebAppConfiguration implements ServletContext
   final String ELEM_WELCOME_FILE    = "welcome-file";
   final String ELEM_SESSION_TIMEOUT = "session-config";
   final String ELEM_SESSION_CONFIG  = "session-timeout";
+  final String ELEM_MIME_MAPPING    = "mime-mapping";
+  final String ELEM_MIME_EXTENSION  = "extension";
+  final String ELEM_MIME_TYPE       = "mime-type";
 
   final String STAR = "*";
   final String WEBAPP_LOGSTREAM = "WebApp";
@@ -52,20 +55,24 @@ public class WebAppConfiguration implements ServletContext
   final String JSP_SERVLET_NAME       = "JspServlet";
   final String JSP_SERVLET_MAPPING    = "*.jsp";
   final String JSP_SERVLET_CLASS      = "org.apache.jasper.servlet.JspServlet";
-  final String JSP_SERVLET_LOG_LEVEL  = "DEBUG";
-  
+  final String JSP_SERVLET_LOG_LEVEL  = "WARNING";
+
+  final String INVOKER_SERVLET_NAME   = "InvokerServlet";
+  final String INVOKER_SERVLET_CLASS  = "com.rickknowles.winstone.InvokerServlet";
+
   private WinstoneResourceBundle resources;
 
   private String webRoot;
   private String prefix;
   private String contextName;
-  private WinstoneClassLoader loader;
+  private ClassLoader loader;
 
   private String displayName;
 
   private Map   attributes;
   private Map   initParameters;
   private Map   sessions;
+  private Map   mimeTypes;
 
   private Map   servletInstances;
   private Map   exactMatchMounts;
@@ -85,6 +92,8 @@ public class WebAppConfiguration implements ServletContext
                              String prefix,
                              boolean directoryListings,
                              boolean useJasper,
+                             boolean useWinstoneClassLoader,
+                             String invokerPrefix,
                              Node elm,
                              WinstoneResourceBundle resources)
   {
@@ -92,7 +101,10 @@ public class WebAppConfiguration implements ServletContext
     this.webRoot = webRoot;
     this.prefix = (prefix != null ? prefix : "");
     this.contextName = WEBAPP_LOGSTREAM;
-    this.loader = new WinstoneClassLoader(webRoot, this.getClass().getClassLoader(), this.resources);
+    this.loader = (useWinstoneClassLoader ? new WinstoneClassLoader(webRoot,
+                                                                   this.getClass().getClassLoader(),
+                                                                   this.resources)
+                                         : this.getClass().getClassLoader());
 
     this.attributes = new Hashtable();
     this.initParameters = new Hashtable();
@@ -112,7 +124,9 @@ public class WebAppConfiguration implements ServletContext
     {
       setAttribute("org.apache.catalina.classloader", this.loader);
       //Logger.log(Logger.DEBUG, "Setting JSP classpath: " +  this.loader.getClasspath());
-      setAttribute("org.apache.catalina.jsp_classpath", this.loader.getClasspath());
+      if (useWinstoneClassLoader)
+        setAttribute("org.apache.catalina.jsp_classpath",
+                        ((WinstoneClassLoader) this.loader).getClasspath());
 
       Map jspParams = new HashMap();
       jspParams.put("logVerbosityLevel", JSP_SERVLET_LOG_LEVEL);
@@ -122,6 +136,32 @@ public class WebAppConfiguration implements ServletContext
       this.servletInstances.put(JSP_SERVLET_NAME, sc);
       startupServlets.add(sc);
       processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, localPatterns, localPatternMounts);
+    }
+
+    // Initialise invoker servlet if requested
+    if (invokerPrefix != null)
+    {
+      Map invokerParams = new HashMap();
+      invokerParams.put("prefix", this.prefix);
+      invokerParams.put("invokerPrefix", invokerPrefix);
+      ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
+        INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams, 3);
+      this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
+      processMapping(INVOKER_SERVLET_NAME, invokerPrefix + STAR, localPatterns, localPatternMounts);
+    }
+
+    // init mimeTypes set
+    this.mimeTypes = new Hashtable();
+    String allTypes = this.resources.getString("WebAppConfig.DefaultMimeTypes");
+    StringTokenizer mappingST = new StringTokenizer(allTypes, ":", false);
+    for ( ; mappingST.hasMoreTokens(); )
+    {
+      String mapping = mappingST.nextToken();
+      int delimPos = mapping.indexOf('=');
+      if (delimPos == -1) continue;
+      String extension = mapping.substring(0, delimPos);
+      String mimeType = mapping.substring(delimPos + 1);
+      this.mimeTypes.put(mapping.substring(0, delimPos).toLowerCase(), mapping.substring(delimPos + 1));
     }
 
     // Parse the web.xml file
@@ -187,6 +227,28 @@ public class WebAppConfiguration implements ServletContext
                 (welcomeFile.getNodeName().equals(ELEM_WELCOME_FILE)))
               localWelcomeFiles.add(welcomeFile.getFirstChild().getNodeValue().trim());
           }
+
+        // Process the list of welcome files
+        else if (nodeName.equals(ELEM_MIME_MAPPING))
+        {
+          String extension = null;
+          String mimeType  = null;
+          for (int m = 0; m < child.getChildNodes().getLength(); m++)
+          {
+            Node mimeTypeNode = (Node) child.getChildNodes().item(m);
+            if (mimeTypeNode.getNodeType() != Node.ELEMENT_NODE)
+              continue;
+            else if (mimeTypeNode.getNodeName().equals(ELEM_MIME_EXTENSION))
+              extension = mimeTypeNode.getFirstChild().getNodeValue().trim();
+            else if (mimeTypeNode.getNodeName().equals(ELEM_MIME_TYPE))
+              mimeType = mimeTypeNode.getFirstChild().getNodeValue().trim();
+          }
+          if ((extension != null) && (mimeType != null))
+            this.mimeTypes.put(extension.toLowerCase(), mimeType);
+          else
+            Logger.log(Logger.WARNING, this.resources.getString("WebAppConfig.InvalidMimeMapping",
+                "[#extension]", extension, "[#mimeType]", mimeType));
+        }
       }
 
     // Add the default index.html welcomeFile if none are supplied
@@ -209,7 +271,7 @@ public class WebAppConfiguration implements ServletContext
     staticParams.put("welcomeFileCount", "" + this.welcomeFiles.length);
     for (int n = 0; n < this.welcomeFiles.length; n++)
       staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
-    this.staticResourceProcessor = new ServletConfiguration(this, this.getClassLoader(), this.resources,
+    this.staticResourceProcessor = new ServletConfiguration(this, this.loader, this.resources,
       "StaticResourceProcessor", "com.rickknowles.winstone.StaticResourceServlet", staticParams, 0);
     this.staticResourceProcessor.getRequestDispatcher(null);
 
@@ -220,11 +282,11 @@ public class WebAppConfiguration implements ServletContext
       ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null);
   }
 
-  public String getPrefix()                   {return this.prefix;}
-  public String getWebroot()                  {return this.webRoot;}
-  public ClassLoader getClassLoader()         {return this.loader;}
-  public Map getSessions()                    {return this.sessions;}
-  public String[] getWelcomeFiles()           {return this.welcomeFiles;}
+  public String getPrefix()         {return this.prefix;}
+  public String getWebroot()        {return this.webRoot;}
+//  public ClassLoader getLoader()    {return this.loader;}
+  public Map getSessions()          {return this.sessions;}
+  public String[] getWelcomeFiles() {return this.welcomeFiles;}
 
   /**
    * Iterates through each of the servlets and calls destroy on them
@@ -379,8 +441,23 @@ public class WebAppConfiguration implements ServletContext
   public javax.servlet.Servlet getServlet(String name)        {return null;}
   public Enumeration getServletNames()                        {return Collections.enumeration(new ArrayList());}
   public Enumeration getServlets()                            {return Collections.enumeration(new ArrayList());}
-  public String getMimeType(String file)                      {return "not implemented";}
   public String getServletContextName()                       {return this.displayName;}
+
+  /**
+   * Look up the map of mimeType extensions, and return the type that matches
+   */
+  public String getMimeType(String fileName)
+  {
+    int dotPos = fileName.lastIndexOf('.');
+    if ((dotPos != -1) && (dotPos != fileName.length() - 1))
+    {
+      String extension = fileName.substring(dotPos + 1).toLowerCase();
+      String mimeType = (String) this.mimeTypes.get(extension);
+      return mimeType;
+    }
+    else
+      return null;
+  }
 
   // Context level log statements
   public void log(String msg)                           {Logger.log(Logger.INFO, msg);}

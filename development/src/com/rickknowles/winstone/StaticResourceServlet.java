@@ -35,17 +35,20 @@ public class StaticResourceServlet extends HttpServlet
   final String CACHED_RESOURCE_DATE_HEADER = "If-Modified-Since";
   final String LAST_MODIFIED_DATE_HEADER   = "Last-Modified";
 
+  final String RESOURCE_FILE    = "com.rickknowles.winstone.LocalStrings";
+
   private DateFormat sdfFileDate = new SimpleDateFormat("dd-MMM-yyyy HH:mm");
 
   private String webRoot;
   private String prefix;
   private boolean directoryList;
   private String welcomeFiles[];
-  private Map mimeTypes;
-
+  private WinstoneResourceBundle resources;
+  
   public void init(ServletConfig config) throws ServletException
   {
     super.init(config);
+    this.resources = new WinstoneResourceBundle(RESOURCE_FILE);
     this.webRoot = config.getInitParameter("webRoot");
     this.prefix = config.getInitParameter("prefix");
     String dirList = config.getInitParameter("directoryList");
@@ -56,25 +59,6 @@ public class StaticResourceServlet extends HttpServlet
     this.welcomeFiles = new String[welcomeFileCount];
     for (int n = 0; n < welcomeFileCount; n++)
       this.welcomeFiles[n] = config.getInitParameter("welcomeFile_" + n);
-
-    this.mimeTypes = new Hashtable();
-    this.mimeTypes.put("jpg", "image/jpeg");
-    this.mimeTypes.put("jpeg", "image/jpeg");
-    this.mimeTypes.put("gif", "image/gif");
-    this.mimeTypes.put("css", "text/css");
-    this.mimeTypes.put("js", "text/javascript");
-  }
-
-  private void setMimeType(String fileName, HttpServletResponse response)
-  {
-    int dotPos = fileName.lastIndexOf('.');
-    if ((dotPos != -1) && (dotPos != fileName.length() - 1))
-    {
-      String extension = fileName.substring(dotPos + 1).toLowerCase();
-      String mimeType = (String) this.mimeTypes.get(extension);
-      if (mimeType != null)
-        response.setContentType(mimeType);
-    }
   }
 
   private String trimHostName(String input)
@@ -123,22 +107,29 @@ public class StaticResourceServlet extends HttpServlet
       path = requestURI;
 
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
-    Logger.log(Logger.DEBUG, "SRP: path=" + path);
+    Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",
+              "[#path]", path));
 
     // Check for the resource
     File res = path.equals("") ? new File(this.webRoot) : new File(this.webRoot, path);
 
+    // Send a 404 if not found
+    if (!res.exists())
+      response.sendError(response.SC_NOT_FOUND,
+            this.resources.getString("StaticResourceServlet.PathNotFound",
+              "[#path]", path));
+
     // Check we are below the webroot
-    if (!res.getCanonicalPath().startsWith(this.webRoot))
-      response.sendError(response.SC_FORBIDDEN, "Illegal path error - " + path);
+    else if (!res.getCanonicalPath().startsWith(this.webRoot))
+      response.sendError(response.SC_FORBIDDEN,
+            this.resources.getString("StaticResourceServlet.PathInvalid",
+              "[#path]", path));
 
     // Check we are below the webroot
     else if (path.toUpperCase().startsWith("/WEB-INF"))
-      response.sendError(response.SC_FORBIDDEN, "Illegal path error - " + path);
-
-    // Send a 404 if not found
-    else if (!res.exists())
-      response.sendError(response.SC_NOT_FOUND, "File " + path + " not found");
+      response.sendError(response.SC_FORBIDDEN,
+            this.resources.getString("StaticResourceServlet.PathInvalid",
+              "[#path]", path));
 
     // check for the directory case
     else if (res.isDirectory())
@@ -152,7 +143,8 @@ public class StaticResourceServlet extends HttpServlet
         else if (this.directoryList)
           generateDirectoryList(request, response, path);
         else
-          response.sendError(response.SC_FORBIDDEN, "Access to this resource is denied");
+          response.sendError(response.SC_FORBIDDEN,
+              this.resources.getString("StaticResourceServlet.AccessDenied"));
       }
       else
         response.sendRedirect(requestURI + "/");
@@ -163,7 +155,9 @@ public class StaticResourceServlet extends HttpServlet
           (cachedResDate < System.currentTimeMillis()) &&
           (cachedResDate >= res.lastModified()))
     {
-      setMimeType(res.getName().toLowerCase(), response);
+      String mimeType = getServletContext().getMimeType(res.getName().toLowerCase());
+      if (mimeType != null)
+        response.setContentType(mimeType);
       response.setStatus(response.SC_NOT_MODIFIED);
       response.setContentLength(0);
       response.getOutputStream().close();
@@ -172,7 +166,9 @@ public class StaticResourceServlet extends HttpServlet
     // Write out the resource
     else
     {
-      setMimeType(res.getName().toLowerCase(), response);
+      String mimeType = getServletContext().getMimeType(res.getName().toLowerCase());
+      if (mimeType != null)
+        response.setContentType(mimeType);
       InputStream resStream = new FileInputStream(res);
       response.setStatus(response.SC_OK);
       response.setContentLength((int)res.length());
@@ -190,20 +186,15 @@ public class StaticResourceServlet extends HttpServlet
 
   private String matchWelcomeFiles(String path, File res)
   {
-    //WebAppConfiguration wac = (WebAppConfiguration) getServletConfig().getServletContext();
     for (int n = 0; n < this.welcomeFiles.length; n++)
     {
       String welcomeFile = this.welcomeFiles[n];
       Set subfiles = getServletConfig().getServletContext().getResourcePaths(path);
-      Logger.log(Logger.DEBUG, "Testing welcome file: " + this.prefix + path + welcomeFile);
+      Logger.log(Logger.DEBUG,
+            this.resources.getString("StaticResourceServlet.TestingWelcomeFile",
+              "[#welcomeFile]", this.prefix + path + welcomeFile));
       if (subfiles.contains(this.prefix + path + welcomeFile))
         return welcomeFile;
-      // check for servlets
-      //if (wac.getRequestDispatcher(path + welcomeFile, false) != null)
-      //  return welcomeFile;
-      //File wf = new File(res, welcomeFile);
-      //if (wf.exists())
-      //  return welcomeFile;
     }
     return null;
   }
@@ -221,84 +212,63 @@ public class StaticResourceServlet extends HttpServlet
     File children[] = dir.listFiles();
     Arrays.sort(children);
 
-    StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
+    // Build row content
+    StringWriter rowString = new StringWriter();
+    String oddColour      = this.resources.getString("StaticResourceServlet.DirectoryList.OddColour");
+    String evenColour     = this.resources.getString("StaticResourceServlet.DirectoryList.EvenColour");
+    String rowTextColour  = this.resources.getString("StaticResourceServlet.DirectoryList.RowTextColour");
 
-    pw.println("<html>");
-    pw.println("<head><title>Winstone directory listing - " +
-                  (path.equals("") ? "/" : path) + "</title></head>");
-    pw.println("<body bgcolor=\"#ffffff\">");
+    String directoryLabel = this.resources.getString("StaticResourceServlet.DirectoryList.DirectoryLabel");
+    String parentDirLabel = this.resources.getString("StaticResourceServlet.DirectoryList.ParentDirectoryLabel");
+    String noDateLabel    = this.resources.getString("StaticResourceServlet.DirectoryList.NoDateLabel");
 
-    // Heading
-    pw.println("<table border=\"0\" width=\"#90%\">");
-    pw.println("<tr><td bgcolor=\"#ffffff\"><h1><font color=\"#000033\">Directory - " +
-                  (path.equals("") ? "/" : path) + "</font></h1></td></tr>");
-    pw.println("</table>");
-    pw.println("<hr width=\"90%\" size=\"1\">");
+    Map rowKeys = new HashMap();
+    rowKeys.put("[#rowTextColour]", rowTextColour);
+    int rowCount = 0;
 
-    // Files section
-    pw.println("<center>");
-    pw.println("<table border=\"0\" width=\"90%\">");
-    int offset = 0;
+    // Write the parent dir row
     if (!path.equals("") && !path.equals("/"))
     {
-      writeLabels(pw);
-      writeDirectoryRow("Parent directory",  "..", dir.getParentFile(), pw, 0, "");
-      offset++;
+      rowKeys.put("[#rowColour]", evenColour);
+      rowKeys.put("[#fileLabel]", parentDirLabel);
+      rowKeys.put("[#fileHref]", "..");
+      rowKeys.put("[#fileDate]", noDateLabel);
+      rowKeys.put("[#fileLength]", directoryLabel);
+      rowString.write(this.resources.getString("StaticResourceServlet.DirectoryList.Row", rowKeys));
+      rowCount++;
     }
-    else
-      writeLabels(pw);
 
+    // Write the rows for each file
     for (int n = 0; n < children.length; n++)
       if (!children[n].getName().equalsIgnoreCase("web-inf"))
-        writeDirectoryRow(children[n].getName(), children[n].getName(), children[n],
-                          pw, n + offset, (path.startsWith("/") ? path.substring(1) : path) + "/");
-    pw.println("</table>");
-    pw.println("</center>");
+      {
+        File file = children[n];
+        rowKeys.put("[#rowColour]", rowCount % 2 == 0 ? evenColour : oddColour);
+        rowKeys.put("[#fileLabel]", file.getName() + (file.isDirectory() ? "/" : ""));
+        rowKeys.put("[#fileHref]", "./" + file.getName() + (file.isDirectory() ? "/" : ""));
+        rowKeys.put("[#fileDate]", file.isDirectory() ? noDateLabel : sdfFileDate.format(new Date(file.lastModified())));
+        rowKeys.put("[#fileLength]", file.isDirectory() ? directoryLabel : "" + file.length());
+        rowString.write(this.resources.getString("StaticResourceServlet.DirectoryList.Row", rowKeys));
+        rowCount++;
+      }
 
-    // Footer
-    pw.println("<hr width=\"90%\" size=\"1\">");
-    pw.println("<i>Directory list generated by " +
-              getServletConfig().getServletContext().getServerInfo() +
-              " at " + new Date());
-    pw.println("</body>");
-    pw.println("</html>");
-    pw.flush();
+    // Build wrapper body
+    Map bodyKeys = new HashMap();
+    bodyKeys.put("[#headerColour]", this.resources.getString("StaticResourceServlet.DirectoryList.HeaderColour"));
+    bodyKeys.put("[#headerTextColour]", this.resources.getString("StaticResourceServlet.DirectoryList.HeaderTextColour"));
+    bodyKeys.put("[#labelColour]", this.resources.getString("StaticResourceServlet.DirectoryList.LabelColour"));
+    bodyKeys.put("[#labelTextColour]", this.resources.getString("StaticResourceServlet.DirectoryList.LabelTextColour"));
+    bodyKeys.put("[#date]", new Date() + "");
+    bodyKeys.put("[#serverVersion]", this.resources.getString("ServerVersion"));
+    bodyKeys.put("[#path]", path.equals("") ? "/" : path);
+    bodyKeys.put("[#rows]", rowString.toString());
+    String out = this.resources.getString("StaticResourceServlet.DirectoryList.Body", bodyKeys);
 
-    String out = sw.toString();
     response.setContentLength(out.getBytes().length);
     response.setContentType("text/html");
     Writer w = response.getWriter();
     w.write(out);
     w.close();
-  }
-
-  private void writeLabels(PrintWriter pw)
-    throws IOException
-  {
-    pw.println("<tr bgcolor=\"#aeaeae\" color=\"#000033\">");
-    pw.println("<td align=\"center\"><font color=\"white\"><b>Name</b></font></td>");
-    pw.println("<td align=\"center\" width=\"100\"><font color=\"white\"><b>Size</b></font></td>");
-    pw.println("<td align=\"center\" width=\"150\"><font color=\"white\"><b>Date</b></font></td>");
-    pw.println("</tr>");
-  }
-
-  private void writeDirectoryRow(String label, String path, File file,
-                                 PrintWriter pw, int rowCount, String parentPath)
-    throws IOException
-  {
-    String rowColor = (rowCount % 2 == 0 ? "#cbcbcb" : "#dddddd");
-    pw.println("<tr bgcolor=\"" + rowColor + "\" color=\"#000033\">");
-    pw.println("<td><a href=\"./" + path + (file.isDirectory() ? "/" : "") + "\">" +
-                label + (file.isDirectory() ? "/" : "") + "</a></td>");
-    pw.println("<td align=\"right\">" +
-              (file.isDirectory() ? "(directory)" : "" + file.length()) +
-              "</td>");
-    pw.println("<td align=\"right\">" +
-              (file.isDirectory() ? "-" :
-                     this.sdfFileDate.format(new Date(file.lastModified()))) +
-              "</td>");
-    pw.println("</tr>");
   }
 }
 

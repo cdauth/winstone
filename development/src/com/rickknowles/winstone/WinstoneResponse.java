@@ -211,13 +211,9 @@ public class WinstoneResponse implements HttpServletResponse
   public void sendError(int sc, String msg) throws IOException
   {
     this.statusCode = sc;
-
-    StringWriter sw = new StringWriter();
-    sw.write(msg);
-
     Map params = new HashMap();
     params.put("[#statusCode]", sc + "");
-    params.put("[#msg]", sw.toString());
+    params.put("[#msg]", msg);
     params.put("[#serverVersion]", req.getWebAppConfig().getServerInfo());
     params.put("[#date]", "" + new Date());
   

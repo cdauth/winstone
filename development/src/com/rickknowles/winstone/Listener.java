@@ -51,6 +51,7 @@ public class Listener implements Runnable, EntityResolver
   private int DEFAULT_PORT = 8080;
   private int DEFAULT_CONTROL_PORT = -1;
   private boolean DEFAULT_HNL = true;
+  private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
   private int MIN_IDLE_REQUEST_HANDLERS_IN_POOL = 2;
   private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 10;
@@ -106,23 +107,31 @@ public class Listener implements Runnable, EntityResolver
         webXMLParentNode = webXMLDoc.getDocumentElement();
       }
     }
-    
+
     // Get options
     String dirLists = (String) args.get("directoryListings");
-    String useJasper = (String) args.get("jasper");
+    String useJasper = (String) args.get("useJasper");
+    String useWCL = (String) args.get("useWinstoneClassLoader");
+    String useInvoker = (String) args.get("useInvoker");
+    String invokerPrefix = (String) (args.get("invokerPrefix") == null
+                                                ? DEFAULT_INVOKER_PREFIX
+                                                : args.get("invokerPrefix"));
     String hnl = (String) args.get("doHostnameLookups");
 
-    this.connector = new HttpConnector(this.resources, hnl == null ? DEFAULT_HNL :
-                                       (hnl.equalsIgnoreCase("yes")
-                                          || hnl.equalsIgnoreCase("true")));
+    // Build switch values
+    boolean switchOnDirLists = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
+    boolean switchOnJasper   = (useJasper != null)  && (useJasper.equalsIgnoreCase("true")  || useJasper.equalsIgnoreCase("yes"));
+    boolean switchOnWCL      = (useWCL == null)     || (useWCL.equalsIgnoreCase("true")     || useWCL.equalsIgnoreCase("yes"));
+    boolean switchOnInvoker  = (useInvoker == null) || (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
+    boolean switchOnHNL      = (hnl == null ? DEFAULT_HNL : (hnl.equalsIgnoreCase("yes") || hnl.equalsIgnoreCase("true")));
+
+    this.connector = new HttpConnector(this.resources, switchOnHNL);
     this.webAppConfig = new WebAppConfiguration(webRoot.getCanonicalPath(),
                                                 (String) args.get("prefix"),
-                                                (dirLists == null)
-                                                   || dirLists.equalsIgnoreCase("true")
-                                                   || dirLists.equalsIgnoreCase("yes"),
-                                                (useJasper != null)
-                                                   && (useJasper.equalsIgnoreCase("true")
-                                                       || useJasper.equalsIgnoreCase("yes")),
+                                                switchOnDirLists,
+                                                switchOnJasper,
+                                                switchOnWCL,
+                                                switchOnInvoker ? invokerPrefix : null,
                                                 webXMLParentNode,
                                                 this.resources);
 
@@ -361,42 +370,7 @@ public class Listener implements Runnable, EntityResolver
 
   private static void printUsage(WinstoneResourceBundle resources)
   {
-    PrintWriter pw = new PrintWriter(System.out, true);
-    pw.println(resources.getString("Listener.UsageInstructions", "[#version]", resources.getString("ServerVersion")));
-/*
-    pw.println(resources.getString("ServerVersion") + ", (c) 2003 Rick Knowles");
-    pw.println("Usage: java com.rickknowles.winstone.Listener [-option value] [-option value] [etc]");
-    pw.println("");
-    pw.println("Options:");
-    pw.println("   -webroot           = set document root folder. ** REQUIRED OPTION **");
-    pw.println("   -prefix            = add this prefix to all URLs (eg http://localhost:8080/prefix/resource).");
-    pw.println("                        Default is none");
-    pw.println("   -debug             = set the level of debug msgs (1-9). Default is 5 (INFO level)");
-    pw.println("");
-    pw.println("   -port              = set the listening port. Default is 8080");
-    pw.println("   -controlPort       = set the listening port. -1 to disable, Default disabled");
-    pw.println("");
-    pw.println("   -directoryListings = enable directory lists (true/false). Default is true");
-    pw.println("   -jasper            = enable jasper JSP handling (true/false). Default is false");
-    pw.println("   -doHostnameLookups = enable host name lookups on incoming connections (true/false).");
-    pw.println("                        Default is true");
-    pw.println("   -usage / -help     = show this message");
-    pw.println("");
-    pw.println("This program is free software; you can redistribute it and/or");
-    pw.println("modify it under the terms of the GNU General Public License");
-    pw.println("Version 2 as published by the Free Software Foundation.");
-    pw.println("");
-    pw.println("This program is distributed in the hope that it will be useful,");
-    pw.println("but WITHOUT ANY WARRANTY; without even the implied warranty of");
-    pw.println("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the");
-    pw.println("GNU General Public License Version 2 for more details.");
-    pw.println("");
-    pw.println("You should have received a copy of the GNU General Public License");
-    pw.println("Version 2 along with this program; if not, write to the Free Software");
-    pw.println("Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.");
-    pw.println("");
-    pw.println("");
-*/
+    System.out.println(resources.getString("Listener.UsageInstructions", "[#version]", resources.getString("ServerVersion")));
   }
 }
 
