@@ -136,10 +136,12 @@ public class SecurityConstraint
   /**
    * Call this to evaluate the security constraint - is this constraint applicable to this url ?
    */
-  public boolean isApplicable(String url)
+  public boolean isApplicable(String url, String protocol)
   {
     for (int n = 0; n < this.urlPatterns.length; n++)
-      if (WebAppConfiguration.wildcardMatch(this.urlPatterns[n], url))
+      if (WebAppConfiguration.wildcardMatch(this.urlPatterns[n], url) &&
+          (this.methodSets[n].equals(".ALL.") || 
+          (this.methodSets[n].indexOf("." + protocol.toUpperCase() + ".") != -1)))
         return true;
 
     return false;

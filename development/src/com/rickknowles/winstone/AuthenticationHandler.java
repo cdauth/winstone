@@ -167,7 +167,7 @@ public abstract class AuthenticationHandler
     for (int n = 0; (n < this.constraints.length) && !foundApplicable; n++)
     {
       // Find one that applies, then
-      if (this.constraints[n].isApplicable(pathRequested))
+      if (this.constraints[n].isApplicable(pathRequested, request.getProtocol()))
       {
         //Logger.log(Logger.FULL_DEBUG, "Found applicable constraint");
         foundApplicable = true;
