@@ -109,7 +109,7 @@ public class Launcher implements EntityResolver, Runnable
         this.cluster = (Cluster) clusterConstructor.newInstance(new Object[] {args, resources, new Integer(this.controlPort)});
       }
       catch (Throwable err)
-        {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"));}
+        {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.ClusterNotFound"));}
     }
 
     // Create connectors (http and ajp)

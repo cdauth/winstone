@@ -53,7 +53,7 @@ public class ClusterSessionSearch implements Runnable
    */
   public ClusterSessionSearch(String sessionId, String ipPort, int controlPort, WinstoneResourceBundle resources)
   {
-    this.resources= resources;
+    this.resources = resources;
     this.isFinished = false;
     this.interrupted = false;
     this.searchId = sessionId;
@@ -110,4 +110,5 @@ public class ClusterSessionSearch implements Runnable
   public boolean isFinished() {return this.isFinished;}
   public WinstoneSession getResult() {return this.result;}
   public void destroy() {this.interrupted = true;}
+  public String getAddressPort() {return this.searchAddressPort;}
 }

@@ -77,7 +77,7 @@ public class SimpleCluster implements Runnable, Cluster
     
     // Start cluster init thread
     this.initialClusterNodes = (String) args.get("clusterNodes");
-    Thread thread = new Thread(this, resources.getString("SimpleCluster.ThreadName"));
+    Thread thread = new Thread(this, localResources.getString("SimpleCluster.ThreadName"));
     thread.setDaemon(true);
     thread.setPriority(Thread.MIN_PRIORITY);
     thread.start();
@@ -99,7 +99,7 @@ public class SimpleCluster implements Runnable, Cluster
         askClusterNodeForNodeList(st.nextToken());
     }
     
-    Logger.log(Logger.FULL_DEBUG, localResources.getString("SimpleCluster.InitNodes", 
+    Logger.log(Logger.DEBUG, localResources.getString("SimpleCluster.InitNodes", 
                                     "[#nodes]", "" + this.clusterAddresses.size()));
     
     while (!interrupted)
@@ -154,6 +154,7 @@ public class SimpleCluster implements Runnable, Cluster
     
     // Wait until we get an answer
     WinstoneSession answer = null;
+    String senderThread = null;
     boolean finished = false;
     while (!finished)
     {
@@ -167,7 +168,10 @@ public class SimpleCluster implements Runnable, Cluster
         else if (searchThread.getResult() == null)
           finishedThreads.add(searchThread);
         else
+        {
           answer = searchThread.getResult();
+          senderThread = searchThread.getAddressPort();
+        }
       }
       
       // Remove finished threads
@@ -187,7 +191,11 @@ public class SimpleCluster implements Runnable, Cluster
       searchThread.destroy();
     }
     if (answer != null)
+    {
       answer.activate(webAppConfig);
+      Logger.log(Logger.DEBUG, localResources.getString("SimpleCluster.SessionTransferredFrom", 
+                                                        "[#address]", senderThread));
+    }
     return answer;
   }
   
@@ -228,7 +236,7 @@ public class SimpleCluster implements Runnable, Cluster
       clusterListSocket.close();
     }
     catch (ConnectException err) 
-      {Logger.log(Logger.INFO, localResources.getString("SimpleCluster.NoNodeListResponse", 
+      {Logger.log(Logger.DEBUG, localResources.getString("SimpleCluster.NoNodeListResponse", 
                                                          "[#address]", address));}
     catch (Throwable err)
       {Logger.log(Logger.ERROR, localResources.getString("SimpleCluster.ErrorGetNodeList", 
@@ -310,7 +318,7 @@ public class SimpleCluster implements Runnable, Cluster
       outData.flush();
       if (inControl.readUTF().equals(ClusterSessionSearch.SESSION_RECEIVED))
         session.passivate();
-      Logger.log(Logger.DEBUG, localResources.getString("SimpleCluster.SessionTransferred", 
+      Logger.log(Logger.DEBUG, localResources.getString("SimpleCluster.SessionTransferredTo", 
                                                         "[#address]", ipPortSender));
     }
     else

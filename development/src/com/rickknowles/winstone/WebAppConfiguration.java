@@ -637,8 +637,8 @@ public class WebAppConfiguration implements ServletContext
       ws.setMaxInactiveInterval(this.sessionTimeout.intValue() * 60);
     else
       ws.setMaxInactiveInterval(-1);
-    this.sessions.put(sessionId, ws);
     ws.sendCreatedNotifies();
+    this.sessions.put(sessionId, ws);
     return ws;
   }
 
