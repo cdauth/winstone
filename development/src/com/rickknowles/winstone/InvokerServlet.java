@@ -32,6 +32,7 @@ import java.util.*;
 public class InvokerServlet extends HttpServlet
 {
   final String RESOURCE_FILE    = "com.rickknowles.winstone.LocalStrings";
+  final String JSP_FILE         = "org.apache.catalina.jsp_file";
 
   private WinstoneResourceBundle resources;
   private Map mountedInstances;
@@ -150,13 +151,13 @@ public class InvokerServlet extends HttpServlet
     throws ServletException, IOException
   {
     // Get the servlet instance if possible
-    String localPath = extractLocalPath(req.getRequestURI());
+    String localPath = (String) req.getAttribute(JSP_FILE);
     ServletConfiguration invokedServlet = getInvokableInstance(localPath);
 
     if (invokedServlet == null)
     {
       String errMsg = this.resources.getString("InvokerServlet.NoMatchingServletFound",
-                                 "[#requestURI]", req.getRequestURI());
+                                 "[#requestURI]", localPath);
       Logger.log(Logger.WARNING, errMsg);
       rsp.sendError(HttpServletResponse.SC_NOT_FOUND, errMsg);
     }
@@ -168,13 +169,13 @@ public class InvokerServlet extends HttpServlet
     throws ServletException, IOException
   {
     // Get the servlet instance if possible
-    String localPath = extractLocalPath(req.getRequestURI());
+    String localPath = (String) req.getAttribute(JSP_FILE);
     ServletConfiguration invokedServlet = getInvokableInstance(localPath);
 
     if (invokedServlet == null)
       rsp.sendError(HttpServletResponse.SC_NOT_FOUND,
         this.resources.getString("InvokerServlet.NoMatchingServletFound",
-                                 "[#requestURI]", req.getRequestURI()));
+                                 "[#requestURI]", localPath));
     else
       invokedServlet.getRequestDispatcher(localPath, null, null, null).forward(req, rsp);
   }

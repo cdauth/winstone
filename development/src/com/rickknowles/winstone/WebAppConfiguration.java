@@ -91,6 +91,8 @@ public class WebAppConfiguration implements ServletContext
   final String DEFAULT_REALM_CLASS    = "com.rickknowles.winstone.realm.ArgumentsRealm";
   final String DEFAULT_JNDI_MGR_CLASS = "com.rickknowles.winstone.jndi.WebAppJNDIManager";
 
+  final String RELOADING_CL_CLASS     = "com.rickknowles.winstone.classloader.ReloadingClassLoader";
+
   private WinstoneResourceBundle resources;
   private Launcher launcher;
   private String webRoot;
@@ -153,9 +155,25 @@ public class WebAppConfiguration implements ServletContext
     this.webRoot = webRoot;
     this.prefix = (prefix != null ? prefix : "");
     this.contextName = WEBAPP_LOGSTREAM;
-    this.loader = (useWinstoneClassLoader
-      ? new WinstoneClassLoader(this, this.getClass().getClassLoader(), this.resources, servletReloading)
-      : this.getClass().getClassLoader());
+
+    // Try to set up the reloading class loader, and if we fail, use the normal one
+    if (useWinstoneClassLoader && servletReloading)
+    try
+    {
+      Class reloaderClass = Class.forName(RELOADING_CL_CLASS);
+      Constructor reloadConstr = reloaderClass.getConstructor(new Class[] 
+        {this.getClass(), ClassLoader.class, WinstoneResourceBundle.class});
+      this.loader = (ClassLoader) reloadConstr.newInstance(new Object[] 
+        {this, this.getClass().getClassLoader(), this.resources});
+    }
+    catch (Throwable err)
+      {Logger.log(Logger.ERROR, "Erroring setting class loader", err);}
+
+    if (this.loader == null)
+      this.loader = (useWinstoneClassLoader
+        ? new WinstoneClassLoader(this, this.getClass().getClassLoader(), this.resources)
+        : this.getClass().getClassLoader());
+
 
     this.attributes = new Hashtable();
     this.initParameters = new HashMap();
