@@ -181,9 +181,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         request.setAttribute(JSP_FILE, this.requestedPath);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
-          {this.instance.service(request, fwdResponse);}
+          {this.instance.service(request, response);}
       else
-        this.instance.service(request, fwdResponse);
+        this.instance.service(request, response);
       Thread.currentThread().setContextClassLoader(cl);
     }
   }
