@@ -54,9 +54,10 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
   static final String DATATYPES_LOCAL = "javax/servlet/resources/datatypes.dtd";
   static final String WS_CLIENT_LOCAL = "javax/servlet/resources/j2ee_web_services_client_1_1.xsd";
   
-  static final String HTTP_LISTENER_CLASS = "winstone.HttpListener";
-  static final String AJP_LISTENER_CLASS  = "winstone.ajp13.Ajp13Listener";
-  static final String CLUSTER_CLASS       = "winstone.cluster.SimpleCluster";
+  static final String HTTP_LISTENER_CLASS  = "winstone.HttpListener";
+  static final String HTTPS_LISTENER_CLASS = "winstone.ssl.HttpsListener";
+  static final String AJP_LISTENER_CLASS   = "winstone.ajp13.Ajp13Listener";
+  static final String CLUSTER_CLASS        = "winstone.cluster.SimpleCluster";
   
   final String CRIMSON_PREFIX = "org.apache.crimson.";
 
@@ -172,6 +173,15 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
     }
     catch (Throwable err)
       {Logger.log(Logger.DEBUG, this.resources, "Launcher.HTTPNotFound");}
+    try
+    {
+      Class httpsClass = Class.forName(HTTPS_LISTENER_CLASS);
+      Constructor httpsConstructor = httpsClass.getConstructor(new Class[] {Map.class, WinstoneResourceBundle.class, ObjectPool.class});
+      Listener httpsListener = (Listener) httpsConstructor.newInstance(new Object[] {args, resources, this.objectPool});
+      this.listeners.add(httpsListener);
+    }
+    catch (Throwable err)
+      {Logger.log(Logger.DEBUG, this.resources, "Launcher.AJPNotFound");}
     try
     {
       Class ajpClass = Class.forName(AJP_LISTENER_CLASS);
