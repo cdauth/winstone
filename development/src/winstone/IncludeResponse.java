@@ -18,6 +18,8 @@
 package winstone;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.Locale;
 import java.io.ByteArrayOutputStream;
 
@@ -58,7 +60,18 @@ public class IncludeResponse extends HttpServletResponseWrapper
     String bodyBlock = (underlyingEncoding != null
             ? new String(this.includedBody.toByteArray(), underlyingEncoding)
             : new String(this.includedBody.toByteArray()));
-    getResponse().getWriter().write(bodyBlock);
+    
+    // Try to write the body in
+    Writer out = null;
+    try {
+        out = getResponse().getWriter();
+    } catch (IllegalStateException err) {
+        out = new OutputStreamWriter(getResponse().getOutputStream(), 
+                underlyingEncoding);
+    }
+    out.write(bodyBlock);
+    out.flush();
+    out.close();
   }
   
   public void addCookie(Cookie cookie)  {}

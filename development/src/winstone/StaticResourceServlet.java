@@ -154,15 +154,22 @@ public class StaticResourceServlet extends HttpServlet
       response.setContentLength((int) res.length());
       response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
       response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
-      OutputStream out = response.getOutputStream();
+      OutputStream out = null;
+      Writer outWriter = null;
+      try 
+        {out = response.getOutputStream();} 
+      catch (IOException err) 
+        {outWriter = response.getWriter();}
       byte buffer[] = new byte[4096];
       int read = resStream.read(buffer);
       while (read > 0)
       {
-        out.write(buffer, 0, read);
+        if (out != null) 
+          out.write(buffer, 0, read);
+        else
+          outWriter.write(new String(buffer, 0, read, response.getCharacterEncoding()));
         read = resStream.read(buffer);
       }
-      out.close();
       resStream.close();
     }
     else if (request.getHeader(RANGE_HEADER).startsWith("bytes="))
@@ -214,7 +221,6 @@ public class StaticResourceServlet extends HttpServlet
           bytesRead++;
         }
       }
-      out.close();
       resStream.close();
     }
     else
