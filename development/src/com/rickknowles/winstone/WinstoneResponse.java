@@ -39,12 +39,13 @@ public class WinstoneResponse implements HttpServletResponse
 
   private int statusCode;
   private WinstoneRequest req;
+  private WebAppConfiguration webAppConfig;
   private HttpProtocol protocolClass;
   private WinstoneOutputStream outputStream;
   private List headers;
   private String encoding;
   private List cookies;
-  private int contentLength;
+  //private int contentLength;
   private Writer outWriter;
 
   private WinstoneResourceBundle resources;
@@ -52,23 +53,39 @@ public class WinstoneResponse implements HttpServletResponse
   /**
    * Constructor
    */
-  public WinstoneResponse(WinstoneRequest req,
-                          HttpProtocol protocolClass,
-                          WinstoneResourceBundle resources)
+  public WinstoneResponse(WinstoneResourceBundle resources, HttpProtocol protocolClass)
   {
     this.resources = resources;
-    this.req = req;
     this.protocolClass = protocolClass;
     this.headers = new ArrayList();
     this.cookies = new ArrayList();
     this.encoding = null; // default
 
     this.statusCode = SC_OK;
-    //protocolClass.validateHeaders(req, this);
+    updateContentTypeHeader("text/html");
+  }
+
+  /**
+   * Resets the request to be reused
+   */
+  public void cleanUp()
+  {
+    this.req = null;
+    this.webAppConfig = null;
+    this.outputStream = null;
+    this.headers.clear();
+    this.encoding = null;
+    this.cookies.clear();
+    this.outWriter = null;
+
+    this.statusCode = SC_OK;
     updateContentTypeHeader("text/html");
   }
 
   public void setOutputStream(WinstoneOutputStream outData) {this.outputStream = outData;}
+  public void setWebAppConfig(WebAppConfiguration webAppConfig) {this.webAppConfig = webAppConfig;}
+  public void setProtocolClass(HttpProtocol protocolClass) {this.protocolClass = protocolClass;}
+  public void setRequest(WinstoneRequest req) {this.req = req;}
 
   public String getProtocol()   {return this.req.getProtocol();}
   public List   getHeaders()    {return this.headers;}
@@ -230,21 +247,43 @@ public class WinstoneResponse implements HttpServletResponse
     {sendError(sc, null);}
   public void sendError(int sc, String msg) throws IOException
   {
-    this.statusCode = sc;
-    Map params = new HashMap();
-    params.put("[#statusCode]", sc + "");
-    params.put("[#msg]", msg);
-    params.put("[#serverVersion]", resources.getString("ServerVersion"));
-    params.put("[#date]", "" + new Date());
-  
-    String output = resources.getString("WinstoneResponse.ErrorPage", params);
-    if (this.encoding == null)
-      setContentLength(output.getBytes().length);
-    else
-      setContentLength(output.getBytes(encoding).length);
-    Writer out = getWriter();
-    out.write(output);
-    out.close();
+    boolean found = false;
+    if ((this.webAppConfig != null) && (this.req != null) &&
+        (this.webAppConfig.getErrorPagesByCode().get("" + sc) != null))
+    {
+      String errorPage = (String) this.webAppConfig.getErrorPagesByCode().get("" + sc);
+      javax.servlet.RequestDispatcher rd = this.webAppConfig.getRequestDispatcher(errorPage);
+      try
+      {
+        rd.forward(this.req, this);
+        found = true;
+      }
+      catch (IllegalStateException err) {throw err;}
+      catch (IOException err) {throw err;}
+      catch (Throwable err)
+        {Logger.log(Logger.WARNING, this.resources.getString("WinstoneResponse.ErrorInErrorPage",
+              "[#path]", errorPage, "[#code]", sc + ""), err);}
+    }
+
+    // If all fails, show the default page
+    if (!found)
+    {
+      this.statusCode = sc;
+      Map params = new HashMap();
+      params.put("[#statusCode]", sc + "");
+      params.put("[#msg]", msg);
+      params.put("[#serverVersion]", resources.getString("ServerVersion"));
+      params.put("[#date]", "" + new Date());
+
+      String output = resources.getString("WinstoneResponse.ErrorPage", params);
+      if (this.encoding == null)
+        setContentLength(output.getBytes().length);
+      else
+        setContentLength(output.getBytes(encoding).length);
+      Writer out = getWriter();
+      out.write(output);
+      out.close();
+    }
   }
 
   public void sendRedirect(String location) throws IOException
@@ -253,6 +292,47 @@ public class WinstoneResponse implements HttpServletResponse
     setHeader(this.protocolClass.LOCATION_HEADER, location);
     setContentLength(0);
     getWriter().close();
+  }
+
+  /**
+   * Method used for handling untrapped errors. It looks to see if there are any
+   * errorPage directives for this class first, then falls through to the
+   * default error page if there are none.
+   */
+  public void sendUntrappedError(Throwable err,
+      WinstoneRequest req) throws IOException
+  {
+    boolean found = false;
+    if ((this.webAppConfig != null) &&
+        !this.webAppConfig.getErrorPagesByException().isEmpty())
+    {
+      Map errorPages = this.webAppConfig.getErrorPagesByException();
+      for (Iterator i = errorPages.keySet().iterator(); i.hasNext(); )
+      {
+        String testErrorClassName = (String) i.next();
+        try
+        {
+          Class testErrorClass = Class.forName(testErrorClassName);
+          if (testErrorClass.isInstance(err))
+          {
+            javax.servlet.RequestDispatcher rd = this.webAppConfig
+              .getRequestDispatcher((String) errorPages.get(testErrorClassName));
+            found = true;
+            rd.forward(req, this);
+          }
+        }
+        catch (Throwable err2) {/* Skipping */}
+      }
+    }
+
+    // Fall through to the default page if no webapp or no errorPage tags
+    if (!found)
+    {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw, true);
+      err.printStackTrace(pw);
+      sendError(SC_INTERNAL_SERVER_ERROR, resources.getString("WinstoneResponse.ServletExceptionPage", "[#stackTrace]", sw.toString()));
+    }
   }
 
 }

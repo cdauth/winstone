@@ -5,5 +5,8 @@ DONE - Add auto WAR extract instead of webroot
 DONE - Change build process to use external ant
 DONE - Add listener handlers, etc
 DONE - Add filter handling code
+DONE - Refactor HttpConnector links, and build an ajp13 connector
+DONE - Implement errorPage directives in web.xml
      - Add authentication/security model - pluggable if possible, so Winstone can work in non-security mode
-     - Refactor HttpConnector links, and try to build an ajp13 connector
+     - Implement session clustering between multiple Winstone instances
+     - Add in request/response object pools to improve execution time

@@ -160,7 +160,7 @@ public class Launcher implements EntityResolver, Runnable
       this.listeners.add(httpListener);
     }
     catch (Throwable err)
-      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"));}
+      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"), err);}
     try
     {
       Class ajpClass = Class.forName(AJP_LISTENER_CLASS);
@@ -334,10 +334,7 @@ public class Launcher implements EntityResolver, Runnable
       // If we are out (and not over our limit), allocate a new one
       else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL)
       {
-        // XXX This is scary, cause we should make sure the thread is completely
-        // in the wait state before requesting it to start
         RequestHandlerThread rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
-        this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
         Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.NewRHPoolThread",
             "[#used]", "" + this.usedRequestHandlerThreads.size(),

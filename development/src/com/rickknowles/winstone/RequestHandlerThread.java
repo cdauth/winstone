@@ -136,6 +136,7 @@ public class RequestHandlerThread implements Runnable
 
             // Lookup a dispatcher, then process with it
             req.setWebAppConfig(this.webAppConfig);
+            rsp.setWebAppConfig(this.webAppConfig);
             processRequest(req, rsp, path);
             this.outData.finishResponse();
             this.inData.finishRequest();
@@ -154,11 +155,16 @@ public class RequestHandlerThread implements Runnable
           }
           catch (SocketException errIO) {continueFlag = false;}
         }
+        this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
         this.listener.releaseSocket(this.socket, inSocket, outSocket); //shut sockets
       }
       catch (Throwable err)
       {
-        try {this.listener.releaseSocket(this.socket, inSocket, outSocket);} //shut sockets
+        try
+        {
+          this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
+          this.listener.releaseSocket(this.socket, inSocket, outSocket); //shut sockets
+        }
         catch (Throwable errClose) {}
         Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.RequestError"), err);
       }
@@ -193,7 +199,7 @@ public class RequestHandlerThread implements Runnable
       if (rd != null)
       {
         Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.HandlingRD") + ((RequestDispatcher) rd).getName());
-        rd.forward(new HttpServletRequestWrapper(req), new HttpServletResponseWrapper(rsp));
+        rd.forward(req, rsp);
       }
       else
         Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.NullRD"));
@@ -201,12 +207,8 @@ public class RequestHandlerThread implements Runnable
     catch (Throwable err)
     {
       Logger.log(Logger.WARNING, resources.getString("RequestHandlerThread.UntrappedError"), err);
-
-      StringWriter sw = new StringWriter();
-      PrintWriter pw = new PrintWriter(sw, true);
-      err.printStackTrace(pw);
       rsp.resetBuffer();
-      rsp.sendError(rsp.SC_INTERNAL_SERVER_ERROR, resources.getString("RequestHandlerThread.ServletExceptionPage", "[#stackTrace]", sw.toString()));
+      rsp.sendUntrappedError(err, req);
     }
     rsp.flushBuffer();
     rsp.verifyContentLength();

@@ -65,6 +65,10 @@ public class WebAppConfiguration implements ServletContext
   final String ELEM_LISTENER        = "listener";
   final String ELEM_LISTENER_CLASS  = "listener-class";
   final String ELEM_DISTRIBUTABLE   = "distributable";
+  final String ELEM_ERROR_PAGE      = "error-page";
+  final String ELEM_EXCEPTION_TYPE  = "exception-type";
+  final String ELEM_ERROR_CODE      = "error-code";
+  final String ELEM_ERROR_LOCATION  = "location";
 
   static final String STAR = "*";
   final String WEBAPP_LOGSTREAM = "WebApp";
@@ -113,6 +117,9 @@ public class WebAppConfiguration implements ServletContext
   private Integer sessionTimeout;
   private boolean distributable;
 
+  private Map errorPagesByException;
+  private Map errorPagesByCode;
+
   private ServletConfiguration staticResourceProcessor;
 
   /**
@@ -136,11 +143,11 @@ public class WebAppConfiguration implements ServletContext
       : this.getClass().getClassLoader());
 
     this.attributes = new Hashtable();
-    this.initParameters = new Hashtable();
+    this.initParameters = new HashMap();
     this.sessions = new Hashtable();
 
-    this.servletInstances = new Hashtable();
-    this.filterInstances = new Hashtable();
+    this.servletInstances = new HashMap();
+    this.filterInstances = new HashMap();
 
     this.contextAttributeListeners = new ArrayList();
     this.contextListeners = new ArrayList();
@@ -148,6 +155,8 @@ public class WebAppConfiguration implements ServletContext
     this.sessionAttributeListeners = new ArrayList();
     this.sessionListeners = new ArrayList();
 
+    this.errorPagesByException = new HashMap();
+    this.errorPagesByCode = new HashMap();
     this.distributable = false;
 
     this.exactServletMatchMounts = new Hashtable();
@@ -336,6 +345,33 @@ public class WebAppConfiguration implements ServletContext
               localWelcomeFiles.add(welcomeFile.getFirstChild().getNodeValue().trim());
           }
 
+        // Process the error pages
+        else if (nodeName.equals(ELEM_ERROR_PAGE))
+        {
+          String code      = null;
+          String exception = null;
+          String location  = null;
+
+          // Parse the element and extract
+          for (int k = 0; k < child.getChildNodes().getLength(); k++)
+          {
+            Node errorChild = child.getChildNodes().item(k);
+            if (errorChild.getNodeType() != Node.ELEMENT_NODE)
+              continue;
+            String errorChildName = errorChild.getNodeName();
+            if (errorChildName.equals(ELEM_ERROR_CODE))
+              code = errorChild.getFirstChild().getNodeValue().trim();
+            else if (errorChildName.equals(ELEM_EXCEPTION_TYPE))
+              exception = errorChild.getFirstChild().getNodeValue().trim();
+            else if (errorChildName.equals(ELEM_ERROR_LOCATION))
+              location = errorChild.getFirstChild().getNodeValue().trim();
+          }
+          if ((code != null) && (location != null))
+            this.errorPagesByCode.put(code.trim(), location.trim());
+          if ((exception != null) && (location != null))
+            this.errorPagesByException.put(exception.trim(), location.trim());
+        }
+
         // Process the list of welcome files
         else if (nodeName.equals(ELEM_MIME_MAPPING))
         {
@@ -418,10 +454,12 @@ public class WebAppConfiguration implements ServletContext
       ((ServletContextListener) i.next()).contextInitialized(new ServletContextEvent(this));
   }
 
-  public String getPrefix()         {return this.prefix;}
-  public String getWebroot()        {return this.webRoot;}
-  public Map getSessions()          {return this.sessions;}
-  public String[] getWelcomeFiles() {return this.welcomeFiles;}
+  public String getPrefix()             {return this.prefix;}
+  public String getWebroot()            {return this.webRoot;}
+  public Map getSessions()              {return this.sessions;}
+  public Map getErrorPagesByException() {return this.errorPagesByException;}
+  public Map getErrorPagesByCode()      {return this.errorPagesByCode;}
+  public String[] getWelcomeFiles()     {return this.welcomeFiles;}
 
   /**
    * Iterates through each of the servlets and calls destroy on them
@@ -702,6 +740,5 @@ public class WebAppConfiguration implements ServletContext
     }
     return out;
   }
-
 }
 

@@ -71,18 +71,48 @@ public class WinstoneRequest implements HttpServletRequest
   /**
    * InputStream factory method.
    */
-  public WinstoneRequest(HttpProtocol protocolClass,
-                         Listener listener,
-                         WinstoneResourceBundle resources)
-    throws IOException
+  public WinstoneRequest(Listener listener, HttpProtocol protocolClass,
+      WinstoneResourceBundle resources) throws IOException
   {
-    this.resources = resources;
-    this.protocolClass = protocolClass;
     this.listener = listener;
+    this.protocolClass = protocolClass;
+    this.resources = resources;
     this.attributes = new Hashtable();
     this.parameters = new Hashtable();
     this.locales = new ArrayList();
     this.contentLength = -1;
+    this.isSecure = false;
+  }
+
+  /**
+   * Resets the request to be reused
+   */
+  public void cleanUp()
+  {
+    this.attributes.clear();
+    this.parameters.clear();
+    this.headers = null;
+    this.cookies = null;
+    this.method = null;
+    this.scheme = null;
+    this.serverName = null;
+    this.requestURI = null;
+    this.servletPath = null;
+    this.queryString = null;
+    this.protocol = null;
+    this.contentLength = -1;
+    this.contentType = null;
+    this.encoding = null;
+    this.inputData = null;
+    this.servletConfig = null;
+    this.webappConfig = null;
+    this.serverPort = -1;
+    this.remoteIP = null;
+    this.remoteName = null;
+    this.parsedParameters = null;
+    this.sessionCookie = null;
+    this.locales.clear();
+    this.authorization = null;
     this.isSecure = false;
   }
 
@@ -115,6 +145,8 @@ public class WinstoneRequest implements HttpServletRequest
 
   public void setInputStream(WinstoneInputStream inputData) {this.inputData = inputData;}
   public void setWebAppConfig(WebAppConfiguration webappConfig)  {this.webappConfig = webappConfig;}
+  public void setListener(Listener listener) {this.listener = listener;}
+  public void setProtocolClass(HttpProtocol protocolClass) {this.protocolClass = protocolClass;}
 
   public void setServerPort(int port)       {this.serverPort = port;}
   public void setRemoteIP(String remoteIP)  {this.remoteIP = remoteIP;}

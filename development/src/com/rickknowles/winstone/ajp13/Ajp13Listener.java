@@ -124,8 +124,10 @@ public class Ajp13Listener implements Listener, Runnable
     OutputStream outSocket, RequestHandlerThread handler, boolean iAmFirst)
     throws SocketException, IOException
   {
-    WinstoneRequest req = new WinstoneRequest(protocol, this, this.resources);
-    WinstoneResponse rsp = new WinstoneResponse(req, protocol, resources);
+    WinstoneRequest req = new WinstoneRequest(this, this.protocol, this.resources);
+    WinstoneResponse rsp = new WinstoneResponse(resources, this.protocol);
+    rsp.setRequest(req);
+    rsp.setProtocolClass(this.protocol);
 
     if (iAmFirst || (KEEP_ALIVE_TIMEOUT == -1))
       socket.setSoTimeout(CONNECTION_TIMEOUT);
