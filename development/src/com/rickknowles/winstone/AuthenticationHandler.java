@@ -20,8 +20,8 @@ package com.rickknowles.winstone;
 import java.lang.reflect.*;
 import java.util.*;
 import org.w3c.dom.Node;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.ServletException;
 import java.io.IOException;
 
 /**
@@ -156,10 +156,11 @@ public abstract class AuthenticationHandler
    */
   public boolean processAuthentication(WinstoneRequest request,
     WinstoneResponse response, String pathRequested)
-    throws IOException
+    throws IOException, ServletException
   {
     // Give previous attempts a chance to be validated
-    validatePossibleAuthenticationResponse(request, response, pathRequested);
+    if (!validatePossibleAuthenticationResponse(request, response, pathRequested))
+      return false;
 
     // Loop through constraints
     boolean foundApplicable = false;
@@ -192,7 +193,7 @@ public abstract class AuthenticationHandler
           // Ensure that secured resources are not cached
           response.setHeader("Pragma", "No-cache");
           response.setHeader("Cache-Control", "No-cache");
-          response.setDateHeader("Expires", 0);
+          response.setDateHeader("Expires", 1);
         }
       }
     }
@@ -204,16 +205,17 @@ public abstract class AuthenticationHandler
   /**
    * The actual auth request implementation.
    */
-  protected abstract void requestAuthentication(HttpServletRequest request,
-    HttpServletResponse response, String pathRequested) throws IOException;
+  protected abstract void requestAuthentication(WinstoneRequest request,
+  WinstoneResponse response, String pathRequested) 
+      throws IOException, ServletException;
 
   /**
    * Handling the (possible) response
    */
-  protected abstract void validatePossibleAuthenticationResponse(
+  protected abstract boolean validatePossibleAuthenticationResponse(
     WinstoneRequest request, WinstoneResponse response, String pathRequested)
-      throws IOException;
-
+      throws ServletException, IOException;
+      
   /**
    * Useful helper method ... base 64 decoding for strings
    */

@@ -45,7 +45,9 @@ public class WinstoneSession implements javax.servlet.http.HttpSession
   private List sessionListeners;
   private boolean distributable;
   private WinstoneResourceBundle resources;
-  
+  private AuthenticationPrincipal authenticatedUser;
+  private WinstoneRequest cachedRequest; 
+    
   /**
    * Constructor
    */
@@ -123,16 +125,14 @@ public class WinstoneSession implements javax.servlet.http.HttpSession
   public long getLastAccessedTime() {return this.lastAccessedTime;}
   public String getId()             {return this.sessionId;}
 
-  public Object getValue(String name)             {return getAttribute(name);}
-  public void putValue(String name, Object value) {setAttribute(name, value);}
-  public void removeValue(String name)            {removeAttribute(name);}
-  public String[] getValueNames()
-    {return (String []) this.sessionData.keySet().toArray(new String[this.sessionData.size()]);}
+  public WinstoneRequest getCachedRequest() {return this.cachedRequest;}
+  public void setCachedRequest(WinstoneRequest req) {this.cachedRequest = req;}
+  public AuthenticationPrincipal getAuthenticatedUser() {return this.authenticatedUser;}
+  public void setAuthenticatedUser(AuthenticationPrincipal user) {this.authenticatedUser = user;}
 
   public int  getMaxInactiveInterval()                {return this.maxInactivePeriod;}
   public void setMaxInactiveInterval(int interval)    {this.maxInactivePeriod = interval;}
   public boolean isNew()                              {return this.isNew;}
-  public HttpSessionContext getSessionContext()       {return null;} // deprecated
   public ServletContext getServletContext()           {return this.webAppConfig;}
 
   public void invalidate()
@@ -146,5 +146,27 @@ public class WinstoneSession implements javax.servlet.http.HttpSession
     for (Iterator i = this.sessionListeners.iterator(); i.hasNext(); )
       ((HttpSessionListener) i.next()).sessionDestroyed(new HttpSessionEvent(this));
   }
+
+  /**
+   * @deprecated
+   */
+  public Object getValue(String name)             {return getAttribute(name);}
+  /**
+   * @deprecated
+   */
+  public void putValue(String name, Object value) {setAttribute(name, value);}
+  /**
+   * @deprecated
+   */
+  public void removeValue(String name)            {removeAttribute(name);}
+  /**
+   * @deprecated
+   */
+  public String[] getValueNames()
+    {return (String []) this.sessionData.keySet().toArray(new String[this.sessionData.size()]);}
+  /**
+   * @deprecated
+   */
+  public HttpSessionContext getSessionContext()       {return null;} // deprecated
 }
 

@@ -3,7 +3,7 @@
   <title>Winstone Servlet Container</title>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.3.1</h1></center>
+<center><h1>Winstone Servlet Container v0.4</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
   <hr width="90%" size="1" noshade="true"/>
@@ -49,7 +49,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.3.1.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.4.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -58,11 +58,11 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.3.1.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.4.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.3.1.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.4.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p>The winstone.jar file will be in the winstone/dist directory after the build is complete.</p>
 
@@ -70,7 +70,7 @@
 
   <pre>
 Syntax:
-  java -jar winstone_v0.3.1.jar [--option=value] [--option=value] etc
+  java -jar winstone_v0.4.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile
    --webroot                = set document root folder.
@@ -100,8 +100,11 @@ Other options:
 
 Security options:
    --realmClass                   = Set the realm class to use for user authentication. Defaults to ArgumentsRealm class
+
    --argumentsRealm.passwd.&lt;user&gt; = Password for user &lt;user&gt;. Only valid for the ArgumentsRealm realm class
    --argumentsRealm.roles.&lt;user&gt;  = Roles for user &lt;user&gt; (comma separated). Only valid for the ArgumentsRealm realm class
+
+   --fileRealm.configFile         = File containing users/passwds/roles. Only valid for the FileRealm realm class
 </pre>
 
 <h2>Configuration file</h2>
@@ -145,7 +148,7 @@ Security options:
 
 <h2>Recent additions</h2>
 
-  <p>New features in v0.3.1:</p>
+  <p>New features in v0.4:</p>
 
   <ul>
     <li>Implemented the <b>&lt;error-page&gt;</b> directive</li>
@@ -153,11 +156,11 @@ Security options:
     <li>The handler pools are now controllable via startup properties</li>
     <li><b>Servlet reloading</b> is now supported (optionally - include 
       <code>--useServletReloading=true</code> at startup)</li>
-    <li>The initial <b>Authentication Model</b> is in place. There are two base classes that make 
-      it work: <code>AuthenticationRealm</code> and <code>AuthenticationHandler</code>. Currently
-      only argument realms (ie user/password details supplied via command-line args) and HTTP BASIC
-      authentication are implemented, but the rest will come soon. It's simple enough to add JDBC
-      or xml-file based realm support, for example, and FORM authentication will be coming soon.</li>
+    <li>The initial <b>Authentication Model</b> is in place (see below for help). There are two base 
+      classes that make it work: <code>AuthenticationRealm</code> and <code>AuthenticationHandler</code>. 
+      Currently Argument-based and File-based realms (ie user/password details supplied via command-line args 
+      or XML files) and HTTP BASIC and FORM authentication are implemented, but the others (DIGEST and 
+     CERT authentication forms) will come soon.</li>
   </ul>
 
   <p>New features in v0.3:</p>
@@ -242,11 +245,11 @@ Security options:
     <li>Download mod_jk2.dll/so into the apache modules directory</li>
     <li>Add the following to the apache conf file (httpd.conf): </li>
 <pre>
-      LoadModule jk2_module modules/mod_jk2.dll
+LoadModule jk2_module modules/mod_jk2.dll
 
-      &lt;Location "/&lt;Winstone Prefix&gt;/*"&gt;
-        JkUriSet worker ajp13:localhost:8009 
-      &lt;/Location&gt;
+&lt;Location "/&lt;Winstone Prefix&gt;/*"&gt;
+  JkUriSet worker ajp13:localhost:8009 
+&lt;/Location&gt;
 </pre>
     <li>Create a new file called workers2.properties in the apache conf directory, with the following contents</li>
 <pre>
@@ -274,6 +277,60 @@ channel=channel.socket:localhost:8009
 
   <p>Please note this is not an optimal configuration for production uses. This is provided purely for those
     who need some help to get started. Read the mod_jk documentation with Tomcat for more detailed info.</p>
+
+<h2>Using Authentication Realms</h2>
+
+  <p>The process here is almost identical to that of Tomcat (I know this because I used the Tomcat examples
+    webapp to develop against). There are two components - the web.xml component and selecting/configuring
+    an AuthenticationRealm class.</p>
+
+  <ul>
+    <li>The web.xml part is the same for all webapps - you include the <code>&lt;security-constraint&gt;</code>
+      and <code>&lt;login-config&gt;</code> elements as required, eg (from the Tomcat examples web.xml):
+<pre>
+&lt;security-constraint&gt;
+  &lt;display-name&gt;Example Security Constraint&lt;/display-name&gt;
+  &lt;web-resource-collection&gt;
+    &lt;web-resource-name&gt;Protected Area&lt;/web-resource-name&gt;
+    &lt;url-pattern&gt;/jsp/security/protected/*&lt;/url-pattern&gt;
+    &lt;http-method&gt;DELETE&lt;/http-method&gt;
+    &lt;http-method&gt;GET&lt;/http-method&gt;
+    &lt;http-method&gt;POST&lt;/http-method&gt;
+    &lt;http-method&gt;PUT&lt;/http-method&gt;
+  &lt;/web-resource-collection&gt;
+  &lt;auth-constraint&gt;
+    &lt;role-name&gt;tomcat&lt;/role-name&gt;
+    &lt;role-name&gt;role1&lt;/role-name&gt;
+  &lt;/auth-constraint&gt;
+&lt;/security-constraint&gt;
+
+&lt;login-config&gt;
+  &lt;auth-method&gt;FORM&lt;/auth-method&gt;
+  &lt;realm-name&gt;Example Form-Based Authentication Area&lt;/realm-name&gt;
+  &lt;form-login-config&gt;
+    &lt;form-login-page&gt;/jsp/security/protected/login.jsp&lt;/form-login-page&gt;
+    &lt;form-error-page&gt;/jsp/security/protected/error.jsp&lt;/form-error-page&gt;
+  &lt;/form-login-config&gt;
+&lt;/login-config&gt;
+</pre></li>
+
+    <li>The AuthenticationRealm part is Winstone specific. Here you currently have three options:
+      <ol>
+        <li><b>ArgumentsRealm:</b> Here you simply add additional command line args for each user's password and
+          role list. Passwords are added with <code>--argumentsRealm.passwd.&lt;username&gt;=&lt;password&gt;</code>, 
+          and roles are added with <code>--argumentsRealm.roles.&lt;username&gt;=&lt;role1&gt;,&lt;role2&gt;</code></li>
+        <li><b>FileRealm:</b> This is the same as the Tomcat <code>tomcat-users.xml</code> file. 
+          Pass in the command line arguments <code>--realmClass=com.rickknowles.winstone.realm.FileRealm 
+          --fileRealm.configFile=&lt;filename&gt;</code>, and it should work exactly the way Tomcat does by default.</li>
+        <li><b>Write your own:</b> You just have to extend the <code>com.rickknowles.winstone.AuthenticationRealm</code> class,
+          and override the appropriate methods (as the File and Arguments Realms do), and specify the class name in
+          <code>--realmClass</code>.</li>
+      </ol>
+    </li>
+  </ul>
+
+  <p>This component is left intentionally fairly simple, and relatively extracted. I'm planning to break the realm and
+    authentication stuff into an optional jar later, since not many webapps I've seen use it.</p>
 
 <h2>GCJ compilation</h2>
 

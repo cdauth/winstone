@@ -124,6 +124,8 @@ Authors:
         <pathelement location="${java.home}/lib/tools.jar"/>
         <pathelement location="${java.home}/lib/dt.jar"/>
         <pathelement location="${java.home}/jre/lib/rt.jar"/>
+        <pathelement location="${httpunit.jar}"/>
+        <pathelement location="${junit.jar}"/>
         <fileset dir="lib" includes="**/*.jar,**/*.zip"/>
       </classpath>
     </javadoc>
@@ -182,7 +184,7 @@ Authors:
     <pathelement location="${winstone.build}/classes" />
   </path>
 
-  <target name="run-tests">
+  <target name="run-tests" depends="compile-tests">
     <echo message="Running HttpConnectorTest"/>
     <java classname="${junit.runner}" fork="yes" failonerror="true">
       <arg value="com.rickknowles.winstone.test.HttpConnectorTest"/>

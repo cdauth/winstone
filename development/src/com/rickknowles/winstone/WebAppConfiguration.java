@@ -673,9 +673,6 @@ public class WebAppConfiguration implements ServletContext
 
   // Weird mostly deprecated crap to do with getting servlet instances
   public javax.servlet.ServletContext getContext(String uri)  {return this;}
-  public javax.servlet.Servlet getServlet(String name)        {return null;}
-  public Enumeration getServletNames()                        {return Collections.enumeration(new ArrayList());}
-  public Enumeration getServlets()                            {return Collections.enumeration(new ArrayList());}
   public String getServletContextName()                       {return this.displayName;}
 
   /**
@@ -699,7 +696,6 @@ public class WebAppConfiguration implements ServletContext
     {Logger.log(Logger.INFO, this.contextName, msg);}
   public void log(String message, Throwable throwable)
     {Logger.log(Logger.ERROR, this.contextName, message, throwable);}
-  public void log(Exception exception, String msg)      {this.log(msg, exception);}
 
   // Getting request dispatchers
   public javax.servlet.RequestDispatcher getNamedDispatcher(String name)
@@ -802,5 +798,21 @@ public class WebAppConfiguration implements ServletContext
     }
     return out;
   }
+  /**
+   * @deprecated
+   */
+  public javax.servlet.Servlet getServlet(String name)        {return null;}
+  /**
+   * @deprecated
+   */
+  public Enumeration getServletNames()                        {return Collections.enumeration(new ArrayList());}
+  /**
+   * @deprecated
+   */
+  public Enumeration getServlets()                            {return Collections.enumeration(new ArrayList());}
+  /**
+   * @deprecated
+   */
+  public void log(Exception exception, String msg)      {this.log(msg, exception);}
 }
 

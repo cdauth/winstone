@@ -232,13 +232,10 @@ public class WinstoneResponse implements HttpServletResponse
     return null;
   }
 
-  public String encodeRedirectUrl(String url) {return encodeRedirectURL(url);}
   public String encodeRedirectURL(String url) {return url;}
-  public String encodeUrl(String url)         {return encodeURL(url);}
   public String encodeURL(String url)         {return url;}
   public int getStatus()                      {return this.statusCode;}
   public void setStatus(int sc)               {this.statusCode = sc;}
-  public void setStatus(int sc, String sm)    {setStatus(sc);}
 
   public void sendError(int sc) throws IOException
     {sendError(sc, null);}
@@ -334,5 +331,17 @@ public class WinstoneResponse implements HttpServletResponse
     }
   }
 
+  /**
+   * @deprecated
+   */
+  public String encodeRedirectUrl(String url) {return encodeRedirectURL(url);}
+  /**
+   * @deprecated
+   */
+  public String encodeUrl(String url)         {return encodeURL(url);}
+  /**
+   * @deprecated
+   */
+  public void setStatus(int sc, String sm)    {setStatus(sc);}
 }
 

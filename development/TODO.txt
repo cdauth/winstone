@@ -8,12 +8,12 @@ DONE - Add listener handlers, etc
 DONE - Add filter handling code
 DONE - Refactor HttpConnector links, and build an ajp13 connector
 
-v0.3.1
+v0.4
 DONE - Implement errorPage directives in web.xml
 DONE - Add in request/response object pools to improve execution time
 DONE - Add command line arguments to control handler thread startup/max-idle/max
 DONE - Add servlet reloading to the WinstoneClassLoader
 DONE - Add authentication/security model - pluggable if possible, so Winstone can work in non-security mode
-     - Add FORM based authentication
-     - Add xml-file-based realm support
+DONE - Add xml-file-based realm support
+DONE - Add FORM based authentication
      - Implement session clustering between multiple Winstone instances

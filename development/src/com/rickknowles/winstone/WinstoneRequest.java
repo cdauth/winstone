@@ -37,34 +37,34 @@ public class WinstoneRequest implements HttpServletRequest
   protected static DateFormat headerDF = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
   static  {headerDF.setTimeZone(TimeZone.getTimeZone("GMT"));}
 
-  private Map attributes;
-  private Map parameters;
-  private String headers[];
-  private Cookie cookies[];
-  private String method;
-  private String scheme;
-  private String serverName;
-  private String requestURI;
-  private String servletPath;
-  private String queryString;
-  private String protocol;
-  private int contentLength;
-  private String contentType;
-  private String encoding;
-  private WinstoneInputStream inputData;
-  private ServletConfiguration servletConfig;
-  private WebAppConfiguration webappConfig;
-  private HttpProtocol protocolClass;
-  private Listener listener;
-  private int serverPort;
-  private String remoteIP;
-  private String remoteName;
-  private Boolean parsedParameters;
-  private String sessionCookie;
-  private List locales;
-  private String authorization;
-  private boolean isSecure;
-  private AuthenticationPrincipal authenticatedUser;
+  protected Map attributes;
+  protected Map parameters;
+  protected String headers[];
+  protected Cookie cookies[];
+  protected String method;
+  protected String scheme;
+  protected String serverName;
+  protected String requestURI;
+  protected String servletPath;
+  protected String queryString;
+  protected String protocol;
+  protected int contentLength;
+  protected String contentType;
+  protected String encoding;
+  protected WinstoneInputStream inputData;
+  protected ServletConfiguration servletConfig;
+  protected WebAppConfiguration webappConfig;
+  protected HttpProtocol protocolClass;
+  protected Listener listener;
+  protected int serverPort;
+  protected String remoteIP;
+  protected String remoteName;
+  protected Boolean parsedParameters;
+  protected String sessionCookie;
+  protected List locales;
+  protected String authorization;
+  protected boolean isSecure;
+  protected AuthenticationPrincipal authenticatedUser;
 
   private WinstoneResourceBundle resources;
 
@@ -113,6 +113,7 @@ public class WinstoneRequest implements HttpServletRequest
     this.locales.clear();
     this.authorization = null;
     this.isSecure = false;
+    this.authenticatedUser = null;
   }
 
   /**
@@ -138,9 +139,12 @@ public class WinstoneRequest implements HttpServletRequest
     return headerNames;
   }
 
+  public Map getAttributes()                    {return this.attributes;}
   public Map getParameters()                    {return this.parameters;}
   public String getSessionCookie()              {return this.sessionCookie;}
   public WebAppConfiguration getWebAppConfig()  {return this.webappConfig;}
+  public String getEncoding()                   {return this.encoding;}
+  public Boolean getParsedParameters()          {return this.parsedParameters;}
 
   public void setInputStream(WinstoneInputStream inputData) {this.inputData = inputData;}
   public void setWebAppConfig(WebAppConfiguration webappConfig)  {this.webappConfig = webappConfig;}
@@ -168,6 +172,8 @@ public class WinstoneRequest implements HttpServletRequest
   public void setLocales(List locales)      {this.locales = locales;}
   public void setSessionCookie(String sc)   {this.sessionCookie = sc;}
   public void setRemoteUser(AuthenticationPrincipal user) {this.authenticatedUser = user;}
+  public void setEncoding(String encoding)  {this.encoding = encoding;}
+  public void setParsedParameters(Boolean parsed) {this.parsedParameters = parsed;}
 
   // Implementation methods for the servlet request stuff
   public Object getAttribute(String name)         {return this.attributes.get(name);}
@@ -283,8 +289,6 @@ public class WinstoneRequest implements HttpServletRequest
 
   public javax.servlet.RequestDispatcher getRequestDispatcher(String path)
     {return this.webappConfig.getRequestDispatcher(path);}
-  public String getRealPath(String path)
-    {return this.webappConfig.getRealPath(path);}
 
   // Now the stuff for HttpServletRequest
   public String getContextPath()  {return this.webappConfig.getPrefix();}
@@ -336,7 +340,6 @@ public class WinstoneRequest implements HttpServletRequest
     {return this.authenticatedUser == null ? null : this.authenticatedUser.getName();}
 
   public boolean isRequestedSessionIdFromCookie()   {return true;}
-  public boolean isRequestedSessionIdFromUrl()      {return isRequestedSessionIdFromURL();}
   public boolean isRequestedSessionIdFromURL()      {return false;}
   public boolean isRequestedSessionIdValid()
   {
@@ -407,5 +410,14 @@ public class WinstoneRequest implements HttpServletRequest
     this.webappConfig.makeNewSession(cookieValue);
     return cookieValue;
   }
+  /**
+   * @deprecated
+   */
+  public String getRealPath(String path)
+    {return this.webappConfig.getRealPath(path);}
+  /**
+   * @deprecated
+   */
+  public boolean isRequestedSessionIdFromUrl()      {return isRequestedSessionIdFromURL();}
 }
 
