@@ -34,6 +34,7 @@ public class WinstoneDataSource implements DataSource, Runnable
 {
   final static int SLEEP_PERIOD = 2000;
   
+  private Thread thread;
   private String name;
   private List usedWrappers;
   private List usedConnections;
@@ -106,7 +107,7 @@ public class WinstoneDataSource implements DataSource, Runnable
           "[#unused]", "" + this.unusedConnections.size()));
       }
     
-      Thread thread = new Thread(this, this.resources.getString("WinstoneDataSource.ThreadName", "[#name]", name));
+      thread = new Thread(this, this.resources.getString("WinstoneDataSource.ThreadName", "[#name]", name));
       thread.setDaemon(true);
       thread.setContextClassLoader(loader);
       thread.start();
@@ -115,7 +116,12 @@ public class WinstoneDataSource implements DataSource, Runnable
       {Logger.log(Logger.ERROR, this.resources.getString("WinstoneDataSource.ErrorLoadingDriver", "[#class]", driverClassName), err);}    
   }
   
-  public void destroy() {this.interrupted = true;}
+  public void destroy() 
+  {
+    this.interrupted = true;
+    if (this.thread != null)
+      this.thread.interrupt();
+  }
   
   /**
    * Pool management thread
@@ -133,7 +139,9 @@ public class WinstoneDataSource implements DataSource, Runnable
           // Trim excessive idle connections
           while (this.unusedConnections.size() > MAX_IDLE_CONNECTIONS)
           {
-            ((Connection) this.unusedConnections.get(0)).close(); 
+            Connection closeMe = (Connection) this.unusedConnections.get(0);
+            this.unusedConnections.remove(closeMe);
+            closeMe.close();
             Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.ClosingPooledConnection",
               "[#used]", "" + this.usedConnections.size(),
               "[#unused]", "" + this.unusedConnections.size()));
@@ -145,10 +153,10 @@ public class WinstoneDataSource implements DataSource, Runnable
         
         Thread.sleep(SLEEP_PERIOD);
       }
+      catch (InterruptedException err) 
+        {Logger.log(Logger.DEBUG, this.resources.getString("WinstoneDataSource.MaintenanceThread"));}
       catch (Throwable err)
-      {
-        Logger.log(Logger.ERROR, this.resources.getString("WinstoneDataSource.MaintenanceError"), err);
-      }
+        {Logger.log(Logger.ERROR, this.resources.getString("WinstoneDataSource.MaintenanceError"), err);}
     }
     Logger.log(Logger.FULL_DEBUG, this.resources.getString("WinstoneDataSource.MaintenanceFinished"));
   }
