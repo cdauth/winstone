@@ -250,7 +250,7 @@ public class HttpListener implements Listener, Runnable
     // Method
     int spacePos = uriLine.indexOf(' ');
     if (spacePos == -1)
-      throw new WinstoneException(resources.getString("HttpProtocol.ErrorUriLine") + uriLine);
+      throw new WinstoneException(resources.getString("HttpListener.ErrorUriLine") + uriLine);
     String method = uriLine.substring(0, spacePos).toUpperCase();
     String servletURI = null;
     String fullURI = null;
