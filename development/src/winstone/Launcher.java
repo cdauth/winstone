@@ -46,8 +46,8 @@ public class Launcher implements EntityResolver, Runnable
   final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
   final String DTD_2_3_URL    = "javax/servlet/resources/web-app_2_3.dtd";
 
-  final String XSD_2_4_PUBLIC = "-//Sun Microsystems, Inc.//XSD Web Application 2.4//EN";
-  final String XSD_2_4_URL    = "javax/servlet/resources/web-app_2_4.xsd";
+  //final String XSD_2_4_PUBLIC = "-//Sun Microsystems, Inc.//XSD Web Application 2.4//EN";
+  //final String XSD_2_4_URL    = "javax/servlet/resources/web-app_2_4.xsd";
 
   final String HTTP_LISTENER_CLASS = "winstone.HttpListener";
   final String AJP_LISTENER_CLASS  = "winstone.ajp13.Ajp13Listener";
@@ -58,7 +58,8 @@ public class Launcher implements EntityResolver, Runnable
   static final String WEB_INF  = "WEB-INF";
   static final String WEB_XML  = "web.xml";
   
-  static final byte SHUTDOWN_TYPE = (byte) '0';
+  public static final byte SHUTDOWN_TYPE = (byte) '0';
+  public static final byte RELOAD_TYPE = (byte) '4';
 
   private int CONTROL_TIMEOUT = 10; // wait 5s for control connection
   private int DEFAULT_CONTROL_PORT = -1;
@@ -72,7 +73,8 @@ public class Launcher implements EntityResolver, Runnable
   private List listeners;
   private boolean interrupted;
   private Map args;
-
+  private File webRoot;
+  
   private Cluster cluster;
 
   /**
@@ -89,7 +91,7 @@ public class Launcher implements EntityResolver, Runnable
                        Integer.parseInt((String) args.get("controlPort")));
 
     // Get the parsed webapp xml deployment descriptor
-    File webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"), resources);
+    this.webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"), resources);
     if (!webRoot.exists())
       throw new WinstoneException(resources.getString("Launcher.NoWebRoot") + webRoot);
     else
@@ -246,7 +248,12 @@ public class Launcher implements EntityResolver, Runnable
             InputStream inSocket = csAccepted.getInputStream();
             int reqType = inSocket.read();
             if ((byte) reqType == SHUTDOWN_TYPE)
-             interrupted = true; //any connection on control port is interpreted as a shutdown
+              interrupted = true; 
+            else if ((byte) reqType == RELOAD_TYPE)
+            {
+              destroyWebApp(this.webAppConfig);
+              initWebApp((String) args.get("prefix"), this.webRoot);
+            }
             else if (this.cluster != null)
             {
               OutputStream outSocket = csAccepted.getOutputStream();

@@ -2,12 +2,13 @@ List of things to do:
 
 Short-term
      - Control port password
+     - Update to make winstone completely compliant with servlet 2.4 spec
+     - Add additional listener class calls for request + attributes
 
 Long-term
      - Additional control port options, such as manual webapp forced reload operation
-     - Java wrappers for control operations, such as shutdown or flush
-     - Update to v2.4 servlet specification
-     - In memory response cache for preset url patterns
+     - In memory response cache for preset url patterns ? Not a good idea
+     - Cache filter chain calculation for certain URLs
      - Add more automated tests as part of release process:
        - url matching
        - security / authentication
@@ -15,8 +16,19 @@ Long-term
        - ajp13 connector
      - More complete manual/documentation
      - Publish apidocs
-     - Create my own jsp api classes
      - Add a JSP compiler ?
+
+v0.6
+DONE - Create my local jsp 2.0 api classes
+DONE - Update to v2.4 servlet api classes
+DONE - Refactor to winstone package, not com.rickknowles.winstone package
+DONE - Test with Apache Struts framework
+DONE - Added logfile directive
+DONE - Fixed request/response locale setting
+DONE - Fixed jsp include bugs
+DONE - Fixed http session bugs
+DONE - Added simple test application
+DONE - Java wrapper for control operations, such as shutdown or flush
 
 v0.5
 DONE - Implement session clustering between multiple Winstone instances
