@@ -96,16 +96,7 @@ public class StaticResourceServlet extends HttpServlet
     throws ServletException, IOException
   {
     // Trim the host name if supplied
-    String requestURI = (String) request.getAttribute(JSP_FILE);
-
-    // Get the URI from the servlet, check for prefix
-    String path = null;
-    if (this.prefix == null)
-      path = requestURI;
-    else if (requestURI.startsWith(this.prefix))
-      path = requestURI.substring(this.prefix.length());
-    else
-      path = requestURI;
+    String path = (String) request.getAttribute(JSP_FILE);
 
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
     Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",
@@ -140,7 +131,7 @@ public class StaticResourceServlet extends HttpServlet
         // Try to match each of the welcome files
         String matchedWelcome = matchWelcomeFiles(path, res);
         if (matchedWelcome != null)
-          response.sendRedirect(requestURI + matchedWelcome);
+          response.sendRedirect(this.prefix + path + matchedWelcome);
         else if (this.directoryList)
           generateDirectoryList(request, response, path);
         else
@@ -148,7 +139,7 @@ public class StaticResourceServlet extends HttpServlet
               this.resources.getString("StaticResourceServlet.AccessDenied"));
       }
       else
-        response.sendRedirect(requestURI + "/");
+        response.sendRedirect(this.prefix + path + "/");
     }
 
     // Send a 304 if not modified
