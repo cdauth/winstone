@@ -1,12 +1,17 @@
 List of things to do:
 
+v0.3
 DONE - Modify the request handler thread to survive beyond a single request cycle
 DONE - Add auto WAR extract instead of webroot
 DONE - Change build process to use external ant
 DONE - Add listener handlers, etc
 DONE - Add filter handling code
 DONE - Refactor HttpConnector links, and build an ajp13 connector
+
+v0.3.1
 DONE - Implement errorPage directives in web.xml
 DONE - Add in request/response object pools to improve execution time
+DONE - Add command line arguments to control handler thread startup/max-idle/max
+DONE - Add servlet reloading to the WinstoneClassLoader
      - Add authentication/security model - pluggable if possible, so Winstone can work in non-security mode
      - Implement session clustering between multiple Winstone instances

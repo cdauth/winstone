@@ -44,14 +44,23 @@ public class WinstoneResourceBundle
    */
   public String getString(String key, String fromMarker1, String toValue1,
                                       String fromMarker2, String toValue2)
+    {return globalReplace(getString(key, fromMarker1, toValue1), fromMarker2, toValue2);}
+
+  /**
+   * Perform a string replace for a double from/to pair.
+   */
+  public String getString(String key, String fromMarker1, String toValue1,
+                                      String fromMarker2, String toValue2,
+                                      String fromMarker3, String toValue3)
   {
-    Map replaceParams = new HashMap();
-    replaceParams.put(fromMarker1, toValue1);
-    replaceParams.put(fromMarker2, toValue2);
-    return getString(key, replaceParams);
+    return globalReplace(getString(key, fromMarker1, toValue1, fromMarker2, toValue2),
+                         fromMarker3, toValue3);
   }
 
-  private String globalReplace(String input, String fromMarker, String toValue)
+  /**
+   * Just does a string swap, replacing occurrences of from with to.
+   */
+  public static String globalReplace(String input, String fromMarker, String toValue)
   {
     if (input == null)
       return null;

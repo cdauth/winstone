@@ -85,7 +85,7 @@ public class WebAppConfiguration implements ServletContext
   final String STATIC_SERVLET_CLASS  = "com.rickknowles.winstone.StaticResourceServlet";
 
   private WinstoneResourceBundle resources;
-
+  private Launcher launcher;
   private String webRoot;
   private String prefix;
   private String contextName;
@@ -125,21 +125,24 @@ public class WebAppConfiguration implements ServletContext
   /**
    * Constructor. This parses the xml and sets up for basic routing
    */
-  public WebAppConfiguration(String webRoot,
+  public WebAppConfiguration(Launcher launcher,
+                             String webRoot,
                              String prefix,
                              boolean directoryListings,
                              boolean useJasper,
                              boolean useWinstoneClassLoader,
+                             boolean servletReloading,
                              String invokerPrefix,
                              Node elm,
                              WinstoneResourceBundle resources)
   {
+    this.launcher = launcher;
     this.resources = resources;
     this.webRoot = webRoot;
     this.prefix = (prefix != null ? prefix : "");
     this.contextName = WEBAPP_LOGSTREAM;
     this.loader = (useWinstoneClassLoader
-      ? new WinstoneClassLoader(webRoot, this.getClass().getClassLoader(), this.resources)
+      ? new WinstoneClassLoader(this, this.getClass().getClassLoader(), this.resources, servletReloading)
       : this.getClass().getClassLoader());
 
     this.attributes = new Hashtable();
@@ -474,6 +477,26 @@ public class WebAppConfiguration implements ServletContext
     // Send destroy notifies
     for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
       ((ServletContextListener) i.next()).contextDestroyed(new ServletContextEvent(this));
+
+    // Terminate class loader reloading thread if running
+    if (this.loader instanceof WinstoneClassLoader)
+      ((WinstoneClassLoader) this.loader).destroy();
+
+    // Drop all sessions
+    Collection sessions = new ArrayList(this.sessions.values());
+    for (Iterator i = sessions.iterator(); i.hasNext(); )
+      ((WinstoneSession) i.next()).invalidate();
+  }
+
+  /**
+   * Triggered by the admin thread on the reloading class loader. This
+   * will cause a full shutdown and reinstantiation of the web app - not real
+   * graceful, but you shouldn't have reloading turned on high load environments.
+   */
+  public void resetClassLoader() throws IOException
+  {
+    this.launcher.destroyWebApp(this);
+    this.launcher.initWebApp(this.prefix, new File(this.webRoot));
   }
 
   /**

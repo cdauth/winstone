@@ -3,7 +3,7 @@
   <title>Winstone Servlet Container</title>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.3</h1></center>
+<center><h1>Winstone Servlet Container v0.3.1</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
   <hr width="90%" size="1" noshade="true"/>
@@ -33,8 +33,7 @@
   <p>The original goals in writing Winstone were:</p>
     <ul>
       <li>Supply fast, reliable servlet container functionality for a single webapp per server</li>
-      <li>Limit the size of the core distribution jar to less than 100KB for as long as possible
-        (currently 129KB ... doh !!!)</li>
+      <li>Keep the size of the core distribution jar as low as possible (currently 135KB)</li>
       <li>Keep configuration files to an absolute minimum, using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -50,7 +49,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.3.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.3.1.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -59,11 +58,11 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.3.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.3.1.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.3.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.3.1.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p>The winstone.jar file will be in the winstone/dist directory after the build is complete.</p>
 
@@ -71,7 +70,7 @@
 
   <pre>
 Syntax:
-  java -jar winstone_v0.3.jar [--option=value] [--option=value] etc
+  java -jar winstone_v0.3.1.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile
    --webroot                = set document root folder.
@@ -96,6 +95,7 @@ Other options:
    --useWinstoneClassLoader = enable WebApp classLoader (true/false). Default is true
    --useInvoker             = enable the servlet invoker (true/false). Default is false
    --invokerPrefix          = set the invoker prefix. Default is /servlet/
+   --useServletReloading    = enable servlet reloading (true/false). Default is false\n\
    --usage / --help         = show this message</pre>
 
 <h2>Configuration file</h2>
@@ -140,6 +140,15 @@ Other options:
   </ul>
 
 <h2>Recent additions</h2>
+
+  <p>New features in v0.3.1:</p>
+
+  <ul>
+    <li>Implemented the <b>&lt;error-page&gt;</b> directive</li>
+    <li>Added object pools for request/response objects for performance reasons</li>
+    <li>The handler pools are now controllable via startup properties</li>
+    <li><b>Servlet reloading</b> is now supported (optionally - include <code>--useServletReloading=true</code> at startup)</li>
+  </ul>
 
   <p>New features in v0.3:</p>
 

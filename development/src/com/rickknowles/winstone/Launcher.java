@@ -89,6 +89,7 @@ public class Launcher implements EntityResolver, Runnable
 
   private List listeners;
   private boolean interrupted;
+  private Map args;
 
   /**
    * Constructor
@@ -97,6 +98,7 @@ public class Launcher implements EntityResolver, Runnable
   {
     // Load resources
     this.resources = resources;
+    this.args = args;
     this.controlPort = (args.get("controlPort") == null ?
                        DEFAULT_CONTROL_PORT :
                        Integer.parseInt((String) args.get("controlPort")));
@@ -105,53 +107,8 @@ public class Launcher implements EntityResolver, Runnable
     File webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"), resources);
     if (!webRoot.exists())
       throw new WinstoneException(resources.getString("Launcher.NoWebRoot") + webRoot);
-
-    Node webXMLParentNode = null;
-    File webInfFolder = new File(webRoot, WEB_INF);
-    if (webInfFolder.exists())
-    {
-      File webXmlFile = new File(webInfFolder, WEB_XML);
-      if (webXmlFile.exists())
-      {
-        InputStream inWebXML = new FileInputStream(webXmlFile);
-        Document webXMLDoc = parseStreamToXML(inWebXML);
-        inWebXML.close();
-        webXMLParentNode = webXMLDoc.getDocumentElement();
-      }
-    }
-
-    // Get generic options
-    String dirLists = (String) args.get("directoryListings");
-    String useJasper = (String) args.get("useJasper");
-    String useWCL = (String) args.get("useWinstoneClassLoader");
-    String useInvoker = (String) args.get("useInvoker");
-    String invokerPrefix = (String) (args.get("invokerPrefix") == null
-                                                ? DEFAULT_INVOKER_PREFIX
-                                                : args.get("invokerPrefix"));
-
-    // Get handler pool options
-    if (args.get("handlerCountStartup") != null)
-      STARTUP_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args.get("handlerCountStartup"));
-    if (args.get("handlerCountMax") != null)
-      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args.get("handlerCountMax"));
-    if (args.get("handlerCountMaxIdle") != null)
-      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args.get("handlerCountMaxIdle"));
-
-    // Build switch values
-    boolean switchOnDirLists = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
-    boolean switchOnJasper   = (useJasper != null)  && (useJasper.equalsIgnoreCase("true")  || useJasper.equalsIgnoreCase("yes"));
-    boolean switchOnWCL      = (useWCL == null)     || (useWCL.equalsIgnoreCase("true")     || useWCL.equalsIgnoreCase("yes"));
-    boolean switchOnInvoker  = (useInvoker != null) && (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
-
-    // Instantiate the webAppConfig
-    this.webAppConfig = new WebAppConfiguration(webRoot.getCanonicalPath(),
-                                                (String) args.get("prefix"),
-                                                switchOnDirLists,
-                                                switchOnJasper,
-                                                switchOnWCL,
-                                                switchOnInvoker ? invokerPrefix : null,
-                                                webXMLParentNode,
-                                                this.resources);
+    else
+      initWebApp((String) args.get("prefix"), webRoot);
 
     // Build the initial pool of handler threads
     this.unusedRequestHandlerThreads = new Vector();
@@ -322,12 +279,72 @@ public class Launcher implements EntityResolver, Runnable
         releaseRequestHandler((RequestHandlerThread) i.next());
       for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
         ((RequestHandlerThread) i.next()).destroy();
-      this.webAppConfig.destroy();
+      destroyWebApp(this.webAppConfig);
 
       Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownOK"));
     }
     catch (Throwable err)
       {Logger.log(Logger.ERROR, resources.getString("Launcher.ShutdownError"), err);}
+  }
+
+  public void destroyWebApp(WebAppConfiguration webApp)
+  {
+    webApp.destroy();
+    this.webAppConfig = null; // since we only hold one webapp right now
+  }
+
+  public void initWebApp(String prefix, File webRoot) throws IOException
+  {
+    Node webXMLParentNode = null;
+    File webInfFolder = new File(webRoot, WEB_INF);
+    if (webInfFolder.exists())
+    {
+      File webXmlFile = new File(webInfFolder, WEB_XML);
+      if (webXmlFile.exists())
+      {
+        InputStream inWebXML = new FileInputStream(webXmlFile);
+        Document webXMLDoc = parseStreamToXML(inWebXML);
+        inWebXML.close();
+        webXMLParentNode = webXMLDoc.getDocumentElement();
+      }
+    }
+
+    // Get generic options
+    String dirLists = (String) this.args.get("directoryListings");
+    String useJasper = (String) this.args.get("useJasper");
+    String useWCL = (String) this.args.get("useWinstoneClassLoader");
+    String reloadable = (String) this.args.get("useServletReloading");
+    String useInvoker = (String) this.args.get("useInvoker");
+    String invokerPrefix = (String) (this.args.get("invokerPrefix") == null
+                                                ? DEFAULT_INVOKER_PREFIX
+                                                : this.args.get("invokerPrefix"));
+
+    // Get handler pool options
+    if (args.get("handlerCountStartup") != null)
+      STARTUP_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) this.args.get("handlerCountStartup"));
+    if (args.get("handlerCountMax") != null)
+      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) this.args.get("handlerCountMax"));
+    if (args.get("handlerCountMaxIdle") != null)
+      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) this.args.get("handlerCountMaxIdle"));
+
+    // Build switch values
+    boolean switchOnDirLists  = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
+    boolean switchOnJasper    = (useJasper != null)  && (useJasper.equalsIgnoreCase("true")  || useJasper.equalsIgnoreCase("yes"));
+    boolean switchOnWCL       = (useWCL == null)     || (useWCL.equalsIgnoreCase("true")     || useWCL.equalsIgnoreCase("yes"));
+    boolean switchOnInvoker   = (useInvoker != null) && (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
+    boolean switchOnReloading = (reloadable != null) && (reloadable.equalsIgnoreCase("true") || reloadable.equalsIgnoreCase("yes"));
+
+    // Instantiate the webAppConfig
+    this.webAppConfig = new WebAppConfiguration(this,
+                                                webRoot.getCanonicalPath(),
+                                                prefix,
+                                                switchOnDirLists,
+                                                switchOnJasper,
+                                                switchOnWCL,
+                                                switchOnReloading,
+                                                switchOnInvoker ? invokerPrefix : null,
+                                                webXMLParentNode,
+                                                this.resources);
   }
 
   public void shutdown() {this.interrupted = true;}
