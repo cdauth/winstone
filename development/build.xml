@@ -27,7 +27,7 @@ Authors:
   <property name="xerces.jar" value="c:/java/junit/xercesImpl.jar"/>
   <property name="nekohtml.jar" value="c:/java/junit/nekohtml.jar"/>
   <property name="junit.runner" value="junit.textui.TestRunner"/>
-  <property name="packages" value="com.rickknowles.winstone.*,com.rickknowles.winstone.ajp13.*,com.rickknowles.winstone.auth.*,com.rickknowles.winstone.cluster.*,com.rickknowles.winstone.realm.*,javax.servlet.*,javax.servlet.**"/>
+  <property name="packages" value="com.rickknowles.winstone.*,com.rickknowles.winstone.**,javax.servlet.*,javax.servlet.**"/>
 
   <target name="timestamp">
     <tstamp/>
@@ -45,7 +45,8 @@ Authors:
   <target name="compile" depends="prepare">
   <!-- Compile the standard server components -->
     <javac srcdir="src"
-           includes="com/rickknowles/winstone/*,com/rickknowles/winstone/ajp13/*,com/rickknowles/winstone/auth/*,com/rickknowles/winstone/realm/*,com/rickknowles/winstone/cluster/*,javax/servlet/**"
+           includes="com/rickknowles/winstone/**,javax/servlet/**"
+           excludes="com/rickknowles/winstone/test/*"
            destdir="${winstone.build}/classes"
            debug="${debug}" 
            optimize="${optimize}"
@@ -191,8 +192,14 @@ Authors:
 
   <target name="run-tests" depends="compile-tests">
     <echo message="Running HttpConnectorTest"/>
-    <java classname="${junit.runner}" fork="yes" failonerror="true">
+    <java classname="${junit.runner}" fork="yes" failonerror="false">
       <arg value="com.rickknowles.winstone.test.HttpConnectorTest"/>
+      <classpath refid="test.classpath"/>
+    </java>
+
+    <echo message="Running NamingTest"/>
+    <java classname="${junit.runner}" fork="yes" failonerror="true">
+      <arg value="com.rickknowles.winstone.test.NamingTest"/>
       <classpath refid="test.classpath"/>
     </java>
   </target>

@@ -24,6 +24,7 @@ import junit.framework.TestSuite;
 import com.meterware.httpunit.*;
 
 import java.io.*;
+import java.util.*;
 import org.xml.sax.SAXException;
 
 import com.rickknowles.winstone.*;
@@ -47,34 +48,33 @@ public class HttpConnectorTest extends TestCase
   public HttpConnectorTest(String name) {super(name);}
 
   public void setUp() throws IOException, InterruptedException
-  {/*
+  {
     Map args = new HashMap();
     args.put("webroot", "c:/java/tomcat/webapps/examples");
     args.put("prefix", "/examples");
-    args.put("httpPort", "9080");
+    args.put("httpPort", "10001");
     args.put("debug", "8");
     WinstoneResourceBundle resources = Launcher.getResourceBundle();
     winstone = new Launcher(args, resources);
-    Thread.currentThread().sleep(1000);
-  */}
+  }
 
   public void tearDown() throws InterruptedException
-  {/*
+  {
     winstone.shutdown();
-    Thread.currentThread().sleep(2000);
-  */}
+    Thread.sleep(500);
+  }
 
   /**
    * Test the simple case of connecting, retrieving and disconnecting
    */
   public void testSimpleConnection() throws IOException, SAXException
   {
-/*    // Check for a simple connection
+    // Check for a simple connection
     WebConversation wc = new WebConversation();
-    WebRequest wreq = new GetMethodWebRequest("http://localhost:9080/examples/images/execute.gif");
+    WebRequest wreq = new GetMethodWebRequest("http://localhost:10001/examples/images/execute.gif");
     WebResponse wresp = wc.getResponse(wreq);
-    this.assertTrue("Loading execute.gif", wresp.getContentLength() > 0);
-*/  }
+    assertTrue("Loading execute.gif", wresp.getContentLength() > 0);
+  }
 
   /**
    * Test the keep alive case
@@ -83,7 +83,7 @@ public class HttpConnectorTest extends TestCase
   {
     // Check for a simple connection
     WebConversation wc = new WebConversation();
-    WebRequest wreq = new GetMethodWebRequest("http://localhost:9080/training/cgi/Router");
+    WebRequest wreq = new GetMethodWebRequest("http://localhost:10001/examples/servlets/index.html");
     WebResponse wresp1 = wc.getResponse(wreq);
     WebImage img[] = wresp1.getImages();
     for (int n = 0; n < img.length; n++)

@@ -72,6 +72,7 @@ public class WebAppConfiguration implements ServletContext
   final String ELEM_LOGIN_CONFIG        = "login-config";
   final String ELEM_SECURITY_ROLE       = "security-role";
   final String ELEM_ROLE_NAME           = "role-name";
+  final String ELEM_ENV_ENTRY           = "env-entry";
 
   static final String STAR = "*";
   final String WEBAPP_LOGSTREAM = "WebApp";
@@ -88,7 +89,7 @@ public class WebAppConfiguration implements ServletContext
   final String STATIC_SERVLET_CLASS   = "com.rickknowles.winstone.StaticResourceServlet";
 
   final String DEFAULT_REALM_CLASS    = "com.rickknowles.winstone.realm.ArgumentsRealm";
-
+  final String DEFAULT_JNDI_MGR_CLASS = "com.rickknowles.winstone.jndi.WebAppJNDIManager";
 
   private WinstoneResourceBundle resources;
   private Launcher launcher;
@@ -129,6 +130,7 @@ public class WebAppConfiguration implements ServletContext
   private Map errorPagesByCode;
 
   private ServletConfiguration staticResourceProcessor;
+  private JNDIManager jndiManager;
 
   /**
    * Constructor. This parses the xml and sets up for basic routing
@@ -142,7 +144,7 @@ public class WebAppConfiguration implements ServletContext
                              boolean servletReloading,
                              String invokerPrefix,
                              Node elm,
-                             Map argsForSecurity,
+                             Map argsForSecurityJNDI,
                              WinstoneResourceBundle resources)
   {
     this.launcher = launcher;
@@ -181,6 +183,7 @@ public class WebAppConfiguration implements ServletContext
 
     List rolesAllowed = new ArrayList();
     List constraintNodes = new ArrayList();
+    List envEntryNodes = new ArrayList();
     Node loginConfigNode = null;
 
     // Initialise jasper servlet if requested
@@ -247,6 +250,9 @@ public class WebAppConfiguration implements ServletContext
 
         else if (nodeName.equals(ELEM_SECURITY_CONSTRAINT))
           constraintNodes.add(child);
+
+        else if (nodeName.equals(ELEM_ENV_ENTRY))
+          envEntryNodes.add(child);
 
         else if (nodeName.equals(ELEM_LOGIN_CONFIG))
           loginConfigNode = child;
@@ -464,7 +470,7 @@ public class WebAppConfiguration implements ServletContext
         authMethod = "BASIC";
       else
         authMethod = WinstoneResourceBundle.globalReplace(authMethod, "-", "");
-      String realmClassName = argsForSecurity.get("realmClass") == null ? DEFAULT_REALM_CLASS : (String) argsForSecurity.get("realmClass");
+      String realmClassName = argsForSecurityJNDI.get("realmClass") == null ? DEFAULT_REALM_CLASS : (String) argsForSecurityJNDI.get("realmClass");
       String authClassName = "com.rickknowles.winstone.auth." + 
                              authMethod.substring(0, 1).toUpperCase() + 
                              authMethod.substring(1).toLowerCase() + "AuthenticationHandler";
@@ -473,7 +479,7 @@ public class WebAppConfiguration implements ServletContext
         // Build the realm
         Class realmClass = Class.forName(realmClassName);
         Constructor realmConstr = realmClass.getConstructor(new Class[] {WinstoneResourceBundle.class, Map.class});
-        this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, argsForSecurity});
+        this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, argsForSecurityJNDI});
 
         // Build the authentication handler
         Class authClass = Class.forName(authClassName);
@@ -485,9 +491,28 @@ public class WebAppConfiguration implements ServletContext
       catch (ClassNotFoundException err)
         {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfiguration.AuthDisabled", "[#auth]", authMethod));}
       catch (Throwable err)
-        {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfig.AuthError", 
+        {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfiguration.AuthError", 
           "[#authClassName]", authClassName, "[#realmClassName]", realmClassName), err);}
     }
+
+    // Instantiate the JNDI manager
+    String jndiMgrClassName = (argsForSecurityJNDI.get("jndiClassName") == null ?
+      DEFAULT_JNDI_MGR_CLASS : (String) argsForSecurityJNDI.get("jndiClassName"));
+    try
+    {
+      // Build the realm
+      Class jndiMgrClass = Class.forName(jndiMgrClassName, true, this.loader);
+      Constructor jndiMgrConstr = jndiMgrClass.getConstructor(new Class[] {Map.class, List.class, ClassLoader.class});
+      this.jndiManager = (JNDIManager) jndiMgrConstr.newInstance(new Object[] {argsForSecurityJNDI, envEntryNodes, this.loader});
+      if (this.jndiManager != null)
+        this.jndiManager.setup();
+    }
+    catch (ClassNotFoundException err)
+      {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfiguration.JNDIDisabled"));}
+    catch (Throwable err)
+      {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfiguration.JNDIError", 
+        "[#jndiClassName]", jndiMgrClassName), err);}
+
     
     // Add the default index.html welcomeFile if none are supplied
     if (localWelcomeFiles.isEmpty())
@@ -556,6 +581,10 @@ public class WebAppConfiguration implements ServletContext
     // Terminate class loader reloading thread if running
     if (this.loader instanceof WinstoneClassLoader)
       ((WinstoneClassLoader) this.loader).destroy();
+  
+    // Kill JNDI manager if we have one
+    if (this.jndiManager != null)
+      this.jndiManager.tearDown();
 
     // Drop all sessions
     Collection sessions = new ArrayList(this.sessions.values());
