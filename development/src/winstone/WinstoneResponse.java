@@ -512,9 +512,10 @@ public class WinstoneResponse implements HttpServletResponse
       Map errorPages = this.webAppConfig.getErrorPagesByException();
       Throwable errWrapper = new ServletException("First time only", err);
       while (!found && (errWrapper instanceof ServletException))
+      {
+        errWrapper = ((ServletException) errWrapper).getRootCause();
         for (int n = 0; n < exceptionClasses.length  && !found; n++)
         {
-          errWrapper = ((ServletException) errWrapper).getRootCause();
         
           Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.TestingException", 
             exceptionClasses[n] + "");
@@ -532,6 +533,7 @@ public class WinstoneResponse implements HttpServletResponse
           }
           catch (Throwable err2) {/* Skipping */}
         }
+      }
     }
 
     // Fall through to the default page if no webapp or no errorPage tags
