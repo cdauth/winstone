@@ -1,7 +1,6 @@
 List of things to do:
 
 Short-term
-     - Add optional JNDI support for env-refs and jdbc datasource / mail session support
      - Control port password
 
 Long-term
@@ -24,6 +23,7 @@ DONE - Implement session clustering between multiple Winstone instances
 DONE - Make the core distribution jar smaller, with optional components detached
 DONE - Add CLIENT-CERT authentication handler
 DONE - Add DIGEST authentication handler
+DONE - Add optional JNDI support for env-refs and jdbc datasource / mail session support
 
 v0.4
 DONE - Implement errorPage directives in web.xml

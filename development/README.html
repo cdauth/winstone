@@ -96,16 +96,21 @@ Other options:
    --useServletReloading    = enable servlet reloading (true/false). Default is false
    --useInvoker             = enable the servlet invoker (true/false). Default is false
    --invokerPrefix          = set the invoker prefix. Default is /servlet/
-   --useCluster             = enable the cluster support (true/false). Default is false
-   --clusterNodes           = a comma separated list of node addresses (IP:ControlPort,IP:ControlPort,etc)
    --usage / --help         = show this message
+
+Cluster options:
+   --useCluster             = enable cluster support (true/false). Default is false
+   --clusterNodes           = a comma separated list of node addresses (IP:ControlPort,IP:ControlPort,etc)
+
+JNDI options:
+   --useJNDI                      = enable JNDI support (true/false). Default is false
+   --jndi.resource.&lt;name&gt;         = set the class to be used for the resource marked &lt;name&gt;
+   --jndi.param.&lt;name&gt;.&lt;attName&gt;  = set an attribute &lt;attName&gt; to be associated with the resource marked &lt;name&gt;
 
 Security options:
    --realmClass                   = Set the realm class to use for user authentication. Defaults to ArgumentsRealm class
-
    --argumentsRealm.passwd.&lt;user&gt; = Password for user &lt;user&gt;. Only valid for the ArgumentsRealm realm class
    --argumentsRealm.roles.&lt;user&gt;  = Roles for user &lt;user&gt; (comma separated). Only valid for the ArgumentsRealm realm class
-
    --fileRealm.configFile         = File containing users/passwds/roles. Only valid for the FileRealm realm class
 </pre>
 
@@ -159,14 +164,21 @@ Security options:
   <p>New features in v0.5:</p>
 
   <ul>
+    <li>Implemented <b>DIGEST</b> and <b>CERT</b> authentication methods. The CERT type is largely untested 
+      (due to lack of A: access to certificates and B: knowledge of browser configuration for client 
+      certificates) - if anyone wants to help with testing this, I'd appreciate it.</li>
     <li>Implemented simple <b>clustering</b> (ie sharing of sessions between multiple Winstone instances).
       See below for cluster configuration details.</li>
+    <li>Implemented optional <b>JNDI</b> support. This is just a memory-based Context intended for storing 
+      lookups on <code>&lt;env-entry&gt;</code> and <code>&lt;resource-ref&gt;</code> references, but 
+      it also includes a pooling JDBC DataSource object .... it's funny how you don't realise how important some
+      things are until you go without them ....</li>
     <li>The control port has been modified to be more useful. See below for usage instructions.</li>
     <li>The distribution jar is now available in two forms:
       <ol>
-        <li><b>Complete version</b> (winstone.jar - 158KB): This contains the complete winstone feature-set, 
+        <li><b>Complete version</b> (winstone.jar - 185KB): This contains the complete winstone feature-set, 
           including AJP13 Apache connectors, Authentication/Realm support and Clustering support.</li>
-        <li><b>Lite version</b> (winstone-lite.jar - 120KB): This is the core winstone feature-set only,
+        <li><b>Lite version</b> (winstone-lite.jar - 122KB): This is the core winstone feature-set only,
           ie commonly used servlet features, as fast and reliable as possible, with unnecessary options 
           removed.</li>
       </ol>
@@ -356,6 +368,125 @@ channel=channel.socket:localhost:8009
 
   <p>This component is left intentionally fairly simple, and relatively extracted. I'm planning to break the realm and
     authentication stuff into an optional jar later, since not many webapps I've seen use it.</p>
+
+<h2>Cluster support</h2>
+  <p>It should be pointed out in the beginning that the Cluster support currently implemented in Winstone
+    is actually just session sharing. If a request comes to a node in the cluster that doesn't recognise the
+    session ID supplied, that node simply asks the others "Do you know this session ?". If one does know it, 
+    it transfers the session to the requesting node, and the requesting node carries on as if it had always
+    had the session in the first place.</p>
+
+  <p>If a specific node in the cluster goes offline, so do all the sessions that it was holding. There is no
+    active "push" of sessions to other nodes, so as far as resilience to failure goes, this cluster is 
+    fairly weak. The clustering provided here is meant to allow a dumb load balancer to redirect requests
+    randomly across a cluster of Winstone instances without requiring it to be "session sticky".</p>
+
+  <p>That said, the configuration is fairly simple. The only information you need is the IP address and control
+    port of at least one other active node in the cluster. Once you have that, add the following options to
+    the command line startup:
+<pre>
+java -jar winstone.jar ...&lt; other options &gt; ... --controlPort=&lt;myControlPort&gt; --useCluster --clusterNodes=&lt;IP1:controlPort1&gt;
+</pre>
+    where IP1 is the IP address of the other node in the cluster, and myControlPort and controlPort1 are the port
+    numbers to use for the control ports of this instance and the other node respectively. Note that it is necessary
+    to actively set the controlPort on this instance, since it is disabled by default.</p>
+
+  <p>You would likewise set up the other instance with reciprocal options (ie changing the IPs and controlPort values
+    appropriately.</p>
+
+  <p>NOTE: There are some additional requirements on your web application for Clustering of sessions to be 
+    successful.
+    <ol>
+      <li>You need to include the <b>&lt;distributable/&gt;</b> element in your web.xml file. This tells Winstone that
+        your webapp is programmed correctly to support clustering. If this is missing, clustering will be disabled.</li>
+      <li>Any objects you add to the session must implement <b>java.io.Serializable</b>. This is required because
+        Winstone serializes the objects in the session over the controlPort to other nodes, and reconstructs the
+        serialized session at the destination. If you try to put a non-serializable object into the session, 
+        Winstone will throw an exception reminding you to make all session objects serializable.</li>
+    </ol></p>
+
+<h2>Control port protocol</h2>
+
+  <p>From v0.5, the behaviour of the control port changes slightly. Due to increased usage of the control port
+    by the clustering function, a rudimentary protocol has been added. </p>
+
+  <p>The protocol is very simple. The first byte sent to the server is a flag indicating what type of request
+    is being issued. Beyond that the protocol varies for each request type, but the request type flag options
+    are listed below:
+    <ul>
+      <li><b>0 (ASCII 48)</b> = shutdown</li>
+      <li><b>1 (ASCII 49)</b> = request search for a session</li>
+      <li><b>2 (ASCII 50)</b> = request list of currently connected cluster nodes</li>
+      <li><b>3 (ASCII 51)</b> = cluster node heartbeat</li>
+    </ul></p>
+
+  <p>Obviously, unless you're planning to write your own cluster extensions, the only one you will be interested
+   in is the shutdown option. To test this, simply telnet to the control port of a running Winstone server
+   and type 0 once you have connected. It should begin shutting down immediately.</p>
+
+<h2>JNDI support</h2>
+
+  <p>I know that in the introduction I said that Winstone was only going to support the core servlet APIs, but
+    I've since discovered that most people use just a little more than the core servlet API offers. For 
+    example, some people use just a JNDI JavaMail session to send administrator error mails, while others want
+    to offer a simple servlet over SSL (and hence need Apache), still others use just a JNDI DataSource
+    to keep a reference to the connection pool.</p>
+
+  <p>For this reason I've included a really basic optional JNDI service within Winstone. For the moment,
+    it supports simple operations (such as bind, lookup, rebind, etc) and allows you to store references to 
+    environment variables (drawn from the env-entry elements in web.xml and/or command line arguments).</p>
+
+  <p>NOTE: JNDI support is disabled by default. It must be enabled using <code>--useJNDI=true</code></p>
+
+  <p>Configuration can be done in two ways:
+    <ul>
+      <li><b>&lt;env-entry&gt; elements</b> - This is the standard way to add simple objects, such as
+        sql strings or configuration integers/strings. For example:
+<pre>
+  &lt;env-entry&gt;
+    &lt;env-entry-name&gt;test/hello&lt;/env-entry-name&gt;
+    &lt;env-entry-type&gt;java.lang.Integer&lt;/env-entry-type&gt;
+    &lt;env-entry-value&gt;45&lt;/env-entry-value&gt;
+  &lt;/env-entry&gt;
+</pre></li>
+      <li><b>Command line arguments</b> - This is for more complex objects that require attributes
+        to be created (JDBC DataSources for example). The syntax here involves adding a clause of the
+        kind <code>--jndi.resource.&lt;resName&gt;=&lt;className&gt;</code> for each object to create,
+        followed by <code>--jndi.param.&lt;resName&gt;.&lt;attName&gt;=&lt;attValue&gt;</code> for each
+        attribute required. For example:
+<pre>
+java -jar winstone.jar ...&lt; other options &gt; ... \
+                        --useJNDI=true \
+                        --jndi.resource.test=java.lang.Float \
+                        --jndi.param.test.value=45.56
+</pre></li>
+    </ul>
+  </p>
+ 
+  <p>Additionally, it includes a JDBC DataSource object which can be used as a wrapper around normal JDBC 
+    drivers. This is fairly simple for now, but it meets the requirements I mentioned above. Options are as
+    follows:
+    <ol>
+      <li><b>url (REQUIRED)</b> - JDBC URL (<code>jdbc:mysql://db.widgets.com/db</code>)</li>
+      <li><b>driverClassName (REQUIRED)</b> - JDBC Driver name (eg <code>com.mysql.jdbc.Driver</code>)</li>
+      <li><b>username</b> - username for database authentication</li>
+      <li><b>password</b> - password for database authentication</li>
+      <li><b>maxConnections</b> - Maximum number of connections allowed in the pool. Default is 20</li>
+      <li><b>maxIdle</b> - Maximum number of idle connections allowed in the pool. Default is 10</li>
+      <li><b>startConnections</b> - The number of connections to open the pool with. Deafault is 2</li>
+    </ol></p>
+
+  <p>For example to create a DataSource object at the JNDI location java:/comp/env/jdbc/connPool, use the 
+    following command line (or config file) options:
+<pre>
+java -jar winstone.jar ...&lt; other options &gt; ... \
+                        --useJNDI=true \
+                        --jndi.resource.jdbc/connPool=javax.sql.DataSource \
+                        --jndi.param.jdbc/connPool.url=jdbc:mysql://db.widgets.com/db \
+                        --jndi.param.jdbc/connPool.driverClassName=com.mysql.jdbc.Driver \
+                        --jndi.param.jdbc/connPool.username=foo \
+                        --jndi.param.jdbc/connPool.password=bar
+</pre></p>
 
 <h2>GCJ compilation</h2>
 

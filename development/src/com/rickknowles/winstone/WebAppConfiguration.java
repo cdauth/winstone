@@ -143,6 +143,7 @@ public class WebAppConfiguration implements ServletContext
                              boolean useWinstoneClassLoader,
                              boolean servletReloading,
                              String invokerPrefix,
+                             boolean useJNDI,
                              Node elm,
                              Map argsForSecurityJNDI,
                              WinstoneResourceBundle resources)
@@ -498,6 +499,7 @@ public class WebAppConfiguration implements ServletContext
     // Instantiate the JNDI manager
     String jndiMgrClassName = (argsForSecurityJNDI.get("jndiClassName") == null ?
       DEFAULT_JNDI_MGR_CLASS : (String) argsForSecurityJNDI.get("jndiClassName"));
+    if (useJNDI)
     try
     {
       // Build the realm

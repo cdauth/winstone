@@ -310,6 +310,7 @@ public class Launcher implements EntityResolver, Runnable
     String useWCL = (String) this.args.get("useWinstoneClassLoader");
     String reloadable = (String) this.args.get("useServletReloading");
     String useInvoker = (String) this.args.get("useInvoker");
+    String useJNDI = (String) this.args.get("useJNDI");
     String invokerPrefix = (String) (this.args.get("invokerPrefix") == null
                                                 ? DEFAULT_INVOKER_PREFIX
                                                 : this.args.get("invokerPrefix"));
@@ -320,6 +321,7 @@ public class Launcher implements EntityResolver, Runnable
     boolean switchOnWCL       = (useWCL == null)     || (useWCL.equalsIgnoreCase("true")     || useWCL.equalsIgnoreCase("yes"));
     boolean switchOnInvoker   = (useInvoker != null) && (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
     boolean switchOnReloading = (reloadable != null) && (reloadable.equalsIgnoreCase("true") || reloadable.equalsIgnoreCase("yes"));
+    boolean switchOnJNDI      = (useJNDI != null)    && (useJNDI.equalsIgnoreCase("true")    || useJNDI.equalsIgnoreCase("yes"));
 
     // Instantiate the webAppConfig
     this.webAppConfig = new WebAppConfiguration(this,
@@ -330,6 +332,7 @@ public class Launcher implements EntityResolver, Runnable
                                                 switchOnWCL,
                                                 switchOnReloading,
                                                 switchOnInvoker ? invokerPrefix : null,
+                                                switchOnJNDI,
                                                 webXMLParentNode,
                                                 args,
                                                 this.resources);
@@ -429,13 +432,9 @@ public class Launcher implements EntityResolver, Runnable
 
     }
     else
-    {
       Logger.setCurrentDebugLevel(args.get("debug") == null ?
                                   Logger.INFO :
                                   Integer.parseInt((String) args.get("debug")));
-      Logger.log(Logger.DEBUG, resources.getString("Launcher.NoPropertyFile",
-                "[#filename]", configFilename));
-    }
 
     if (!args.containsKey("webroot") && !args.containsKey("warfile"))
       printUsage(resources);

@@ -51,7 +51,7 @@ public class WinstoneDataSource implements DataSource, Runnable
      
   private int MAX_CONNECTIONS = 20;
   private int MAX_IDLE_CONNECTIONS = 10;
-  private int MIN_IDLE_CONNECTIONS = 2;
+  private int START_CONNECTIONS = 2;
   
   /**
    * Build a fresh instance
@@ -80,8 +80,8 @@ public class WinstoneDataSource implements DataSource, Runnable
       MAX_CONNECTIONS = Integer.parseInt((String) args.get("maxConnections"));
     if (args.get("maxIdle") != null)
       MAX_IDLE_CONNECTIONS = Integer.parseInt((String) args.get("maxIdle"));
-    if (args.get("minIdle") != null)
-      MIN_IDLE_CONNECTIONS = Integer.parseInt((String) args.get("minIdle"));
+    if (args.get("startConnections") != null)
+      START_CONNECTIONS = Integer.parseInt((String) args.get("startConnections"));
 
     if (this.url == null)
       throw new SQLException(this.resources.getString("WinstoneDataSource.NoUrlSupplied"));
@@ -95,6 +95,16 @@ public class WinstoneDataSource implements DataSource, Runnable
       // Get a test connection, and exit if it fails
       Connection realConnection = this.driver.connect(this.url, this.connectProps);
       this.unusedConnections.add(realConnection);
+
+      // Add missing idle connections
+      while ((this.unusedConnections.size() < START_CONNECTIONS) &&
+             (this.usedConnections.size() + this.unusedConnections.size() < MAX_CONNECTIONS))
+      {
+        this.unusedConnections.add(this.driver.connect(this.url, this.connectProps));
+        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.AddingPooledConnection",
+          "[#used]", "" + this.usedConnections.size(),
+          "[#unused]", "" + this.unusedConnections.size()));
+      }
     
       Thread thread = new Thread(this, this.resources.getString("WinstoneDataSource.ThreadName", "[#name]", name));
       thread.setDaemon(true);
@@ -119,17 +129,7 @@ public class WinstoneDataSource implements DataSource, Runnable
       try
       {
         synchronized (this.semaphore)
-        {
-          // Add missing idle connections
-          while ((this.unusedConnections.size() < MIN_IDLE_CONNECTIONS) &&
-                 (this.usedConnections.size() + this.unusedConnections.size() < MAX_CONNECTIONS))
-          {
-            this.unusedConnections.add(this.driver.connect(this.url, this.connectProps));
-            Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.AddingPooledConnection",
-              "[#used]", "" + this.usedConnections.size(),
-              "[#unused]", "" + this.unusedConnections.size()));
-          }
-        
+        {        
           // Trim excessive idle connections
           while (this.unusedConnections.size() > MAX_IDLE_CONNECTIONS)
           {

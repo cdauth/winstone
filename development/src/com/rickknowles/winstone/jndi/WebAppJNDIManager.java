@@ -64,14 +64,12 @@ public class WebAppJNDIManager implements JNDIManager
       {
         String resName = key.substring(14);
         String className = (String) args.get(key);
-        String value = (String) args.get("jndi." + resName + ".value");
+        String value = (String) args.get("jndi.param." + resName + ".value");
+        Logger.log(Logger.FULL_DEBUG, this.resources.getString(
+          "WebAppJNDIManager.CreatingResourceArgs", "[#name]", resName));
         Object obj = createObject(resName.trim(), className.trim(), value, args);
         if (obj != null)
-        {
           this.objectsToCreate.put(resName, obj);
-          Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-            "WebAppJNDIManager.CreatedResourceArgs", "[#name]", resName));
-        }
       }
     }
     
@@ -104,13 +102,11 @@ public class WebAppJNDIManager implements JNDIManager
           }
           if ((name != null) && (type != null) && (value != null))
           {
+            Logger.log(Logger.FULL_DEBUG, this.resources.getString(
+              "WebAppJNDIManager.CreatingResourceWebXML", "[#name]", name));
             Object obj = createObject(name, type, value, args);
             if (obj != null)
-            {
               this.objectsToCreate.put(name, obj);
-              Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-                "WebAppJNDIManager.CreatedResourceWebXML", "[#name]", name));
-            }
           }
         }
       }
@@ -199,7 +195,7 @@ public class WebAppJNDIManager implements JNDIManager
       for (Iterator i = args.keySet().iterator(); i.hasNext(); )
       {
         String key = (String) i.next();
-        if (key.startsWith("jndi." + name + "."))
+        if (key.startsWith("jndi.param." + name + "."))
           relevantArgs.put(key.substring(6 + name.length()), args.get(key));
       }
       try
