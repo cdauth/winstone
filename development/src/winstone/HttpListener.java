@@ -68,7 +68,8 @@ public class HttpListener implements Listener, Runnable
 
     this.interrupted = false;
 
-    Thread thread = new Thread(this);
+    Thread thread = new Thread(this, resources.getString("Listener.ThreadName", 
+        new String[] {getConnectorName(), "" + this.listenPort}));
     thread.setDaemon(true);
     thread.start();
   }

@@ -72,7 +72,8 @@ public class Ajp13Listener implements Listener, Runnable
     this.interrupted = false;
 
     // Start me running
-    Thread thread = new Thread(this);
+    Thread thread = new Thread(this, resources.getString("Listener.ThreadName", 
+        new String[] {"ajp13", "" + this.listenPort}));
     thread.setDaemon(true);
     thread.start();
   }
