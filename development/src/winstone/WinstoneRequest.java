@@ -51,6 +51,7 @@ public class WinstoneRequest implements HttpServletRequest
   static final String HOST_HEADER            = "Host";
   static final String IN_COOKIE_HEADER1      = "Cookie";
   static final String IN_COOKIE_HEADER2      = "Cookie2";
+  static final String METHOD_GET             = "GET";
   static final String METHOD_POST            = "POST";
   static final String POST_PARAMETERS        = "application/x-www-form-urlencoded";
 
@@ -227,7 +228,8 @@ public class WinstoneRequest implements HttpServletRequest
   public static Map extractParameters(String urlEncodedParams, String encoding,
       WinstoneResourceBundle resources)
   {
-    Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParsingParameters", urlEncodedParams);
+    Logger.log(Logger.DEBUG, resources, "WinstoneRequest.ParsingParameters", 
+            new String[] {urlEncodedParams, encoding});
     Map params = new Hashtable();
     StringTokenizer st = new StringTokenizer(urlEncodedParams, "&", false);
     while (st.hasMoreTokens())
@@ -329,6 +331,14 @@ public class WinstoneRequest implements HttpServletRequest
                               ? new String(paramBuffer)
                               : new String(paramBuffer, this.encoding));
         Map postParams = extractParameters(paramLine.trim(), this.encoding, resources);
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParamLine", "" + postParams);
+        params.putAll(postParams);
+      }
+      else if (method.equals(METHOD_GET) && (this.queryString != null))
+      {
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParsingParameters",
+                new String[] {this.queryString, this.encoding});
+        Map postParams = extractParameters(this.queryString, this.encoding, resources);
         Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParamLine", "" + postParams);
         params.putAll(postParams);
       }
@@ -530,7 +540,12 @@ public class WinstoneRequest implements HttpServletRequest
   }
 
   public String getCharacterEncoding()  {return this.encoding;}
-  public void setCharacterEncoding(String encoding) {this.encoding = encoding;}
+  public void setCharacterEncoding(String encoding) 
+  {
+    Logger.log(Logger.DEBUG, resources, "WinstoneRequest.SetCharEncoding", 
+            new String[] {this.encoding, encoding});
+    this.encoding = encoding;
+  }
 
   public int getContentLength()  {return this.contentLength;}
   public String getContentType() {return this.contentType;}

@@ -1164,8 +1164,8 @@ public class WebAppConfiguration implements ServletContext, Comparator
 
       // Otherwise process as normal
       request.setQueryString(queryString);
-      // parse params here ? yes for now
-      request.getParameters().putAll(WinstoneRequest.extractParameters(queryString, request.getEncoding(), resources));
+      // comment out param parse, cause we need lazy parsing
+      //request.getParameters().putAll(WinstoneRequest.extractParameters(queryString, request.getCharacterEncoding(), resources));
       request.setServletPath(servletPath.toString());
       request.setPathInfo(pathInfo.toString().equals("") ? null : pathInfo.toString());
       request.setRequestURI(this.prefix + uriInsideWebapp);

@@ -50,6 +50,7 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
   static final String ERROR_SERVLET_NAME   = "javax.servlet.error.servlet_name";
 
   private Map dispatchAttributes;
+  private String dispatchQueryString;
   private Map dispatchParameters;
   private WinstoneResourceBundle resources;
   
@@ -68,9 +69,7 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
     setAtt(isInclude ? INCLUDE_PATH_INFO : FORWARD_PATH_INFO, pathInfo);
     setAtt(isInclude ? INCLUDE_QUERY_STRING : FORWARD_QUERY_STRING, queryString);
 
-    this.dispatchParameters = new Hashtable();
-    this.dispatchParameters.putAll(WinstoneRequest.extractParameters(
-        queryString, getCharacterEncoding(), resources));
+    this.dispatchQueryString = queryString;
   }
   
   public DispatchRequestWrapper(ServletRequest request, 
@@ -127,6 +126,7 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
 
   public String getParameter(String name)           
   {
+    initialiseDispatchParams();
     Object dispParam = this.dispatchParameters.get(name);
     if (dispParam == null)
       return super.getParameter(name);
@@ -139,6 +139,7 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
   }
   public Map getParameterMap()                      
   {
+    initialiseDispatchParams();
     Map params = super.getParameterMap();
     params.putAll(this.dispatchParameters);
     return params;
@@ -147,6 +148,7 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
   	{return Collections.enumeration(getParameterMap().keySet());}
   public String[] getParameterValues(String name)   
   {
+    initialiseDispatchParams();
     Object dispParam = this.dispatchParameters.get(name);
     if (dispParam == null)
       return super.getParameterValues(name);
@@ -162,4 +164,16 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
       throw new WinstoneException(resources.getString("WinstoneRequest.UnknownParamType")
           + name + " - " + dispParam.getClass());
   }
+  
+  private void initialiseDispatchParams()
+  {
+    if (this.dispatchParameters != null)
+      return;
+    initialiseDispatchParams();
+    this.dispatchParameters = new Hashtable();
+    this.dispatchParameters.putAll(WinstoneRequest.extractParameters(
+            this.dispatchQueryString, getCharacterEncoding(), resources));
+    
+  }
+
 }
