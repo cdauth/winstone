@@ -212,11 +212,24 @@ public class WinstoneResponse implements HttpServletResponse
   public String writeCookie(Cookie cookie) throws IOException
   {
     StringBuffer out = new StringBuffer();
-    if (cookie.getVersion() == 1)
-    {
+    
+    // Set-Cookie or Set-Cookie2
+    if (cookie.getVersion() == 2)
       out.append(OUT_COOKIE_HEADER2).append(": ");
+    else
+      out.append(OUT_COOKIE_HEADER1).append(": ");
+
+    // name/value pair
+    if (cookie.getVersion() == 0)
+      out.append(cookie.getName()).append("=").append(cookie.getValue());
+    else
+    {
       out.append(cookie.getName()).append("=");
       quote(cookie.getValue(), out);
+    }
+    
+    if (cookie.getVersion() >= 1) 
+    {
       out.append("; Version=1");
       if (cookie.getDomain() != null)
       {
@@ -238,8 +251,6 @@ public class WinstoneResponse implements HttpServletResponse
     }
     else
     {
-      out.append(OUT_COOKIE_HEADER1).append(": ");
-      out.append(cookie.getName()).append("=").append(cookie.getValue());
       if (cookie.getDomain() != null)
       {
         out.append("; Domain=");
@@ -251,10 +262,10 @@ public class WinstoneResponse implements HttpServletResponse
         Date expiryDate = new Date(expiryMS);
         out.append("; Expires=").append(df.format(expiryDate));
       }
-      else
-        out.append("; Discard");
       if (cookie.getPath() != null)
         out.append("; Path=").append(cookie.getPath());
+      if (cookie.getSecure())
+        out.append("; Secure");
     }
     return out.toString();
   }

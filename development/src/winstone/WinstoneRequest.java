@@ -403,34 +403,83 @@ public class WinstoneRequest implements HttpServletRequest
       }
       else if (name.equalsIgnoreCase(IN_COOKIE_HEADER1) ||
                name.equalsIgnoreCase(IN_COOKIE_HEADER2))
-      {
-        StringTokenizer st = new StringTokenizer(value, ";", false);
-        while (st.hasMoreTokens())
-        {
-          String cookieLine = st.nextToken().trim();
-          int equalPos = cookieLine.indexOf('=');
-          if (equalPos != -1)
-          {
-            Cookie thisCookie = new Cookie(cookieLine.substring(0, equalPos),
-                                           cookieLine.substring(equalPos + 1));
-            thisCookie.setVersion(name.equals(IN_COOKIE_HEADER2) || isSecure() ? 1 : 0);
-            thisCookie.setSecure(isSecure());
-            cookieList.add(thisCookie);
-            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.CookieFound",
-                  new String[] {thisCookie.getName(), thisCookie.getValue()});
-            if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME))
-            {
-              this.sessionCookie = thisCookie.getValue();
-              Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.SessionCookieFound", thisCookie.getValue());
-            }
-          }
-        }
-      }
+        parseCookieLine(value, cookieList);
     }
     this.headers = (String []) outHeaderList.toArray(new String[outHeaderList.size()]);
     this.cookies = (Cookie []) cookieList.toArray(new Cookie[cookieList.size()]);
   }
 
+  private void parseCookieLine(String headerValue, List cookieList)
+  {
+    StringTokenizer st = new StringTokenizer(headerValue, ";", false);
+    int version = 0;
+    String cookieLine = st.nextToken().trim();
+      
+    // check cookie version flag
+    if (cookieLine.startsWith("$Version"))
+    {
+      int equalPos = cookieLine.indexOf('=');
+      try 
+        {version = Integer.parseInt(cookieLine.substring(equalPos).trim());}
+      catch (NumberFormatException err)
+        {version = 0;}
+    }
+
+    // process remainder - parameters
+    while (cookieLine != null)
+    {
+      int equalPos = cookieLine.indexOf('=');
+      if (equalPos == -1)
+      {
+        // next token
+        if (st.hasMoreTokens())
+          cookieLine = st.nextToken().trim();
+        else 
+          cookieLine = null;
+      }
+      else
+      {
+        Cookie thisCookie = new Cookie(cookieLine.substring(0, equalPos),
+                                       cookieLine.substring(equalPos + 1));
+        thisCookie.setVersion(version);
+        thisCookie.setSecure(isSecure());
+        cookieList.add(thisCookie);
+         
+        // check for path / domain / port
+        if (st.hasMoreTokens())
+        {
+          cookieLine = st.nextToken().trim();
+          while ((cookieLine != null) && cookieLine.startsWith("$"))
+          {
+            equalPos = cookieLine.indexOf('=');
+            String attrValue = equalPos == -1 ? "" :
+                    cookieLine.substring(equalPos+1).trim();
+            if (cookieLine.startsWith("$Path"))
+              thisCookie.setPath(attrValue);
+            else if (cookieLine.startsWith("$Domain"))
+              thisCookie.setDomain(attrValue);
+                
+            // next part
+            if (st.hasMoreTokens())
+              cookieLine = st.nextToken().trim();
+            else
+              cookieLine = null;
+          }
+        }
+        else 
+          cookieLine = null;
+        
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.CookieFound",
+              new String[] {thisCookie.getName(), thisCookie.getValue()});
+        if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME))
+        {
+          this.sessionCookie = thisCookie.getValue();
+          Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.SessionCookieFound", thisCookie.getValue());
+        }
+      }
+    }
+  }
+  
   private List parseLocales(String header)
   {
     // Strip out the whitespace
