@@ -490,9 +490,9 @@ public class WebAppConfiguration implements ServletContext
           {loginConfigNode, constraintNodes, resources, authenticationRealm});
       }
       catch (ClassNotFoundException err)
-        {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfiguration.AuthDisabled", "[#auth]", authMethod));}
+        {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfig.AuthDisabled", "[#auth]", authMethod));}
       catch (Throwable err)
-        {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfiguration.AuthError", 
+        {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfig.AuthError", 
           "[#authClassName]", authClassName, "[#realmClassName]", realmClassName), err);}
     }
 
@@ -510,9 +510,9 @@ public class WebAppConfiguration implements ServletContext
         this.jndiManager.setup();
     }
     catch (ClassNotFoundException err)
-      {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfiguration.JNDIDisabled"));}
+      {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfig.JNDIDisabled"));}
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfiguration.JNDIError", 
+      {Logger.log(Logger.ERROR, this.resources.getString("WebAppConfig.JNDIError", 
         "[#jndiClassName]", jndiMgrClassName), err);}
 
     
