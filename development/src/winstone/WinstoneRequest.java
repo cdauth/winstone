@@ -321,6 +321,13 @@ public class WinstoneRequest implements HttpServletRequest
           (contentType != null) && 
 					contentType.equals(POST_PARAMETERS))
       {
+        // Put any query string params in first
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParsingParameters",
+                new String[] {this.queryString, this.encoding});
+        Map qsParams = extractParameters(this.queryString, this.encoding, resources);
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParamLine", "" + qsParams);
+        params.putAll(qsParams);
+          
         // Parse params
         byte paramBuffer[] = new byte[contentLength];
         int readCount = inData.read(paramBuffer);
@@ -338,9 +345,9 @@ public class WinstoneRequest implements HttpServletRequest
       {
         Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParsingParameters",
                 new String[] {this.queryString, this.encoding});
-        Map postParams = extractParameters(this.queryString, this.encoding, resources);
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParamLine", "" + postParams);
-        params.putAll(postParams);
+        Map qsParams = extractParameters(this.queryString, this.encoding, resources);
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParamLine", "" + qsParams);
+        params.putAll(qsParams);
       }
       return new Boolean(true);
     }
