@@ -670,10 +670,14 @@ public class WinstoneRequest implements HttpServletRequest
     catch (java.text.ParseException err)
       {throw new IllegalArgumentException(resources.getString("WinstoneRequest.BadDate", dateHeader));}
   }
+  public int getIntHeader(String name)
+  {
+    String header = getHeader(name);
+    return header == null ? -1 : Integer.parseInt(header);
+  }
   public String getHeader(String name)          {return extractFirstHeader(name);}
   public Enumeration getHeaderNames()           {return Collections.enumeration(extractHeaderNameList());}
   public Enumeration getHeaders(String name)    {return null;}
-  public int getIntHeader(String name)          {return Integer.parseInt(getHeader(name));}
   public String getMethod()                     {return this.method;}
   public String getPathInfo()                   {return this.pathInfo;}
   public String getPathTranslated()             {return this.webappConfig.getRealPath(this.pathInfo);}
