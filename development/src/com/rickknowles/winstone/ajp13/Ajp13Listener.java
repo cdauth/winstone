@@ -32,7 +32,7 @@ import com.rickknowles.winstone.*;
  */
 public class Ajp13Listener implements Listener, Runnable
 {
-  private int LISTENER_TIMEOUT = 500; // every 500ms reset the listener socket
+  private int LISTENER_TIMEOUT = 5000; // every 5s reset the listener socket
   private int DEFAULT_PORT = 8009;
   private int CONNECTION_TIMEOUT = 60000;
 
@@ -124,10 +124,13 @@ public class Ajp13Listener implements Listener, Runnable
     OutputStream outSocket, RequestHandlerThread handler, boolean iAmFirst)
     throws SocketException, IOException
   {
-    WinstoneRequest req = new WinstoneRequest(this, this.protocol, this.resources);
-    WinstoneResponse rsp = new WinstoneResponse(resources, this.protocol);
+    WinstoneRequest req = this.launcher.getRequestFromPool();
+    WinstoneResponse rsp = this.launcher.getResponseFromPool();
+    req.setListener(this);
+    req.setProtocolClass(this.protocol);
     rsp.setRequest(req);
     rsp.setProtocolClass(this.protocol);
+    rsp.updateContentTypeHeader("text/html");
 
     if (iAmFirst || (KEEP_ALIVE_TIMEOUT == -1))
       socket.setSoTimeout(CONNECTION_TIMEOUT);
@@ -193,6 +196,10 @@ public class Ajp13Listener implements Listener, Runnable
     handler.setOutStream(null);
     handler.setRequest(null);
     handler.setResponse(null);
+    if (req != null)
+      this.launcher.releaseRequestToPool(req);
+    if (rsp != null)
+      this.launcher.releaseResponseToPool(rsp);
   }
 
   /**

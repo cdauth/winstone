@@ -53,7 +53,7 @@ public class WinstoneResponse implements HttpServletResponse
   /**
    * Constructor
    */
-  public WinstoneResponse(WinstoneResourceBundle resources, HttpProtocol protocolClass)
+  public WinstoneResponse(WinstoneResourceBundle resources)
   {
     this.resources = resources;
     this.protocolClass = protocolClass;
@@ -62,7 +62,6 @@ public class WinstoneResponse implements HttpServletResponse
     this.encoding = null; // default
 
     this.statusCode = SC_OK;
-    updateContentTypeHeader("text/html");
   }
 
   /**
@@ -79,7 +78,6 @@ public class WinstoneResponse implements HttpServletResponse
     this.outWriter = null;
 
     this.statusCode = SC_OK;
-    updateContentTypeHeader("text/html");
   }
 
   public void setOutputStream(WinstoneOutputStream outData) {this.outputStream = outData;}

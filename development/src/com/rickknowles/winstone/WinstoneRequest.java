@@ -71,11 +71,8 @@ public class WinstoneRequest implements HttpServletRequest
   /**
    * InputStream factory method.
    */
-  public WinstoneRequest(Listener listener, HttpProtocol protocolClass,
-      WinstoneResourceBundle resources) throws IOException
+  public WinstoneRequest(WinstoneResourceBundle resources) throws IOException
   {
-    this.listener = listener;
-    this.protocolClass = protocolClass;
     this.resources = resources;
     this.attributes = new Hashtable();
     this.parameters = new Hashtable();
@@ -89,6 +86,8 @@ public class WinstoneRequest implements HttpServletRequest
    */
   public void cleanUp()
   {
+    this.listener = null;
+    this.protocolClass = null;
     this.attributes.clear();
     this.parameters.clear();
     this.headers = null;

@@ -56,7 +56,7 @@ public class Launcher implements EntityResolver, Runnable
   static final String WEB_INF  = "WEB-INF";
   static final String WEB_XML  = "web.xml";
 
-  private int CONTROL_TIMEOUT = 500; // wait 500ms for control connection
+  private int CONTROL_TIMEOUT = 5000; // wait 5s for control connection
   private int DEFAULT_CONTROL_PORT = -1;
   private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
@@ -64,13 +64,27 @@ public class Launcher implements EntityResolver, Runnable
   private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 50;
   private int MAX_REQUEST_HANDLERS_IN_POOL = 300;
 
+  private int START_REQUESTS_IN_POOL  = 10;
+  private int MAX_REQUESTS_IN_POOL    = 100;
+
+  private int START_RESPONSES_IN_POOL = 10;
+  private int MAX_RESPONSES_IN_POOL   = 100;
+
   private WinstoneResourceBundle resources;
   private int controlPort;
   private List unusedRequestHandlerThreads;
   private List usedRequestHandlerThreads;
   private WebAppConfiguration webAppConfig;
 
+  private List usedRequestPool;
+  private List unusedRequestPool;
+  private List usedResponsePool;
+  private List unusedResponsePool;
+
+  private Object requestPoolSemaphore  = new Boolean(true);
+  private Object responsePoolSemaphore = new Boolean(true);
   private Object requestHandlerSemaphore = new Boolean(true);
+
   private int threadIndex = 0;
 
   private List listeners;
@@ -143,12 +157,21 @@ public class Launcher implements EntityResolver, Runnable
     this.unusedRequestHandlerThreads = new Vector();
     this.usedRequestHandlerThreads = new Vector();
 
+    // Build the request/response pools
+    this.usedRequestPool    = new ArrayList();
+    this.usedResponsePool   = new ArrayList();
+    this.unusedRequestPool  = new ArrayList();
+    this.unusedResponsePool = new ArrayList();
+
     // Start the base set of handler threads
-    synchronized (this.requestHandlerSemaphore)
-    {
-      while (this.unusedRequestHandlerThreads.size() < STARTUP_REQUEST_HANDLERS_IN_POOL)
-        this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
-    }
+    for (int n = 0; n < STARTUP_REQUEST_HANDLERS_IN_POOL; n++)
+      this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
+
+    // Initialise the request/response pools
+    for (int n = 0; n < START_REQUESTS_IN_POOL; n++)
+      this.unusedRequestPool.add(new WinstoneRequest(this.resources));
+    for (int n = 0; n < START_RESPONSES_IN_POOL; n++)
+      this.unusedResponsePool.add(new WinstoneResponse(this.resources));
 
     // Create connectors (http and ajp)
     this.listeners = new ArrayList();
@@ -370,6 +393,92 @@ public class Launcher implements EntityResolver, Runnable
       }
       else
         Logger.log(Logger.WARNING, resources.getString("Launcher.UnknownRHPoolThread"));
+    }
+  }
+
+  /**
+   * An attempt at pooling request objects for reuse.
+   */
+  public WinstoneRequest getRequestFromPool() throws IOException
+  {
+    WinstoneRequest req = null;
+    synchronized (this.requestPoolSemaphore)
+    {
+      // If we have any spare, get it from the pool
+      if (this.unusedRequestPool.size() > 0)
+      {
+        req = (WinstoneRequest) this.unusedRequestPool.get(0);
+        this.unusedRequestPool.remove(req);
+        this.usedRequestPool.add(req);
+        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.UsingRequestFromPool",
+            "[#unused]", "" + this.unusedRequestPool.size()));
+      }
+      // If we are out, allocate a new one
+      else if (this.usedRequestPool.size() < MAX_REQUESTS_IN_POOL)
+      {
+        req = new WinstoneRequest(this.resources);
+        this.usedRequestPool.add(req);
+        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.NewRequestForPool",
+            "[#used]", "" + this.usedRequestPool.size()));
+      }
+      else
+        throw new WinstoneException(this.resources.getString("HttpListener.PoolRequestLimitExceeded"));
+    }
+    return req;
+  }
+
+  public void releaseRequestToPool(WinstoneRequest req)
+  {
+    req.cleanUp();
+    synchronized (this.requestPoolSemaphore)
+    {
+      this.usedRequestPool.remove(req);
+      this.unusedRequestPool.add(req);
+      Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.RequestReleased",
+          "[#unused]", "" + this.unusedRequestPool.size()));
+    }
+  }
+
+  /**
+   * An attempt at pooling request objects for reuse.
+   */
+  public WinstoneResponse getResponseFromPool() throws IOException
+  {
+    WinstoneResponse rsp = null;
+    synchronized (this.responsePoolSemaphore)
+    {
+      // If we have any spare, get it from the pool
+      if (this.unusedResponsePool.size() > 0)
+      {
+        rsp = (WinstoneResponse) this.unusedResponsePool.get(0);
+        this.unusedResponsePool.remove(rsp);
+        this.usedResponsePool.add(rsp);
+        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.UsingResponseFromPool",
+            "[#unused]", "" + this.unusedResponsePool.size()));
+      }
+      // If we are out, allocate a new one
+      else if (this.usedResponsePool.size() < MAX_RESPONSES_IN_POOL)
+      {
+        rsp = new WinstoneResponse(this.resources);
+        this.usedResponsePool.add(rsp);
+        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.NewResponseForPool",
+            "[#used]", "" + this.usedResponsePool.size()));
+      }
+      else
+        throw new WinstoneException(this.resources.getString("HttpListener.PoolResponseLimitExceeded"));
+    }
+    return rsp;
+  }
+
+  public void releaseResponseToPool(WinstoneResponse rsp)
+  {
+    rsp.cleanUp();
+    synchronized (this.responsePoolSemaphore)
+    {
+      this.usedResponsePool.remove(rsp);
+      this.unusedResponsePool.add(rsp);
+      Logger.log(Logger.FULL_DEBUG, resources.getString("HttpListener.ResponseReleased",
+          "[#unused]", "" + this.unusedResponsePool.size()));
     }
   }
 
