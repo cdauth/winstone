@@ -164,7 +164,7 @@ public class ObjectPool
         // Possibly insert a second chance here ? Delay and one retry ?
         // Remember to release the lock first
         Logger.log(Logger.WARNING, resources, "ObjectPool.NoRHPoolThreadsRetry");
-        socket.close();
+        //socket.close();
         //throw new UnavailableException("NoHandlersAvailable");
       }
     }
