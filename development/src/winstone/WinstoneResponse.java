@@ -137,7 +137,7 @@ public class WinstoneResponse implements HttpServletResponse
       {
         Logger.log(Logger.WARNING, resources.getString("WinstoneResponse.ShortOutput",
           "[#contentLength]", contentLength + "", "[#bodyBytes]", bodyBytes + ""));
-        this.setContentLength(bodyBytes);
+        //this.setContentLength(bodyBytes);
       }
     }
   }

@@ -651,10 +651,11 @@ public class WinstoneRequest implements HttpServletRequest
   {
     // check if it's expired yet
     if ((session.getMaxInactiveInterval() > 0) &&
-        (session.getMaxInactiveInterval() + (session.getLastAccessedTime() * 1000) > nowDate))
+        (nowDate - session.getLastAccessedTime() > session.getMaxInactiveInterval() * 1000))
     {
       session.invalidate();
-      Logger.log(Logger.DEBUG, resources.getString("WinstoneRequest.InvalidateSession") + session.getId());
+      Logger.log(Logger.DEBUG, resources.getString("WinstoneRequest.InvalidateSession", 
+          "[#id]", session.getId(), "[#inactivePeriod]", "" + (nowDate - session.getLastAccessedTime())));
       if (create)
         session = this.webappConfig.getSessionById(makeNewSession(), false);
       else
