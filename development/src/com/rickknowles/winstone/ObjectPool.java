@@ -115,10 +115,13 @@ public class ObjectPool
   {
     synchronized (this.requestHandlerSemaphore)
     {
-      for (Iterator i = this.usedRequestHandlerThreads.iterator(); i.hasNext(); )
+      Collection usedHandlers = new ArrayList(this.usedRequestHandlerThreads);
+      for (Iterator i = usedHandlers.iterator(); i.hasNext(); )
         releaseRequestHandler((RequestHandlerThread) i.next());
-      for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
+      Collection unusedHandlers = new ArrayList(this.unusedRequestHandlerThreads);
+      for (Iterator i = unusedHandlers.iterator(); i.hasNext(); )
         ((RequestHandlerThread) i.next()).destroy();
+      this.unusedRequestHandlerThreads.clear();
     }
   }
 
