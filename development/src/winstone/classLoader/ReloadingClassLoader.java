@@ -65,7 +65,7 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
    */
   public void run()
   {
-    Logger.log(Logger.FULL_DEBUG, localResources.getString("ReloadingClassLoader.MaintenanceThreadStarted"));
+    Logger.log(Logger.FULL_DEBUG, localResources, "ReloadingClassLoader.MaintenanceThreadStarted");
 
     Map classDateTable = new HashMap();
     Map classLocationTable = new HashMap();
@@ -111,7 +111,7 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
           // Has class vanished ? Leave a note and skip over it
           if (classDate == null)
           {
-            Logger.log(Logger.WARNING, localResources.getString("ReloadingClassLoader.ClassLost", "[#className]", className));
+            Logger.log(Logger.WARNING, localResources, "ReloadingClassLoader.ClassLost", className);
             continue;
           }
 
@@ -122,19 +122,18 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
           // Trigger reset of webAppConfig
           else if (oldClassDate.compareTo(classDate) != 0)
           {
-            Logger.log(Logger.INFO, localResources.getString("ReloadingClassLoader.ReloadRequired",
-              "[#className]", className, "[#date]", "" + new Date(classDate.longValue()),
-              "[#oldDate]",  "" + new Date(oldClassDate.longValue())));
+            Logger.log(Logger.INFO, localResources, "ReloadingClassLoader.ReloadRequired",
+              new String[] {className, "" + new Date(classDate.longValue()),
+                            "" + new Date(oldClassDate.longValue())});
             this.webAppConfig.resetClassLoader();
           }
           Thread.sleep(RELOAD_SEARCH_SLEEP);
         }
       }
       catch (Throwable err)
-        {Logger.log(Logger.ERROR, localResources.getString("ReloadingClassLoader.MaintenanceThreadError"), err);}
+        {Logger.log(Logger.ERROR, localResources, "ReloadingClassLoader.MaintenanceThreadError", err);}
     }
-    Logger.log(Logger.FULL_DEBUG, localResources.getString(
-          "ReloadingClassLoader.MaintenanceThreadFinished"));
+    Logger.log(Logger.FULL_DEBUG, localResources, "ReloadingClassLoader.MaintenanceThreadFinished");
   }
 
   protected Class findClass(String name) throws ClassNotFoundException

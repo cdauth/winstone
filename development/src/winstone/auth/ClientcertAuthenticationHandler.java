@@ -36,8 +36,8 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler
     Set rolesAllowed, WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
     super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
-    Logger.log(Logger.DEBUG, this.resources.getString("ClientcertAuthenticationHandler.Initialised",
-      "[#name]", realmName));
+    Logger.log(Logger.DEBUG, this.resources, "ClientcertAuthenticationHandler.Initialised",
+      realmName);
   }
 
   /**
@@ -81,10 +81,10 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler
             if (wrapper.getRequest() instanceof WinstoneRequest)
               ((WinstoneRequest) wrapper.getRequest()).setRemoteUser(principal);
             else
-              Logger.log(Logger.WARNING, this.resources.getString("ClientCertAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+              Logger.log(Logger.WARNING, this.resources, "ClientCertAuthenticationHandler.CantSetUser", wrapper.getRequest().getClass().getName());
           }
           else
-            Logger.log(Logger.WARNING, this.resources.getString("ClientCertAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+            Logger.log(Logger.WARNING, this.resources, "ClientCertAuthenticationHandler.CantSetUser", request.getClass().getName());
         }
       }
     }

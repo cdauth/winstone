@@ -63,7 +63,7 @@ public class FileRealm implements AuthenticationRealm
     File realmFile = new File(realmFileName);
     if (!realmFile.exists())
       throw new WinstoneException(this.resources.getString("FileRealm.FileNotFound", 
-            "[#name]", realmFile.getPath()));
+            realmFile.getPath()));
     try
     {
       InputStream inFile = new FileInputStream(realmFile);
@@ -94,7 +94,7 @@ public class FileRealm implements AuthenticationRealm
 
           if ((userName == null) || (password == null) || (roleList == null))
             Logger.log(Logger.FULL_DEBUG, 
-              this.resources.getString("FileRealm.SkippingUser", "[#name]", userName));
+              this.resources, "FileRealm.SkippingUser", userName);
           else
           {
             // Parse the role list into an array and sort it
@@ -113,8 +113,8 @@ public class FileRealm implements AuthenticationRealm
           }
         }
       }
-      Logger.log(Logger.DEBUG, this.resources.getString("FileRealm.Initialised",
-          "[#userCount]", "" + this.passwords.size()));
+      Logger.log(Logger.DEBUG, this.resources, "FileRealm.Initialised",
+          "" + this.passwords.size());
     }
     catch (java.io.IOException err) 
       {throw new WinstoneException(this.resources.getString("FileRealm.ErrorLoading"), err);

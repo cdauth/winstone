@@ -105,7 +105,7 @@ public class ClusterSessionSearch implements Runnable
       controlConnection.close();
     }
     catch (Throwable err) 
-      {Logger.log(Logger.WARNING, this.resources.getString("ClusterSessionSearch.Error"), err);}
+      {Logger.log(Logger.WARNING, this.resources, "ClusterSessionSearch.Error", err);}
     this.isFinished = true;
   }
   public boolean isFinished() {return this.isFinished;}

@@ -100,8 +100,8 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
           this.initParameters.put(paramName, paramValue);
       }
     }
-    Logger.log(Logger.FULL_DEBUG, resources.getString("FilterConfiguration.DeployedInstance",
-        "[#name]", this.filterName, "[#class]", this.classFile));
+    Logger.log(Logger.FULL_DEBUG, resources, "FilterConfiguration.DeployedInstance",
+        new String[] {this.filterName, this.classFile});
   }
 
   public String getFilterName()                    {return this.filterName;}
@@ -126,20 +126,18 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
 
         Class filterClass = Class.forName(classFile, true, this.loader);
         this.instance = (Filter) filterClass.newInstance();
-        Logger.log(Logger.DEBUG, this.filterName + ": "
-                    + resources.getString("FilterConfiguration.init")
-                    );
+        Logger.log(Logger.DEBUG, resources, "FilterConfiguration.init", this.filterName);
 
         // Initialise with the correct classloader
         this.instance.init(this);
         Thread.currentThread().setContextClassLoader(cl);
       }
       catch (ClassNotFoundException err)
-        {Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.ClassLoadError") + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources, "FilterConfiguration.ClassLoadError", this.classFile, err);}
       catch (IllegalAccessException err)
-        {Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.ClassLoadError") + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources, "FilterConfiguration.ClassLoadError", this.classFile, err);}
       catch (InstantiationException err)
-        {Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.ClassLoadError") + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources, "FilterConfiguration.ClassLoadError", this.classFile, err);}
       catch (javax.servlet.ServletException err)
       {
         this.instance = null;
@@ -160,7 +158,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
     {
       if (this.instance != null)
       {
-        Logger.log(Logger.DEBUG, this.filterName + ": " + resources.getString("FilterConfiguration.destroy"));
+        Logger.log(Logger.DEBUG, resources, "FilterConfiguration.destroy", this.filterName);
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
         this.instance.destroy();
@@ -172,7 +170,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
   public String toString()
   {
     return this.resources.getString("FilterConfiguration.Description",
-      "[#name]", this.filterName, "[#class]", this.classFile);
+      new String[] {this.filterName, this.classFile});
   }
   
   public boolean isUnavailable() {return this.unavailableException;}

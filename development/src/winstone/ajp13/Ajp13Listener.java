@@ -87,8 +87,8 @@ public class Ajp13Listener implements Listener, Runnable
           : new ServerSocket(this.listenPort, BACKLOG_COUNT, 
                     InetAddress.getByName(this.listenAddress));
       ss.setSoTimeout(LISTENER_TIMEOUT);
-      Logger.log(Logger.INFO, localResources.getString("Ajp13Listener.StartupOK",
-                              "[#port]", this.listenPort + ""));
+      Logger.log(Logger.INFO, localResources,"Ajp13Listener.StartupOK",
+                              this.listenPort + "");
 
       // Enter the main loop
       while (!interrupted)
@@ -108,9 +108,9 @@ public class Ajp13Listener implements Listener, Runnable
       ss.close();
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, localResources.getString("Ajp13Listener.ShutdownError"), err);}
+      {Logger.log(Logger.ERROR, localResources, "Ajp13Listener.ShutdownError", err);}
 
-    Logger.log(Logger.INFO, localResources.getString("Ajp13Listener.ShutdownOK"));
+    Logger.log(Logger.INFO, localResources, "Ajp13Listener.ShutdownOK");
   }
 
   /**
@@ -162,9 +162,8 @@ public class Ajp13Listener implements Listener, Runnable
         {
           outSocket.write(getBodyRequestPacket(Math.min(contentLength - position, 8184)));
           position = getBodyResponsePacket(inSocket, bodyContent, position);
-          Logger.log(Logger.FULL_DEBUG,
-          localResources.getString("Ajp13Listener.ReadBodyProgress",
-                    "[#position]", "" + position, "[#total]", "" + contentLength));
+          Logger.log(Logger.FULL_DEBUG, localResources, "Ajp13Listener.ReadBodyProgress",
+                    new String[] {"" + position, "" + contentLength});
 
         }
         inData = new WinstoneInputStream(bodyContent, mainResources);
@@ -286,7 +285,7 @@ public class Ajp13Listener implements Listener, Runnable
           {certificateArray[0] = (X509Certificate) CertificateFactory.getInstance("X.509")
                                                     .generateCertificate(certStream);}
         catch (CertificateException err)
-          {Logger.log(Logger.DEBUG, "Skipping invalid SSL certificate: " + certValue);}
+          {Logger.log(Logger.DEBUG, localResources, "Ajp13Listener.SkippingCert", certValue);}
         req.setAttribute("javax.servlet.request.X509Certificate", certificateArray);
         req.setIsSecure(true);
       }
@@ -309,8 +308,8 @@ public class Ajp13Listener implements Listener, Runnable
         req.setIsSecure(true);
       }
       else
-        Logger.log(Logger.DEBUG, localResources.getString("Ajp13Listener.UnknownAttribute",
-            "[#name]", attName, "[#value]", "" + headers.getAttributes().get(attName)));
+        Logger.log(Logger.DEBUG, localResources, "Ajp13Listener.UnknownAttribute",
+            new String[] {attName, "" + headers.getAttributes().get(attName)});
     }
     return headers.getURI();
 

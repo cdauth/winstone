@@ -116,23 +116,23 @@ public class Logger
 
   /**
    * Writes a log message to the default stream
-   */
+   * /
   public static void log(int level, String message)
   {
     log(level, DEFAULT_STREAM, message);
   }
 
-   /**
+  /**
    * Writes a log message to the default stream
-   */
+   * /
   public static void log(int level, String message, Throwable error)
   {
     log(level, DEFAULT_STREAM, message, error);
   }
 
- /**
+  /**
    * Writes a log message to the default stream
-   */
+   * /
   public static void log(int level, String streamName, String message)
   {
     log(level, streamName, message, null);
@@ -163,6 +163,43 @@ public class Logger
         stream.flush();
       }
     }
+  }
+
+  public static void log(int level, WinstoneResourceBundle resources, 
+      String messageKey)
+    {log(level, resources, DEFAULT_STREAM, messageKey, (String[]) null, null);}
+
+  public static void log(int level, WinstoneResourceBundle resources, 
+      String messageKey, Throwable error)
+    {log(level, resources, DEFAULT_STREAM, messageKey, (String[]) null, error);}
+
+  public static void log(int level, WinstoneResourceBundle resources, 
+      String messageKey, String param)
+    {log(level, resources, DEFAULT_STREAM, messageKey, new String[] {param}, null);}
+
+  public static void log(int level, WinstoneResourceBundle resources, 
+      String messageKey, String params[])
+    {log(level, resources, DEFAULT_STREAM, messageKey, params, null);}
+
+  public static void log(int level, WinstoneResourceBundle resources, 
+      String messageKey, String param, Throwable error)
+    {log(level, resources, DEFAULT_STREAM, messageKey, new String[] {param}, error);}
+
+  public static void log(int level, WinstoneResourceBundle resources, 
+      String messageKey, String params[], Throwable error)
+    {log(level, resources, DEFAULT_STREAM, messageKey, params, error);}
+
+  /**
+   * Writes a log message to the requested stream, and immediately flushes
+   * the contents of the stream.
+   */
+  public static void log(int level, WinstoneResourceBundle resources, String streamName, 
+      String messageKey, String params[], Throwable error)
+  {
+    if (currentDebugLevel < level)
+      return;
+    else
+      log(level, streamName, resources.getString(messageKey, params), error);
   }
 }
 

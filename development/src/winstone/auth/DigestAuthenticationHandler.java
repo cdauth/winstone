@@ -43,8 +43,8 @@ public class DigestAuthenticationHandler extends BaseAuthenticationHandler
   {
     super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
     this.md5Digester = MessageDigest.getInstance("MD5");
-    Logger.log(Logger.DEBUG, this.resources.getString("DigestAuthenticationHandler.Initialised",
-      "[#name]", realmName));
+    Logger.log(Logger.DEBUG, this.resources, "DigestAuthenticationHandler.Initialised",
+      realmName);
   }
 
   /**
@@ -148,10 +148,10 @@ public class DigestAuthenticationHandler extends BaseAuthenticationHandler
         if (wrapper.getRequest() instanceof WinstoneRequest)
           ((WinstoneRequest) wrapper.getRequest()).setRemoteUser(principal);
         else
-          Logger.log(Logger.WARNING, this.resources.getString("DigestAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+          Logger.log(Logger.WARNING, this.resources, "DigestAuthenticationHandler.CantSetUser", wrapper.getRequest().getClass().getName());
       }
       else
-        Logger.log(Logger.WARNING, this.resources.getString("DigestAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+        Logger.log(Logger.WARNING, this.resources, "DigestAuthenticationHandler.CantSetUser", request.getClass().getName());
     }
     return true;
   }

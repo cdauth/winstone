@@ -76,7 +76,7 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
     ServletResponse inResponse, String pathRequested)
     throws IOException, ServletException
   {
-    Logger.log(Logger.FULL_DEBUG, this.resources.getString("BaseAuthenticationHandler.StartAuthCheck"));
+    Logger.log(Logger.FULL_DEBUG, this.resources, "BaseAuthenticationHandler.StartAuthCheck");
     
     HttpServletRequest request = (HttpServletRequest) inRequest;
     HttpServletResponse response = (HttpServletResponse) inResponse;
@@ -89,22 +89,20 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
     boolean foundApplicable = false;
     for (int n = 0; (n < this.constraints.length) && !foundApplicable; n++)
     {
-      Logger.log(Logger.FULL_DEBUG, this.resources.getString("BaseAuthenticationHandler.EvalConstraint", 
-                                    "[#name]", this.constraints[n].getName()));
+      Logger.log(Logger.FULL_DEBUG, this.resources, "BaseAuthenticationHandler.EvalConstraint", 
+                                    this.constraints[n].getName());
 
       // Find one that applies, then
       if (this.constraints[n].isApplicable(pathRequested, request.getMethod()))
       {
-        Logger.log(Logger.FULL_DEBUG, this.resources.getString("BaseAuthenticationHandler.ApplicableConstraint", 
-                                      "[#name]", this.constraints[n].getName()));
+        Logger.log(Logger.FULL_DEBUG, this.resources, "BaseAuthenticationHandler.ApplicableConstraint", 
+                                      this.constraints[n].getName());
         foundApplicable = true;
 
         if (this.constraints[n].needsSSL() && !request.isSecure())
         {
-          String msg = this.resources.getString("BaseAuthenticationHandler.ConstraintNeedsSSL",
-            "[#name]", this.constraints[n].getName());
-          Logger.log(Logger.DEBUG, msg);
-          response.sendError(HttpServletResponse.SC_FORBIDDEN, msg);
+          Logger.log(Logger.DEBUG, resources, "BaseAuthenticationHandler.ConstraintNeedsSSL", this.constraints[n].getName());
+          response.sendError(HttpServletResponse.SC_FORBIDDEN, resources.getString("BaseAuthenticationHandler.ConstraintNeedsSSL", this.constraints[n].getName()));
           return false;
         }
 
@@ -121,7 +119,7 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
       }
     }
     // If we made it this far without a check being run, there must be none applicable
-    Logger.log(Logger.FULL_DEBUG, this.resources.getString("BaseAuthenticationHandler.PassedAuthCheck"));
+    Logger.log(Logger.FULL_DEBUG, this.resources, "BaseAuthenticationHandler.PassedAuthCheck");
     return true;
   }
 

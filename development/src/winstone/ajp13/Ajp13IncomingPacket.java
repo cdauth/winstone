@@ -87,7 +87,7 @@ public class Ajp13IncomingPacket
     if (this.packetType != SERVER_FORWARD_REQUEST)
       throw new WinstoneException(this.resources.getString(
             "Ajp13IncomingPacket.UnknownPacketType",
-            "[#packetType]", this.packetType + ""));
+            this.packetType + ""));
 
     // Check for terminator
     if ((packetBytes[packetLength - 2] != (byte) 0) ||
@@ -96,53 +96,53 @@ public class Ajp13IncomingPacket
             "Ajp13IncomingPacket.InvalidTerminator"));
 
     this.method = decodeMethodType(packetBytes[position++]);
-    Logger.log(Logger.FULL_DEBUG, "Method: " + method);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.Method", method);
 
     // Protocol
     int protocolLength = readInteger(position, packetBytes, true);
     position += 2;
     this.protocol = readString(position, packetBytes, encoding, protocolLength);
     position += (protocolLength == 0 ? 0 : protocolLength + 1);
-    Logger.log(Logger.FULL_DEBUG, "Protocol: " + protocol);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.Protocol", protocol);
 
     // URI
     int uriLength = readInteger(position, packetBytes, true);
     position += 2;
     this.uri = readString(position, packetBytes, encoding, uriLength);
     position += (uriLength == 0 ? 0 : uriLength + 1);
-    Logger.log(Logger.FULL_DEBUG, "URI: " + uri);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.URI", uri);
 
     // Remote addr
     int remoteAddrLength = readInteger(position, packetBytes, true);
     position += 2;
     this.remoteAddr = readString(position, packetBytes, encoding, remoteAddrLength);
     position += (remoteAddrLength == 0 ? 0 : remoteAddrLength + 1);
-    Logger.log(Logger.FULL_DEBUG, "Remote address: " + remoteAddr);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.RemoteAddress", remoteAddr);
 
     // Remote host
     int remoteHostLength = readInteger(position, packetBytes, true);
     position += 2;
     this.remoteHost = readString(position, packetBytes, encoding, remoteHostLength);
     position += (remoteHostLength == 0 ? 0 : remoteHostLength + 1);
-    Logger.log(Logger.FULL_DEBUG, "Remote host: " + remoteHost);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.RemoteHost", remoteHost);
 
     // Server name
     int serverNameLength = readInteger(position, packetBytes, true);
     position += 2;
     this.serverName = readString(position, packetBytes, encoding, serverNameLength);
     position += (serverNameLength == 0 ? 0 : serverNameLength + 1);
-    Logger.log(Logger.FULL_DEBUG, "Server name: " + serverName);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.ServerName", serverName);
 
     this.serverPort = readInteger(position, packetBytes, false);
     position += 2;
-    Logger.log(Logger.FULL_DEBUG, "Server port: " + serverPort);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.ServerPort", "" + serverPort);
 
     this.isSSL = readBoolean(position++, packetBytes);
-    Logger.log(Logger.FULL_DEBUG, "SSL: " + isSSL);
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.SSL", "" + isSSL);
 
     // Read headers
     int headerCount = readInteger(position, packetBytes, false);
-    Logger.log(Logger.FULL_DEBUG, "Header count: " + headerCount);
+    Logger.log(Logger.FULL_DEBUG, resources, "Ajp13IncomingPacket.HeaderCount", "" + headerCount);
     position += 2;
     this.headers = new String[headerCount];
     for (int n = 0; n < headerCount; n++)
@@ -165,7 +165,7 @@ public class Ajp13IncomingPacket
       this.headers[n] = headerName + ": " +
                         readString(position, packetBytes, encoding, headerValueLength);
       position += (headerValueLength == 0 ? 0 : headerValueLength + 1);
-      Logger.log(Logger.FULL_DEBUG, "Header: " + this.headers[n]);
+      Logger.log(Logger.FULL_DEBUG, resources, "Ajp13IncomingPacket.Header", this.headers[n]);
     }
 
     // Attribute parsing
@@ -179,10 +179,10 @@ public class Ajp13IncomingPacket
       position += (attValueLength == 0 ? 0 : attValueLength + 1);
 
       this.attributes.put(attName, attValue);
-      Logger.log(Logger.FULL_DEBUG, "Attribute: " + attName + " = " + attValue);
+      Logger.log(Logger.FULL_DEBUG, resources, "Ajp13IncomingPacket.Attribute",
+          new String[] {attName, attValue});
     }
-    Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-            "Ajp13IncomingPacket.SuccessfullyReadRequest", "[#packetLength]", "" + packetLength));
+    Logger.log(Logger.FULL_DEBUG, this.resources, "Ajp13IncomingPacket.SuccessfullyReadRequest", "" + packetLength);
     return this.packetType;
   }
 

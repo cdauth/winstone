@@ -91,14 +91,14 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
       PrintStream headerStream = new PrintStream(this.outStream, true);
       String statusLine = this.owner.getProtocol() + " " + this.owner.getStatus();
       headerStream.println(statusLine);
-      Logger.log(Logger.FULL_DEBUG, "Response: " + statusLine);
+      Logger.log(Logger.FULL_DEBUG, resources, "WinstoneOutputStream.ResponseStatus", statusLine);
 
       // Write headers and cookies
       for (Iterator i = this.owner.getHeaders().iterator(); i.hasNext(); )
       {
         String header = (String) i.next();
         headerStream.println(header);
-        Logger.log(Logger.FULL_DEBUG, "Header: " + header);
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneOutputStream.Header", header);
       }
 
       if (!this.owner.getHeaders().isEmpty())
@@ -108,7 +108,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
           Cookie cookie = (Cookie) i.next();
           String cookieText = this.owner.writeCookie(cookie);
           headerStream.println(cookieText);
-          Logger.log(Logger.FULL_DEBUG, "Header: " + cookieText);
+          Logger.log(Logger.FULL_DEBUG, resources, "WinstoneOutputStream.Header", cookieText);
         }
       }
       headerStream.println();
@@ -120,7 +120,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
     this.buffer.writeTo(this.outStream);
     this.outStream.flush();
     
-    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.CommittedBytes", "[#postHeaderBytes]", "" + this.bytesWritten));
+    Logger.log(Logger.FULL_DEBUG, resources, "WinstoneOutputStream.CommittedBytes", "" + this.bytesWritten);
 
     this.committed = true;
     this.buffer.reset();
@@ -133,7 +133,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
       throw new IllegalStateException(resources.getString("WinstoneOutputStream.AlreadyCommitted"));
     else
     {
-      Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.ResetBuffer", "[#discardBytes]", this.bufferPosition + ""));
+      Logger.log(Logger.FULL_DEBUG, resources, "WinstoneOutputStream.ResetBuffer", this.bufferPosition + "");
       this.buffer.reset();
       this.bufferPosition = 0;
       this.bytesWritten = 0;

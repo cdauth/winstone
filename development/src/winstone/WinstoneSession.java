@@ -109,7 +109,7 @@ public class WinstoneSession implements HttpSession, Serializable
         (value != null) &&
         !(value instanceof java.io.Serializable))
       throw new IllegalArgumentException(this.resources.getString("WinstoneSession.AttributeNotSerializable",
-          "[#name]", name, "[#class]", value.getClass().getName()));
+          new String[] {name, value.getClass().getName()}));
 
     // valueBound must be before binding
     if (value instanceof HttpSessionBindingListener)
@@ -243,8 +243,8 @@ public class WinstoneSession implements HttpSession, Serializable
     {
     	String key = (String) i.next();
     	if (!(copy.get(key) instanceof Serializable))
-    		Logger.log(Logger.WARNING, resources.getString("WinstoneSession.SkippingNonSerializable",
-    					"[#name]", key, "[#class]", copy.get(key).getClass().getName()));
+    		Logger.log(Logger.WARNING, resources, "WinstoneSession.SkippingNonSerializable",
+    					new String[] {key, copy.get(key).getClass().getName()});
     		copy.remove(key);
     }
     out.writeInt(copy.size());

@@ -54,7 +54,7 @@ public class Mapping implements java.util.Comparator
   {
     if ((pattern == null) || (mappedTo == null))
       throw new WinstoneException(resources.getString("Mapping.InvalidMount",
-                                          	"[#name]", mappedTo, "[#pattern]", pattern));
+                                          	new String[] {mappedTo, pattern}));
 
     Mapping me = new Mapping(mappedTo, resources);
 
@@ -71,7 +71,7 @@ public class Mapping implements java.util.Comparator
     // > 1 star = error
     else if (firstStarPos != lastStarPos)
       throw new WinstoneException(resources.getString("Mapping.InvalidMount",
-          																	"[#name]", mappedTo, "[#pattern]", pattern));
+          																	new String[] {mappedTo, pattern}));
 
     // check for default servlet, ie mapping = exactly /*
     else if (pattern.equals(SLASH + STAR))
@@ -89,7 +89,7 @@ public class Mapping implements java.util.Comparator
     // check for non-extension match
     else if (pattern.indexOf(SLASH) != -1)
       throw new WinstoneException(resources.getString("Mapping.InvalidMount",
-          	"[#name]", mappedTo, "[#pattern]", pattern));
+          	new String[] {mappedTo, pattern}));
 
     // check for extension match at the beginning (eg *blah)
     else if (firstStarPos == 0)
@@ -107,10 +107,10 @@ public class Mapping implements java.util.Comparator
     }
     else
       throw new WinstoneException(resources.getString("Mapping.InvalidMount",
-        	"[#name]", mappedTo, "[#pattern]", pattern));
+        	new String[] {mappedTo, pattern}));
       
-    Logger.log(Logger.FULL_DEBUG, resources.getString("Mapping.MappedPattern",
-                                          "[#name]", mappedTo, "[#pattern]", pattern));
+    Logger.log(Logger.FULL_DEBUG, resources, "Mapping.MappedPattern",
+                                          new String[] {mappedTo, pattern});
     return me;
   }
   
@@ -122,7 +122,7 @@ public class Mapping implements java.util.Comparator
   {
     if ((linkName == null) || (mappedTo == null))
       throw new WinstoneException(resources.getString("Mapping.InvalidLink",
-                                          	"[#name]", mappedTo, "[#link]", linkName));
+                                          	new String[] {mappedTo, linkName}));
 
     Mapping me = new Mapping(mappedTo, resources);
     me.linkName = linkName;
@@ -144,7 +144,7 @@ public class Mapping implements java.util.Comparator
    */
   public boolean match(String inputPattern, StringBuffer servletPath, StringBuffer pathInfo)
   {
-    Logger.log(Logger.FULL_DEBUG, "Matching input=" + inputPattern + " me=" + toString());
+    //Logger.log(Logger.FULL_DEBUG, "Matching input=" + inputPattern + " me=" + toString());
     switch (this.patternType)
     {
       case FOLDER_PATTERN:

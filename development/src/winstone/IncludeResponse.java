@@ -67,11 +67,13 @@ public class IncludeResponse extends HttpServletResponseWrapper
   public void addIntHeader(String name, int value) {}
 
   public void sendError(int sc, String msg) throws IOException  
-    {Logger.log(Logger.ERROR, "Error in include: " + sc + " " + msg);}
+    {Logger.log(Logger.ERROR, resources, "IncludeResponse.Error", 
+        new String[] {"" + sc, msg});}
   public void sendError(int sc) throws IOException 
-    {Logger.log(Logger.ERROR, "Error in include: " + sc);}
+    {Logger.log(Logger.ERROR, resources, "IncludeResponse.Error", 
+        new String[] {"" + sc, ""});}
   public void sendRedirect(String location) throws IOException
-    {Logger.log(Logger.ERROR, "Redirect in include: " + location);}
+    {Logger.log(Logger.ERROR, resources, "IncludeResponse.Redirect", location);}
 
   public void setDateHeader(String name, long date)  {}
   public void setHeader(String name, String value) {}

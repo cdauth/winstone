@@ -141,9 +141,9 @@ public class ObjectPool
         RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.UsingRHPoolThread",
-            "[#used]", "" + this.usedRequestHandlerThreads.size(),
-            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.UsingRHPoolThread",
+            new String[] {"" + this.usedRequestHandlerThreads.size(),
+                          "" + this.unusedRequestHandlerThreads.size()});
         rh.commenceRequestHandling(socket, listener);
       }
 
@@ -152,9 +152,9 @@ public class ObjectPool
       {
         RequestHandlerThread rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
         this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.NewRHPoolThread",
-            "[#used]", "" + this.usedRequestHandlerThreads.size(),
-            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.NewRHPoolThread",
+            new String[] {"" + this.usedRequestHandlerThreads.size(),
+                          "" + this.unusedRequestHandlerThreads.size()});
         rh.commenceRequestHandling(socket, listener);
       }
 
@@ -180,12 +180,12 @@ public class ObjectPool
       {
         this.usedRequestHandlerThreads.remove(rh);
         this.unusedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.ReleasingRHPoolThread",
-            "[#used]", "" + this.usedRequestHandlerThreads.size(),
-            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.ReleasingRHPoolThread",
+            new String[] {"" + this.usedRequestHandlerThreads.size(),
+                          "" + this.unusedRequestHandlerThreads.size()});
       }
       else
-        Logger.log(Logger.WARNING, resources.getString("ObjectPool.UnknownRHPoolThread"));
+        Logger.log(Logger.WARNING, resources, "ObjectPool.UnknownRHPoolThread");
     }
   }
 
@@ -203,16 +203,16 @@ public class ObjectPool
         req = (WinstoneRequest) this.unusedRequestPool.get(0);
         this.unusedRequestPool.remove(req);
         this.usedRequestPool.add(req);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.UsingRequestFromPool",
-            "[#unused]", "" + this.unusedRequestPool.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.UsingRequestFromPool",
+            "" + this.unusedRequestPool.size());
       }
       // If we are out, allocate a new one
       else if (this.usedRequestPool.size() < MAX_REQUESTS_IN_POOL)
       {
         req = new WinstoneRequest(this.resources);
         this.usedRequestPool.add(req);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.NewRequestForPool",
-            "[#used]", "" + this.usedRequestPool.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.NewRequestForPool",
+            "" + this.usedRequestPool.size());
       }
       else
         throw new WinstoneException(this.resources.getString("ObjectPool.PoolRequestLimitExceeded"));
@@ -227,8 +227,8 @@ public class ObjectPool
     {
       this.usedRequestPool.remove(req);
       this.unusedRequestPool.add(req);
-      Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.RequestReleased",
-          "[#unused]", "" + this.unusedRequestPool.size()));
+      Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.RequestReleased",
+          "" + this.unusedRequestPool.size());
     }
   }
 
@@ -246,16 +246,16 @@ public class ObjectPool
         rsp = (WinstoneResponse) this.unusedResponsePool.get(0);
         this.unusedResponsePool.remove(rsp);
         this.usedResponsePool.add(rsp);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.UsingResponseFromPool",
-            "[#unused]", "" + this.unusedResponsePool.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.UsingResponseFromPool",
+            "" + this.unusedResponsePool.size());
       }
       // If we are out, allocate a new one
       else if (this.usedResponsePool.size() < MAX_RESPONSES_IN_POOL)
       {
         rsp = new WinstoneResponse(this.resources);
         this.usedResponsePool.add(rsp);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.NewResponseForPool",
-            "[#used]", "" + this.usedResponsePool.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.NewResponseForPool",
+            "" + this.usedResponsePool.size());
       }
       else
         throw new WinstoneException(this.resources.getString("ObjectPool.PoolResponseLimitExceeded"));
@@ -270,8 +270,8 @@ public class ObjectPool
     {
       this.usedResponsePool.remove(rsp);
       this.unusedResponsePool.add(rsp);
-      Logger.log(Logger.FULL_DEBUG, resources.getString("ObjectPool.ResponseReleased",
-          "[#unused]", "" + this.unusedResponsePool.size()));
+      Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.ResponseReleased",
+          "" + this.unusedResponsePool.size());
     }
   }
 

@@ -102,23 +102,23 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
     List jars = new ArrayList();
     this.commonLibCLPaths = new ArrayList();
     String javaHome = WebAppConfiguration.stringArg(args, "javaHome", System.getProperty("java.home"));
-    Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingJavaHome", "[#javaHome]", javaHome));
+    Logger.log(Logger.DEBUG, resources, "Launcher.UsingJavaHome", javaHome);
     File toolsJar = new File(javaHome, "lib/tools.jar");
     if (toolsJar.exists())
     {
       jars.add(toolsJar.toURL());
       this.commonLibCLPaths.add(toolsJar);
-      Logger.log(Logger.DEBUG, resources.getString("Launcher.AddedCommonLibJar", "[#path]", toolsJar.getName()));
+      Logger.log(Logger.DEBUG, resources, "Launcher.AddedCommonLibJar", toolsJar.getName());
     }
     else if (WebAppConfiguration.booleanArg(args, "useJasper", false))
-      Logger.log(Logger.WARNING, resources.getString("Launcher.ToolsJarNotFound"));
+      Logger.log(Logger.WARNING, resources, "Launcher.ToolsJarNotFound");
     
     // Set up common lib class loader
     String commonLibCLFolder = WebAppConfiguration.stringArg(args, "commonLibFolder", "lib");
     File libFolder = new File(commonLibCLFolder);
     if (libFolder.exists() && libFolder.isDirectory())
     {
-      Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingCommonLib", "[#path]", libFolder.getCanonicalPath()));
+      Logger.log(Logger.DEBUG, resources, "Launcher.UsingCommonLib", libFolder.getCanonicalPath());
       File children[] = libFolder.listFiles();
       for (int n = 0; n < children.length; n++)
         if (children[n].getName().endsWith(".jar") ||
@@ -126,17 +126,17 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
         {
           jars.add(children[n].toURL());
           this.commonLibCLPaths.add(children[n]);
-          Logger.log(Logger.DEBUG, resources.getString("Launcher.AddedCommonLibJar", "[#path]", children[n].getName()));
+          Logger.log(Logger.DEBUG, resources, "Launcher.AddedCommonLibJar", children[n].getName());
         }
     }
     else
-      Logger.log(Logger.DEBUG, resources.getString("Launcher.NoCommonLib"));
+      Logger.log(Logger.DEBUG, resources, "Launcher.NoCommonLib");
     this.commonLibCL = new URLClassLoader((URL []) jars.toArray(new URL[jars.size()]), getClass().getClassLoader());
 
     // Get the parsed webapp xml deployment descriptor
     this.webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"), resources);
     if (!webRoot.exists())
-      throw new WinstoneException(resources.getString("Launcher.NoWebRoot") + webRoot);
+      throw new WinstoneException(resources.getString("Launcher.NoWebRoot", webRoot + ""));
     else
       initWebApp((String) args.get("prefix"), webRoot);
 
@@ -147,9 +147,9 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
     if (switchOnCluster)
     {
       if (this.controlPort < 0)
-        Logger.log(Logger.DEBUG, this.resources.getString("Launcher.ClusterOffNoControlPort"));
+        Logger.log(Logger.DEBUG, this.resources, "Launcher.ClusterOffNoControlPort");
       else if (!this.webAppConfig.isDistributable())
-        Logger.log(Logger.DEBUG, this.resources.getString("Launcher.ClusterOffNotDistributable"));
+        Logger.log(Logger.DEBUG, this.resources, "Launcher.ClusterOffNotDistributable");
       else try
       {
         Class clusterClass = Class.forName(CLUSTER_CLASS);
@@ -157,7 +157,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
         this.cluster = (Cluster) clusterConstructor.newInstance(new Object[] {args, resources, new Integer(this.controlPort)});
       }
       catch (Throwable err)
-        {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.ClusterNotFound"));}
+        {Logger.log(Logger.DEBUG, this.resources, "Launcher.ClusterNotFound");}
     }
 
     // Create connectors (http and ajp)
@@ -170,7 +170,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       this.listeners.add(httpListener);
     }
     catch (Throwable err)
-      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"));}
+      {Logger.log(Logger.DEBUG, this.resources, "Launcher.HTTPNotFound");}
     try
     {
       Class ajpClass = Class.forName(AJP_LISTENER_CLASS);
@@ -179,7 +179,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       this.listeners.add(ajpListener);
     }
     catch (Throwable err)
-      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.AJPNotFound"));}
+      {Logger.log(Logger.DEBUG, this.resources, "Launcher.AJPNotFound");}
   }
 
   public WebAppConfiguration getWebAppConfig() {return this.webAppConfig;}
@@ -194,12 +194,12 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
   {
     if (warfile != null)
     {
-      Logger.log(Logger.INFO, resources.getString("Launcher.BeginningWarExtraction"));
+      Logger.log(Logger.INFO, resources, "Launcher.BeginningWarExtraction");
 
       // open the war file
       File warfileRef = new File(warfile);
       if (!warfileRef.exists() || !warfileRef.isFile())
-        throw new WinstoneException(resources.getString("Launcher.WarFileInvalid", "[#warfile]", warfile));
+        throw new WinstoneException(resources.getString("Launcher.WarFileInvalid", warfile));
 
       // Get the webroot folder (or a temp dir if none supplied)
       File unzippedDir =(webroot != null ? new File(webroot) : new File(File.createTempFile("dummy", "dummy")
@@ -207,9 +207,9 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       if (unzippedDir.exists())
       {
         if (!unzippedDir.isDirectory())
-          throw new WinstoneException(resources.getString("Launcher.WebRootNotDirectory", "[#dir]", unzippedDir.getPath()));
+          throw new WinstoneException(resources.getString("Launcher.WebRootNotDirectory", unzippedDir.getPath()));
         else
-          Logger.log(Logger.DEBUG, resources.getString("Launcher.WebRootExists", "[#dir]", unzippedDir.getCanonicalPath()));
+          Logger.log(Logger.DEBUG, resources, "Launcher.WebRootExists", unzippedDir.getCanonicalPath());
       }
       else
         unzippedDir.mkdirs();
@@ -267,12 +267,11 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
         controlSocket.setSoTimeout(CONTROL_TIMEOUT);
       }
 
-      Map params = new HashMap();
-      params.put("[#serverName]", resources.getString("ServerVersion"));
-      params.put("[#controlPort]", (this.controlPort > 0 ? "" + this.controlPort : resources.getString("Launcher.ControlDisabled")));
-      params.put("[#prefix]", this.webAppConfig.getPrefix());
-      params.put("[#webroot]", this.webAppConfig.getWebroot());
-      Logger.log(Logger.INFO, resources.getString("Launcher.StartupOK", params));
+      Logger.log(Logger.INFO, resources, "Launcher.StartupOK", new String [] {
+          resources.getString("ServerVersion"),
+          (this.controlPort > 0 ? "" + this.controlPort : resources.getString("Launcher.ControlDisabled")),
+          this.webAppConfig.getPrefix(),
+          this.webAppConfig.getWebroot()});
 
       // Enter the main loop
       while (!interrupted)
@@ -292,12 +291,12 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
             int reqType = inSocket.read();
             if ((byte) reqType == SHUTDOWN_TYPE)
             {
-              Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownRequestReceived"));
+              Logger.log(Logger.INFO, resources, "Launcher.ShutdownRequestReceived");
               interrupted = true; 
             }
             else if ((byte) reqType == RELOAD_TYPE)
             {
-              Logger.log(Logger.INFO, resources.getString("Launcher.ReloadRequestReceived"));
+              Logger.log(Logger.INFO, resources, "Launcher.ReloadRequestReceived");
               destroyWebApp(this.webAppConfig);
               initWebApp((String) args.get("prefix"), this.webRoot);
             }
@@ -315,7 +314,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
         } 
         catch (InterruptedIOException err) {}
         catch (Throwable err)
-          {Logger.log(Logger.ERROR, resources.getString("Launcher.ShutdownError"), err);}
+          {Logger.log(Logger.ERROR, resources, "Launcher.ShutdownError", err);}
       }
 
       // Close server socket
@@ -328,10 +327,10 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       if (this.cluster != null) this.cluster.destroy();
       destroyWebApp(this.webAppConfig);
 
-      Logger.log(Logger.INFO, resources.getString("Launcher.ShutdownOK"));
+      Logger.log(Logger.INFO, resources, "Launcher.ShutdownOK");
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, resources.getString("Launcher.ShutdownError"), err);}
+      {Logger.log(Logger.ERROR, resources, "Launcher.ShutdownError", err);}
   }
 
   /**
@@ -355,10 +354,12 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       File webXmlFile = new File(webInfFolder, WEB_XML);
       if (webXmlFile.exists())
       {
+        Logger.log(Logger.DEBUG, resources, "Launcher.ParsingWebXml");
         InputStream inWebXML = new FileInputStream(webXmlFile);
         Document webXMLDoc = parseStreamToXML(inWebXML);
         inWebXML.close();
         webXMLParentNode = webXMLDoc.getDocumentElement();
+        Logger.log(Logger.DEBUG, resources, "Launcher.WebXmlParseComplete");
       }
     }
 
@@ -416,8 +417,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
   public InputSource resolveEntity(String publicName, String url)
     throws SAXException, IOException
   {
-    Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.ResolvingEntity", 
-          "[#public]", publicName, "[#url]", url));
+    Logger.log(Logger.FULL_DEBUG, resources, "Launcher.ResolvingEntity", 
+          new String[] {publicName, url});
     if ((publicName != null) && publicName.equals(DTD_2_2_PUBLIC))
       return getLocalResource(url, DTD_2_2_LOCAL);
     else if ((publicName != null) && publicName.equals(DTD_2_3_PUBLIC))
@@ -436,7 +437,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       return getLocalResource(url, url.substring(url.indexOf("!/") + 2));
     else
     {
-      Logger.log(Logger.FULL_DEBUG, resources.getString("Launcher.NoLocalResource", "[#url]", url));
+      Logger.log(Logger.FULL_DEBUG, resources, "Launcher.NoLocalResource", url);
       return new InputSource(url);
     }
   }
@@ -500,8 +501,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
                           ? (OutputStream) System.out 
                           : new FileOutputStream((String) args.get("logfile"));
       Logger.init(logLevel, logStream);
-      Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingPropertyFile",
-                "[#filename]", configFilename));
+      Logger.log(Logger.DEBUG, resources, "Launcher.UsingPropertyFile", configFilename);
 
     }
     else
@@ -535,13 +535,13 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
 
   private static void printUsage(WinstoneResourceBundle resources)
   {
-    System.out.println(resources.getString("Launcher.UsageInstructions", "[#version]", resources.getString("ServerVersion")));
+    System.out.println(resources.getString("Launcher.UsageInstructions", resources.getString("ServerVersion")));
   }
 
   public void error(SAXParseException exception) throws SAXException
   {
-    Logger.log(Logger.ERROR, resources.getString("Launcher.XMLParseError",
-        "[#line]", exception.getLineNumber() + "", "[#error]", exception.getMessage()));
+    Logger.log(Logger.ERROR, resources, "Launcher.XMLParseError",
+        new String[] {exception.getLineNumber() + "", exception.getMessage()});
   }
 
   public void fatalError(SAXParseException exception) throws SAXException
@@ -549,8 +549,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
 
   public void warning(SAXParseException exception) throws SAXException
   {
-    Logger.log(Logger.DEBUG, resources.getString("Launcher.XMLParseError",
-        "[#line]", exception.getLineNumber() + "", "[#error]", exception.getMessage()));
+    Logger.log(Logger.DEBUG, resources, "Launcher.XMLParseError",
+        new String[] {exception.getLineNumber() + "", exception.getMessage()});
   }
 }
 

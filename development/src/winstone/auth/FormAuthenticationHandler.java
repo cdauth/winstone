@@ -78,8 +78,8 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
         }
       }
     }
-    Logger.log(Logger.DEBUG, this.resources.getString("FormAuthenticationHandler.Initialised",
-      "[#name]", realmName));
+    Logger.log(Logger.DEBUG, this.resources, "FormAuthenticationHandler.Initialised",
+      realmName);
   }
 
   /**
@@ -114,16 +114,16 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
       if (wrapper.getRequest() instanceof WinstoneRequest)
         actualRequest = (WinstoneRequest) wrapper.getRequest();
       else
-        Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+        Logger.log(Logger.WARNING, this.resources, "FormAuthenticationHandler.CantSetUser", wrapper.getRequest().getClass().getName());
     }
     else
-      Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+      Logger.log(Logger.WARNING, this.resources, "FormAuthenticationHandler.CantSetUser", request.getClass().getName());
     
     WinstoneSession session = (WinstoneSession) actualRequest.getSession(true);
     session.setCachedRequest(new CachedRequest(actualRequest, this.resources));
         
     // Forward on to the login page
-    Logger.log(Logger.FULL_DEBUG, "Forwarding to the login page");
+    Logger.log(Logger.FULL_DEBUG, resources, "FormAuthenticationHandler.GoToLoginPage");
     javax.servlet.RequestDispatcher rd = request.getRequestDispatcher(this.loginPage);
     setNoCache(response);
     rd.forward(request, response);
@@ -166,7 +166,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
           actualRequest.setRemoteUser(principal);
         }
         else
-          Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapperCheck.getClass().getName()));
+          Logger.log(Logger.WARNING, this.resources, "FormAuthenticationHandler.CantSetUser", wrapperCheck.getClass().getName());
 
         WinstoneSession session = (WinstoneSession) request.getSession(true);
         principal.setAuthType(HttpServletRequest.FORM_AUTH);
@@ -180,7 +180,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
           //session.setCachedRequest(null); - commented out so that refreshes will work
         }
         else
-          Logger.log(Logger.DEBUG, this.resources.getString("FormAuthenticationHandler.NoCachedRequest"));
+          Logger.log(Logger.DEBUG, this.resources, "FormAuthenticationHandler.NoCachedRequest");
         javax.servlet.RequestDispatcher rd = request.getRequestDispatcher(previousLocation);
         rd.forward(request, response);
       }
@@ -199,16 +199,16 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
         if (wrapper.getRequest() instanceof WinstoneRequest)
           actualRequest = (WinstoneRequest) wrapper.getRequest();
         else
-          Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+          Logger.log(Logger.WARNING, this.resources, "FormAuthenticationHandler.CantSetUser", wrapper.getRequest().getClass().getName());
       }
       else
-        Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+        Logger.log(Logger.WARNING, this.resources, "FormAuthenticationHandler.CantSetUser", request.getClass().getName());
 
       WinstoneSession session = (WinstoneSession) actualRequest.getSession(false);
       if ((session != null) && (session.getAuthenticatedUser() != null))
       {
         actualRequest.setRemoteUser(session.getAuthenticatedUser());
-        Logger.log(Logger.FULL_DEBUG, "Got authenticated user from session");
+        Logger.log(Logger.FULL_DEBUG, this.resources, "FormAuthenticationHandler.GotUseFromSession");
       }
       return true;
     }

@@ -104,18 +104,18 @@ public class WinstoneDataSource implements DataSource, Runnable
              (this.usedConnections.size() + this.unusedConnections.size() < MAX_CONNECTIONS))
       {
         this.unusedConnections.add(this.driver.connect(this.url, this.connectProps));
-        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.AddingPooledConnection",
-          "[#used]", "" + this.usedConnections.size(),
-          "[#unused]", "" + this.unusedConnections.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneDataSource.AddingPooledConnection",
+          new String[] {"" + this.usedConnections.size(),
+                        "" + this.unusedConnections.size()});
       }
     
-      thread = new Thread(this, this.resources.getString("WinstoneDataSource.ThreadName", "[#name]", name));
+      thread = new Thread(this, this.resources.getString("WinstoneDataSource.ThreadName", name));
       thread.setDaemon(true);
       thread.setContextClassLoader(loader);
       thread.start();
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, this.resources.getString("WinstoneDataSource.ErrorLoadingDriver", "[#class]", driverClassName), err);}    
+      {Logger.log(Logger.ERROR, this.resources, "WinstoneDataSource.ErrorLoadingDriver", driverClassName, err);}    
   }
   
   public void destroy() 
@@ -130,7 +130,7 @@ public class WinstoneDataSource implements DataSource, Runnable
    */
   public void run()
   {
-    Logger.log(Logger.FULL_DEBUG, this.resources.getString("WinstoneDataSource.MaintenanceStarted"));
+    Logger.log(Logger.FULL_DEBUG, this.resources, "WinstoneDataSource.MaintenanceStarted");
 
     while (!interrupted)
     {
@@ -144,9 +144,9 @@ public class WinstoneDataSource implements DataSource, Runnable
             Connection closeMe = (Connection) this.unusedConnections.get(0);
             this.unusedConnections.remove(closeMe);
             closeMe.close();
-            Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.ClosingPooledConnection",
-              "[#used]", "" + this.usedConnections.size(),
-              "[#unused]", "" + this.unusedConnections.size()));
+            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneDataSource.ClosingPooledConnection",
+              new String[] {"" + this.usedConnections.size(),
+                            "" + this.unusedConnections.size()});
           }
           
           // Iterate through the list of used wrappers, and release any that
@@ -156,11 +156,11 @@ public class WinstoneDataSource implements DataSource, Runnable
         Thread.sleep(SLEEP_PERIOD);
       }
       catch (InterruptedException err) 
-        {Logger.log(Logger.DEBUG, this.resources.getString("WinstoneDataSource.MaintenanceThread"));}
+        {Logger.log(Logger.DEBUG, this.resources, "WinstoneDataSource.MaintenanceThread");}
       catch (Throwable err)
-        {Logger.log(Logger.ERROR, this.resources.getString("WinstoneDataSource.MaintenanceError"), err);}
+        {Logger.log(Logger.ERROR, this.resources, "WinstoneDataSource.MaintenanceError", err);}
     }
-    Logger.log(Logger.FULL_DEBUG, this.resources.getString("WinstoneDataSource.MaintenanceFinished"));
+    Logger.log(Logger.FULL_DEBUG, this.resources, "WinstoneDataSource.MaintenanceFinished");
   }
   
   /**
@@ -187,14 +187,14 @@ public class WinstoneDataSource implements DataSource, Runnable
         {
           this.unusedConnections.add(realConnection);
           this.usedConnections.remove(realConnection);
-          Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.ReleasingPooledConnection",
-            "[#used]", "" + this.usedConnections.size(),
-            "[#unused]", "" + this.unusedConnections.size()));
+          Logger.log(Logger.FULL_DEBUG, resources, "WinstoneDataSource.ReleasingPooledConnection",
+            new String[] {"" + this.usedConnections.size(),
+                          "" + this.unusedConnections.size()});
         }
         else
         {  
           realConnection.close(); 
-          Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.ClosingUnpooledConnection"));
+          Logger.log(Logger.FULL_DEBUG, resources, "WinstoneDataSource.ClosingUnpooledConnection");
         }
       }
     }
@@ -221,9 +221,9 @@ public class WinstoneDataSource implements DataSource, Runnable
         realConnection = (Connection) this.unusedConnections.get(0);
         this.unusedConnections.remove(realConnection);
         this.usedConnections.add(realConnection);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.UsingPooledConnection",
-          "[#used]", "" + this.usedConnections.size(),
-          "[#unused]", "" + this.unusedConnections.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneDataSource.UsingPooledConnection",
+          new String[] {"" + this.usedConnections.size(),
+                        "" + this.unusedConnections.size()});
         // Log using pooled connection
       }
 
@@ -232,15 +232,15 @@ public class WinstoneDataSource implements DataSource, Runnable
       {
         realConnection = this.driver.connect(this.url, this.connectProps);
         this.usedConnections.add(realConnection);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneDataSource.AddingPooledConnection",
-          "[#used]", "" + this.usedConnections.size(),
-          "[#unused]", "" + this.unusedConnections.size()));
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneDataSource.AddingPooledConnection",
+          new String[] {"" + this.usedConnections.size(),
+                        "" + this.unusedConnections.size()});
         // Log using new connection
       }
 
       // otherwise throw fail message - we've blown our limit
       else
-        throw new SQLException(this.resources.getString("WinstoneDataSource.PoolLimitExceeded", "[#limit]", "" + MAX_CONNECTIONS));
+        throw new SQLException(this.resources.getString("WinstoneDataSource.PoolLimitExceeded", "" + MAX_CONNECTIONS));
 
       wrapper = new WinstoneConnection(realConnection, this);
       this.usedWrappers.add(wrapper);

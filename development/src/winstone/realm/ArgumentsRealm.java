@@ -74,8 +74,8 @@ public class ArgumentsRealm implements AuthenticationRealm
       }
     }
 
-    Logger.log(Logger.DEBUG, this.resources.getString("ArgumentsRealm.Initialised",
-      "[#userCount]", "" + this.passwords.size()));
+    Logger.log(Logger.DEBUG, this.resources, "ArgumentsRealm.Initialised",
+      "" + this.passwords.size());
   }
 
   /**

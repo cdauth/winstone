@@ -36,8 +36,8 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler
     Set rolesAllowed, WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
     super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
-    Logger.log(Logger.DEBUG, this.resources.getString("BasicAuthenticationHandler.Initialised",
-      "[#name]", realmName));
+    Logger.log(Logger.DEBUG, this.resources, "BasicAuthenticationHandler.Initialised",
+      realmName);
   }
 
   /**
@@ -78,10 +78,10 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler
             if (wrapper.getRequest() instanceof WinstoneRequest)
               ((WinstoneRequest) wrapper.getRequest()).setRemoteUser(principal);
             else
-              Logger.log(Logger.WARNING, this.resources.getString("BasicAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+              Logger.log(Logger.WARNING, this.resources, "BasicAuthenticationHandler.CantSetUser", wrapper.getRequest().getClass().getName());
           }
           else
-            Logger.log(Logger.WARNING, this.resources.getString("BasicAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+            Logger.log(Logger.WARNING, this.resources, "BasicAuthenticationHandler.CantSetUser", request.getClass().getName());
         }
       }
     }

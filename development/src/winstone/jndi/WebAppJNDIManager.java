@@ -66,8 +66,8 @@ public class WebAppJNDIManager implements JNDIManager
         String resName = key.substring(14);
         String className = (String) args.get(key);
         String value = (String) args.get("jndi.param." + resName + ".value");
-        Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-          "WebAppJNDIManager.CreatingResourceArgs", "[#name]", resName));
+        Logger.log(Logger.FULL_DEBUG, this.resources,
+          "WebAppJNDIManager.CreatingResourceArgs", resName);
         Object obj = createObject(resName.trim(), className.trim(), value, args);
         if (obj != null)
           this.objectsToCreate.put(resName, obj);
@@ -103,8 +103,8 @@ public class WebAppJNDIManager implements JNDIManager
           }
           if ((name != null) && (type != null) && (value != null))
           {
-            Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-              "WebAppJNDIManager.CreatingResourceWebXML", "[#name]", name));
+            Logger.log(Logger.FULL_DEBUG, this.resources,
+              "WebAppJNDIManager.CreatingResourceWebXML", name);
             Object obj = createObject(name, type, value, args);
             if (obj != null)
               this.objectsToCreate.put(name, obj);
@@ -139,17 +139,17 @@ public class WebAppJNDIManager implements JNDIManager
             fullName = fullName.getSuffix(1);
           }
           ic.bind(name, this.objectsToCreate.get(name));
-          Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-            "WebAppJNDIManager.BoundResource", "[#name]", name));
+          Logger.log(Logger.FULL_DEBUG, this.resources,
+            "WebAppJNDIManager.BoundResource", name);
         }
         catch (NamingException err)
-          {Logger.log(Logger.ERROR, this.resources.getString(
-            "WebAppJNDIManager.ErrorBindingResource", "[#name]", name), err);}
+          {Logger.log(Logger.ERROR, this.resources,
+            "WebAppJNDIManager.ErrorBindingResource", name, err);}
       }
     }
     catch (NamingException err)
-      {Logger.log(Logger.ERROR, this.resources.getString(
-            "WebAppJNDIManager.ErrorGettingInitialContext"), err);}  
+      {Logger.log(Logger.ERROR, this.resources,
+            "WebAppJNDIManager.ErrorGettingInitialContext", err);}  
   }
   
   /**
@@ -167,18 +167,18 @@ public class WebAppJNDIManager implements JNDIManager
         try
           {ic.unbind(name);}
         catch (NamingException err)
-          {Logger.log(Logger.ERROR, this.resources.getString(
-            "WebAppJNDIManager.ErrorUnbindingResource", "[#name]", name), err);}
+          {Logger.log(Logger.ERROR, this.resources,
+            "WebAppJNDIManager.ErrorUnbindingResource", name, err);}
         Object unboundObject = this.objectsToCreate.get(name);
         if (unboundObject instanceof WinstoneDataSource)
           ((WinstoneDataSource) unboundObject).destroy();
-        Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-          "WebAppJNDIManager.BUnboundResource", "[#name]", name));
+        Logger.log(Logger.FULL_DEBUG, this.resources,
+          "WebAppJNDIManager.UnboundResource", name);
       }
     }
     catch (NamingException err)
-      {Logger.log(Logger.ERROR, this.resources.getString(
-          "WebAppJNDIManager.ErrorGettingInitialContext"), err);}  
+      {Logger.log(Logger.ERROR, this.resources,
+          "WebAppJNDIManager.ErrorGettingInitialContext", err);}  
   }
   
   /**
@@ -195,8 +195,8 @@ public class WebAppJNDIManager implements JNDIManager
       try
         {return new WinstoneDataSource(name, extractRelevantArgs(args, name), this.loader, this.resources);}
       catch (Throwable err)
-        {Logger.log(Logger.ERROR, this.resources.getString(
-          "WebAppJNDIManager.ErrorBuildingDatasource", "[#name]", name), err);}
+        {Logger.log(Logger.ERROR, this.resources,
+          "WebAppJNDIManager.ErrorBuildingDatasource", name, err);}
     }
 
     // If we are working with a mail session    
@@ -210,8 +210,8 @@ public class WebAppJNDIManager implements JNDIManager
         //return Session.getInstance(extractRelevantArgs(args, name), null);
       }
       catch (Throwable err)
-        {Logger.log(Logger.ERROR, this.resources.getString(
-          "WebAppJNDIManager.ErrorBuildingMailSession", "[#name]", name), err);}
+        {Logger.log(Logger.ERROR, this.resources,
+          "WebAppJNDIManager.ErrorBuildingMailSession", name, err);}
     }
     
     // If unknown type, try to instantiate with the string constructor
@@ -223,8 +223,8 @@ public class WebAppJNDIManager implements JNDIManager
       return objConstr.newInstance(new Object[] {value});
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, this.resources.getString(
-        "WebAppJNDIManager.ErrorBuildingObject", "[#name]", name, "[#class]", className), err);}
+      {Logger.log(Logger.ERROR, this.resources,
+        "WebAppJNDIManager.ErrorBuildingObject", new String[] {name, className}, err);}
     return null;
   }
 

@@ -104,7 +104,7 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream
     int charsRead = super.readLine(buffer, 0, BUFFER_SIZE);
     if (charsRead == -1)
     {
-      Logger.log(Logger.DEBUG, resources.getString("WinstoneInputStream.EndOfStream"));
+      Logger.log(Logger.DEBUG, resources, "WinstoneInputStream.EndOfStream");
       return new byte[0];
     }
     byte outBuf[] = new byte[charsRead];

@@ -71,7 +71,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream
 
   public void commit() throws IOException
   {
-    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.CommittedBytes", "[#postHeaderBytes]", "" + this.bytesWritten));
+    Logger.log(Logger.FULL_DEBUG, resources, "WinstoneOutputStream.CommittedBytes", "" + this.bytesWritten);
     this.buffer.flush();
 
     // If we haven't written the headers yet, write them out
@@ -85,7 +85,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream
         String header = (String) i.next();
         int colonPos = header.indexOf(':');
         if (colonPos == -1)
-          throw new WinstoneException(localResources.getString("Ajp13OutputStream.NoColonHeader", "[#header]", header));
+          throw new WinstoneException(localResources.getString("Ajp13OutputStream.NoColonHeader", header));
         String headerName = header.substring(0, colonPos).trim();
         String headerValue = header.substring(colonPos + 1).trim();
         byte headerCode[] = (byte[]) headerCodes.get(headerName.toLowerCase());
@@ -99,7 +99,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream
         String cookieText = this.owner.writeCookie(cookie);
         int colonPos = cookieText.indexOf(':');
         if (colonPos == -1)
-          throw new WinstoneException(localResources.getString("Ajp13OutputStream.NoColonHeader", "[#header]", cookieText));
+          throw new WinstoneException(localResources.getString("Ajp13OutputStream.NoColonHeader", cookieText));
         String headerName = cookieText.substring(0, colonPos).trim();
         String headerValue = cookieText.substring(colonPos + 1).trim();
         byte headerCode[] = (byte[]) headerCodes.get(headerName.toLowerCase());

@@ -87,8 +87,8 @@ public class HttpListener implements Listener, Runnable
       			: new ServerSocket(this.listenPort, BACKLOG_COUNT, 
       			    					InetAddress.getByName(this.listenAddress));
       ss.setSoTimeout(LISTENER_TIMEOUT);
-      Logger.log(Logger.INFO, resources.getString("HttpListener.StartupOK",
-                              "[#port]", this.listenPort + ""));
+      Logger.log(Logger.INFO, resources, "HttpListener.StartupOK",
+                              this.listenPort + "");
 
       // Enter the main loop
       while (!interrupted)
@@ -108,9 +108,9 @@ public class HttpListener implements Listener, Runnable
       ss.close();
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, resources.getString("HttpListener.ShutdownError"), err);}
+      {Logger.log(Logger.ERROR, resources, "HttpListener.ShutdownError", err);}
 
-    Logger.log(Logger.INFO, resources.getString("HttpListener.ShutdownOK"));
+    Logger.log(Logger.INFO, resources, "HttpListener.ShutdownOK");
   }
 
   /**
@@ -131,7 +131,7 @@ public class HttpListener implements Listener, Runnable
     OutputStream outSocket, RequestHandlerThread handler, boolean iAmFirst)
     throws SocketException, IOException
   {
-    Logger.log(Logger.FULL_DEBUG, "Allocating request/response: " + Thread.currentThread().getName());
+    Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.AllocatingRequest", Thread.currentThread().getName());
     socket.setSoTimeout(CONNECTION_TIMEOUT);
 
     // Build input/output streams, plus request/response
@@ -144,7 +144,7 @@ public class HttpListener implements Listener, Runnable
     req.setListener(this);
     rsp.setOutputStream(outData);
     rsp.setRequest(req);
-    rsp.updateContentTypeHeader("text/html");
+    //rsp.updateContentTypeHeader("text/html");
 
     // Set the handler's member variables so it can execute the servlet
     handler.setRequest(req);
@@ -261,7 +261,7 @@ public class HttpListener implements Listener, Runnable
     // Method
     int spacePos = uriLine.indexOf(' ');
     if (spacePos == -1)
-      throw new WinstoneException(resources.getString("HttpListener.ErrorUriLine") + uriLine);
+      throw new WinstoneException(resources.getString("HttpListener.ErrorUriLine", uriLine));
     String method = uriLine.substring(0, spacePos).toUpperCase();
     String fullURI = null;
 
@@ -325,7 +325,7 @@ public class HttpListener implements Listener, Runnable
         if (headerLine.indexOf(':') != -1)
         {
           headerList.add(headerLine.trim());
-          Logger.log(Logger.FULL_DEBUG, "Header: " + headerLine.trim());
+          Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.Header", headerLine.trim());
         }
         headerBuffer = inData.readLine();
         headerLine = new String(headerBuffer);

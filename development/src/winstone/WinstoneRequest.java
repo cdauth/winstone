@@ -227,7 +227,7 @@ public class WinstoneRequest implements HttpServletRequest
   public static Map extractParameters(String urlEncodedParams, String encoding,
       WinstoneResourceBundle resources)
   {
-    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParsingParameters") + urlEncodedParams);
+    Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParsingParameters", urlEncodedParams);
     Map params = new Hashtable();
     StringTokenizer st = new StringTokenizer(urlEncodedParams, "&", false);
     while (st.hasMoreTokens())
@@ -235,7 +235,7 @@ public class WinstoneRequest implements HttpServletRequest
       String token = st.nextToken();
       int equalPos = token.indexOf('=');
       if (equalPos == -1)
-        Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.IgnoringBadParameter") + token);
+        Logger.log(Logger.WARNING, resources, "WinstoneRequest.IgnoringBadParameter", token);
       else try
       {
         String decodedNameDefault = decodeURLToken(token.substring(0, equalPos));
@@ -263,11 +263,11 @@ public class WinstoneRequest implements HttpServletRequest
           params.put(decodedName, oneMore);
         }
         else
-          Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.UnknownParameterType",
-              "[#name]", decodedName + " = " + decodedValue.getClass()));
+          Logger.log(Logger.WARNING, resources, "WinstoneRequest.UnknownParameterType",
+              decodedName + " = " + decodedValue.getClass());
       }
       catch (Exception err)
-        {Logger.log(Logger.ERROR, resources.getString("WinstoneRequest.ErrorParameters"), err);}
+        {Logger.log(Logger.ERROR, resources, "WinstoneRequest.ErrorParameters", err);}
     }
     return params;
   }
@@ -308,13 +308,13 @@ public class WinstoneRequest implements HttpServletRequest
   {
     if ((parsedParameters != null) && !parsedParameters.booleanValue())
     {
-      Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.BothMethodsCalled"));
+      Logger.log(Logger.WARNING, resources, "WinstoneRequest.BothMethodsCalled");
       return new Boolean(true);
     }
     else if (parsedParameters == null)
     try
     {
-      Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParsingBodyParameters"));
+      Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParsingBodyParameters");
       if (method.equals(METHOD_POST) &&
           (contentType != null) && 
 					contentType.equals(POST_PARAMETERS))
@@ -323,20 +323,20 @@ public class WinstoneRequest implements HttpServletRequest
         byte paramBuffer[] = new byte[contentLength];
         int readCount = inData.read(paramBuffer);
         if (readCount != contentLength)
-          Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.IncorrectContentLength",
-            "[#contentLength]", contentLength + "", "[#readCount]", readCount + ""));
+          Logger.log(Logger.WARNING, resources, "WinstoneRequest.IncorrectContentLength",
+            new String[] {contentLength + "", readCount + ""});
         String paramLine = (this.encoding == null 
                               ? new String(paramBuffer)
                               : new String(paramBuffer, this.encoding));
         Map postParams = extractParameters(paramLine.trim(), this.encoding, resources);
-        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParamLine") + postParams);
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.ParamLine", "" + postParams);
         params.putAll(postParams);
       }
       return new Boolean(true);
     }
     catch (Throwable err)
     {
-      Logger.log(Logger.ERROR, resources.getString("WinstoneRequest.ErrorBodyParameters"), err);
+      Logger.log(Logger.ERROR, resources, "WinstoneRequest.ErrorBodyParameters", err);
       return null;
     }
     else
@@ -399,12 +399,12 @@ public class WinstoneRequest implements HttpServletRequest
             thisCookie.setVersion(name.equals(IN_COOKIE_HEADER2) || isSecure() ? 1 : 0);
             thisCookie.setSecure(isSecure());
             cookieList.add(thisCookie);
-            Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.CookieFound",
-                  "[#cookieName]", thisCookie.getName(), "[#cookieValue]", thisCookie.getValue()));
+            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.CookieFound",
+                  new String[] {thisCookie.getName(), thisCookie.getValue()});
             if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME))
             {
               this.sessionCookie = thisCookie.getValue();
-              Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.SessionCookieFound", "[#cookieValue]", thisCookie.getValue()));
+              Logger.log(Logger.FULL_DEBUG, resources, "WinstoneRequest.SessionCookieFound", thisCookie.getValue());
             }
           }
         }
@@ -555,7 +555,7 @@ public class WinstoneRequest implements HttpServletRequest
   public ServletInputStream getInputStream() throws IOException
   {
     if ((this.parsedParameters != null) && this.parsedParameters.booleanValue())
-      Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.BothMethods"));
+      Logger.log(Logger.WARNING, resources, "WinstoneRequest.BothMethods");
     else
       this.parsedParameters = new Boolean(false);
     return this.inputData;
@@ -602,8 +602,8 @@ public class WinstoneRequest implements HttpServletRequest
     else if (param instanceof String[])
       return (String []) param;
     else
-      throw new WinstoneException(resources.getString("WinstoneRequest.UnknownParamType")
-                                  + name + " - " + param.getClass());
+      throw new WinstoneException(resources.getString("WinstoneRequest.UnknownParameterType",
+          name + " - " + param.getClass()));
   }
 
   public Map getParameterMap()
@@ -646,7 +646,7 @@ public class WinstoneRequest implements HttpServletRequest
     else try
       {return headerDF.parse(dateHeader).getTime();}
     catch (java.text.ParseException err)
-      {throw new IllegalArgumentException(resources.getString("WinstoneRequest.BadDate") + dateHeader);}
+      {throw new IllegalArgumentException(resources.getString("WinstoneRequest.BadDate", dateHeader));}
   }
   public String getHeader(String name)          {return extractFirstHeader(name);}
   public Enumeration getHeaderNames()           {return Collections.enumeration(extractHeaderNameList());}
@@ -745,8 +745,8 @@ public class WinstoneRequest implements HttpServletRequest
         (nowDate - session.getLastAccessedTime() > session.getMaxInactiveInterval() * 1000))
     {
       session.invalidate();
-      Logger.log(Logger.DEBUG, resources.getString("WinstoneRequest.InvalidateSession", 
-          "[#id]", session.getId(), "[#inactivePeriod]", "" + (nowDate - session.getLastAccessedTime())));
+      Logger.log(Logger.DEBUG, resources, "WinstoneRequest.InvalidateSession", 
+          new String[] {session.getId(), "" + (nowDate - session.getLastAccessedTime())});
       if (create)
         session = this.webappConfig.getSessionById(makeNewSession(), false);
       else

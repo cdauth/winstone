@@ -158,7 +158,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     // On the first call, log and initialise the filter chain
     if (this.doInclude == null)
     {
-      Logger.log(Logger.DEBUG, "INCLUDE: servlet=" + this.name + ", path=" + this.requestURI);
+      Logger.log(Logger.DEBUG, resources, "RequestDispatcher.IncludeMessage", 
+          new String[] {this.name, this.requestURI});
       includedResponse = new IncludeResponse(response, this.resources);
 
       // Set request attributes
@@ -226,7 +227,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     // Only on the first call to forward, we should strip the req/rsp back to bare
     if (this.doInclude == null)
     {
-      Logger.log(Logger.DEBUG, "FORWARD: servlet=" + this.name + ", path=" + this.requestURI);
+      Logger.log(Logger.DEBUG, resources, "RequestDispatcher.ForwardMessage", 
+          new String[] {this.name, this.requestURI});
       if (response.isCommitted())
         throw new IllegalStateException(resources.getString("RequestDispatcher.ForwardCommitted"));
       response.resetBuffer();
@@ -333,8 +335,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
           filterPattern.getLinkName().equals(this.name))
       {
         FilterConfiguration filter = (FilterConfiguration) this.filters.get(filterPattern.getMappedTo());
-        Logger.log(Logger.DEBUG, this.resources.getString(
-          "RequestDispatcher.ExecutingFilter", "[#filterName]", filterPattern.getMappedTo()));
+        Logger.log(Logger.DEBUG, this.resources, 
+          "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
         try
@@ -352,8 +354,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
           		 filterPattern.match(fullPath, null, null))
       {
         FilterConfiguration filter = (FilterConfiguration) this.filters.get(filterPattern.getMappedTo());
-        Logger.log(Logger.DEBUG, this.resources.getString(
-          "RequestDispatcher.ExecutingFilter", "[#filterName]", filterPattern.getMappedTo()));
+        Logger.log(Logger.DEBUG, this.resources, 
+          "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
         try
@@ -367,9 +369,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         return;
       }
       else
-        Logger.log(Logger.FULL_DEBUG, this.resources.getString(
-          "RequestDispatcher.BypassingFilter", "[#name]", this.name,
-            "[#filterPattern]", filterPattern.toString(), "[#path]", fullPath));
+        Logger.log(Logger.FULL_DEBUG, this.resources,
+          "RequestDispatcher.BypassingFilter", new String[] {this.name,
+            filterPattern.toString(), fullPath});
     }
 
     // Forward / include as requested in the beginning

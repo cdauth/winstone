@@ -53,37 +53,7 @@ public class InvokerServlet extends HttpServlet
     this.prefix = config.getInitParameter("prefix");
     this.invokerPrefix = config.getInitParameter("invokerPrefix");
   }
-/*
-  private String trimHostName(String input)
-  {
-    if (input == null)
-      return null;
-    else if (input.startsWith("/"))
-      return input;
 
-    int hostStart = input.indexOf("://");
-    if (hostStart == -1)
-      return input;
-    String hostName = input.substring(hostStart + 3);
-    int pathStart = hostName.indexOf('/');
-    if (pathStart == -1)
-      return "/";
-    else
-      return hostName.substring(pathStart);
-  }
-
-  private String trimQueryString(String input)
-  {
-    if (input == null)
-      return null;
-
-    int questionPos = input.indexOf('?');
-    if (questionPos == -1)
-      return input;
-    else
-      return input.substring(0, questionPos);
-  }
-*/
   /**
    * Destroy any mounted instances we might be holding, then destroy myself
    */
@@ -98,19 +68,6 @@ public class InvokerServlet extends HttpServlet
     super.destroy();
   }
 
-  /**
-   * Take the URI, and retrieve the part that is relevant to this servlet
-   */
-/*  protected String extractLocalPath(String fullURI)
-  {
-    String pathOnly = trimHostName(trimQueryString(fullURI));
-    if (!pathOnly.startsWith(this.prefix))
-      throw new IllegalArgumentException(this.resources.getString("InvokerServlet.NotInPrefix",
-          "[#fullURI]", fullURI));
-    else
-      return pathOnly.substring(this.prefix.length());
-  }
-*/
   /**
    * Get an instance of the servlet configuration object
    */
@@ -135,8 +92,8 @@ public class InvokerServlet extends HttpServlet
             getServletConfig().getServletName() + ":" + servletName, 
             servletName, new Hashtable(), -1);
         this.mountedInstances.put(servletName, sc);
-        Logger.log(Logger.DEBUG, this.resources.getString("InvokerServlet.MountingServlet",
-            "[#className]", servletName, "[#invokerName]", getServletConfig().getServletName()));
+        Logger.log(Logger.DEBUG, this.resources, "InvokerServlet.MountingServlet",
+            new String[] {servletName, getServletConfig().getServletName()});
         sc.getRequestDispatcher(new HashMap()); // just to trigger the servlet.init()
       }
       catch (Throwable err)  {sc = null;}
@@ -165,10 +122,9 @@ public class InvokerServlet extends HttpServlet
 
     if (invokedServlet == null)
     {
-      String errMsg = this.resources.getString("InvokerServlet.NoMatchingServletFound",
-                                 "[#requestURI]", servletName);
-      Logger.log(Logger.WARNING, errMsg);
-      rsp.sendError(HttpServletResponse.SC_NOT_FOUND, errMsg);
+      Logger.log(Logger.WARNING, this.resources, "InvokerServlet.NoMatchingServletFound", servletName);
+      rsp.sendError(HttpServletResponse.SC_NOT_FOUND, 
+          this.resources.getString("InvokerServlet.NoMatchingServletFound", servletName));
     }
     else
     {

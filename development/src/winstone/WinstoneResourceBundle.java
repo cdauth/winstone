@@ -17,10 +17,7 @@
  */
 package winstone;
 
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
-import java.util.ResourceBundle;
+import java.util.*;
 
 /**
  * A ResourceBundle that includes the ability to do string replacement on the
@@ -50,27 +47,21 @@ public class WinstoneResourceBundle
   /**
    * Perform a string replace for a single from/to pair.
    */
-  public String getString(String key, String fromMarker, String toValue)
-    {return globalReplace(this.resources.getString(key), fromMarker, toValue);}
+  public String getString(String key, String parameter)
+    {return getString(key, new String[] {parameter});}
 
   /**
    * Perform a string replace for a double from/to pair.
    */
-  public String getString(String key, String fromMarker1, String toValue1,
-                                      String fromMarker2, String toValue2)
-    {return globalReplace(getString(key, fromMarker1, toValue1), fromMarker2, toValue2);}
-
-  /**
-   * Perform a string replace for a double from/to pair.
-   */
-  public String getString(String key, String fromMarker1, String toValue1,
-                                      String fromMarker2, String toValue2,
-                                      String fromMarker3, String toValue3)
+  public String getString(String key, String[] parameters)
   {
-    return globalReplace(getString(key, fromMarker1, toValue1, fromMarker2, toValue2),
-                         fromMarker3, toValue3);
+    String myCopy = this.resources.getString(key);
+    if (parameters != null)
+      for (int n = 0; n < parameters.length; n++)
+        myCopy = globalReplace(myCopy, "[#" + n + "]", parameters[n]);
+    return myCopy;
   }
-
+  
   /**
    * Just does a string swap, replacing occurrences of from with to.
    */
@@ -92,8 +83,8 @@ public class WinstoneResourceBundle
 
   /**
    * Perform a string replace for all the from/to pairs in the replaceParams map
-   */
-  public String getString(String key, Map replaceParams)
+   * /
+  private String getString(String key, Map replaceParams)
   {
     String myCopy = this.resources.getString(key);
     for (Iterator i = replaceParams.keySet().iterator(); i.hasNext(); )
@@ -104,7 +95,7 @@ public class WinstoneResourceBundle
     }
     return myCopy;
   }
-
+*/
 }
 
  

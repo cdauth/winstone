@@ -124,7 +124,7 @@ public class SecurityConstraint
     this.rolesAllowed = (String []) localRolesAllowed.toArray(new String[localRolesAllowed.size()]);
 
     if (this.displayName == null)
-      this.displayName = this.resources.getString("SecurityConstraint.DefaultName", "[#counter]", "" + counter);
+      this.displayName = this.resources.getString("SecurityConstraint.DefaultName", "" + counter);
   }
 
   /**
@@ -136,12 +136,12 @@ public class SecurityConstraint
     {
       if (request.isUserInRole(this.rolesAllowed[n]))
       {
-        Logger.log(Logger.FULL_DEBUG, "Passed security constraint: " +
-                    this.displayName + " role: " + this.rolesAllowed[n]);
+        Logger.log(Logger.FULL_DEBUG, resources, "SecurityConstraint.Passed", 
+            new String[] {this.displayName, this.rolesAllowed[n]});
         return true;
       }
     }
-    Logger.log(Logger.FULL_DEBUG, "Failed security constraint: " + this.displayName);
+    Logger.log(Logger.FULL_DEBUG, resources, "SecurityConstraint.Failed", this.displayName);
     return false;
   }
 

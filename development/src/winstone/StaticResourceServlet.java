@@ -83,8 +83,8 @@ public class StaticResourceServlet extends HttpServlet
     	path = "";
     
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
-    Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",
-              "[#name]", getServletConfig().getServletName(), "[#path]", path));
+    Logger.log(Logger.DEBUG, this.resources, "StaticResourceServlet.PathRequested",
+              new String[] {getServletConfig().getServletName(), path});
 
     // Check for the resource
     File res = path.equals("") ? new File(this.webRoot) : new File(this.webRoot, path);
@@ -92,26 +92,22 @@ public class StaticResourceServlet extends HttpServlet
     // Send a 404 if not found
     if (!res.exists())
       response.sendError(HttpServletResponse.SC_NOT_FOUND,
-            this.resources.getString("StaticResourceServlet.PathNotFound",
-              "[#path]", path));
+            this.resources.getString("StaticResourceServlet.PathNotFound", path));
 
     // Check we are below the webroot
     else if (!res.getCanonicalPath().startsWith(this.webRoot))
       response.sendError(HttpServletResponse.SC_FORBIDDEN,
-            this.resources.getString("StaticResourceServlet.PathInvalid",
-              "[#path]", path));
+            this.resources.getString("StaticResourceServlet.PathInvalid", path));
 
     // Check we are not below the web-inf
     else if (!isInclude && res.getCanonicalPath().toUpperCase().startsWith(new File(this.webRoot, "WEB-INF").getPath().toUpperCase()))
       response.sendError(HttpServletResponse.SC_NOT_FOUND,
-            this.resources.getString("StaticResourceServlet.PathInvalid",
-              "[#path]", path));
+            this.resources.getString("StaticResourceServlet.PathInvalid", path));
 
     // Check we are not below the meta-inf
     else if (!isInclude && res.getCanonicalPath().toUpperCase().startsWith(new File(this.webRoot, "META-INF").getPath().toUpperCase()))
       response.sendError(HttpServletResponse.SC_NOT_FOUND,
-            this.resources.getString("StaticResourceServlet.PathInvalid",
-              "[#path]", path));
+            this.resources.getString("StaticResourceServlet.PathInvalid", path));
 
     // check for the directory case
     else if (res.isDirectory())
@@ -247,19 +243,13 @@ public class StaticResourceServlet extends HttpServlet
     String parentDirLabel = this.resources.getString("StaticResourceServlet.DirectoryList.ParentDirectoryLabel");
     String noDateLabel    = this.resources.getString("StaticResourceServlet.DirectoryList.NoDateLabel");
 
-    Map rowKeys = new HashMap();
-    rowKeys.put("[#rowTextColour]", rowTextColour);
     int rowCount = 0;
 
     // Write the parent dir row
     if (!path.equals("") && !path.equals("/"))
     {
-      rowKeys.put("[#rowColour]", evenColour);
-      rowKeys.put("[#fileLabel]", parentDirLabel);
-      rowKeys.put("[#fileHref]", "..");
-      rowKeys.put("[#fileDate]", noDateLabel);
-      rowKeys.put("[#fileLength]", directoryLabel);
-      rowString.write(this.resources.getString("StaticResourceServlet.DirectoryList.Row", rowKeys));
+      rowString.write(this.resources.getString("StaticResourceServlet.DirectoryList.Row", new String[] 
+        {rowTextColour, evenColour, parentDirLabel, "..", noDateLabel, directoryLabel}));
       rowCount++;
     }
 
@@ -268,26 +258,26 @@ public class StaticResourceServlet extends HttpServlet
       if (!children[n].getName().equalsIgnoreCase("web-inf"))
       {
         File file = children[n];
-        rowKeys.put("[#rowColour]", rowCount % 2 == 0 ? evenColour : oddColour);
-        rowKeys.put("[#fileLabel]", file.getName() + (file.isDirectory() ? "/" : ""));
-        rowKeys.put("[#fileHref]", "./" + file.getName() + (file.isDirectory() ? "/" : ""));
-        rowKeys.put("[#fileDate]", file.isDirectory() ? noDateLabel : sdfFileDate.format(new Date(file.lastModified())));
-        rowKeys.put("[#fileLength]", file.isDirectory() ? directoryLabel : "" + file.length());
-        rowString.write(this.resources.getString("StaticResourceServlet.DirectoryList.Row", rowKeys));
+        rowString.write(this.resources.getString("StaticResourceServlet.DirectoryList.Row", new String[] {
+            rowTextColour,
+            rowCount % 2 == 0 ? evenColour : oddColour,
+            file.getName() + (file.isDirectory() ? "/" : ""),
+            "./" + file.getName() + (file.isDirectory() ? "/" : ""),
+            file.isDirectory() ? noDateLabel : sdfFileDate.format(new Date(file.lastModified())),
+            file.isDirectory() ? directoryLabel : "" + file.length()}));
         rowCount++;
       }
 
     // Build wrapper body
-    Map bodyKeys = new HashMap();
-    bodyKeys.put("[#headerColour]", this.resources.getString("StaticResourceServlet.DirectoryList.HeaderColour"));
-    bodyKeys.put("[#headerTextColour]", this.resources.getString("StaticResourceServlet.DirectoryList.HeaderTextColour"));
-    bodyKeys.put("[#labelColour]", this.resources.getString("StaticResourceServlet.DirectoryList.LabelColour"));
-    bodyKeys.put("[#labelTextColour]", this.resources.getString("StaticResourceServlet.DirectoryList.LabelTextColour"));
-    bodyKeys.put("[#date]", new Date() + "");
-    bodyKeys.put("[#serverVersion]", this.resources.getString("ServerVersion"));
-    bodyKeys.put("[#path]", path.equals("") ? "/" : path);
-    bodyKeys.put("[#rows]", rowString.toString());
-    String out = this.resources.getString("StaticResourceServlet.DirectoryList.Body", bodyKeys);
+    String out = this.resources.getString("StaticResourceServlet.DirectoryList.Body", new String[] {
+        this.resources.getString("StaticResourceServlet.DirectoryList.HeaderColour"),
+        this.resources.getString("StaticResourceServlet.DirectoryList.HeaderTextColour"),
+        this.resources.getString("StaticResourceServlet.DirectoryList.LabelColour"),
+        this.resources.getString("StaticResourceServlet.DirectoryList.LabelTextColour"),
+        new Date() + "",
+        this.resources.getString("ServerVersion"),
+        path.equals("") ? "/" : path,
+        rowString.toString()});
 
     response.setContentLength(out.getBytes().length);
     response.setContentType("text/html");

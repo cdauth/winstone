@@ -173,8 +173,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       this.classFile = WebAppConfiguration.JSP_SERVLET_CLASS;
       WebAppConfiguration.addJspServletParams(this.initParameters);
     }
-    Logger.log(Logger.FULL_DEBUG, resources.getString("ServletConfiguration.DeployedInstance",
-        "[#name]", this.servletName, "[#class]", this.classFile));
+    Logger.log(Logger.FULL_DEBUG, resources, "ServletConfiguration.DeployedInstance",
+        new String[] {this.servletName, this.classFile});
   }
 
   /**
@@ -194,21 +194,18 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
 
         Class servletClass = Class.forName(classFile, true, this.loader);
         this.instance = (Servlet) servletClass.newInstance();
-        Logger.log(Logger.DEBUG, this.servletName + ": "
-                    + resources.getString("ServletConfiguration.init")
-                    //+ " (classloader: " + this.loader.getClass().getName() + ")"
-                    );
+        Logger.log(Logger.DEBUG,  resources, "ServletConfiguration.init", this.servletName);
 
         // Initialise with the correct classloader
         this.instance.init(this);
         Thread.currentThread().setContextClassLoader(cl);
       }
       catch (ClassNotFoundException err)
-        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);}
       catch (IllegalAccessException err)
-        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);}
       catch (InstantiationException err)
-        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);}
       catch (javax.servlet.ServletException err)
       {
         this.instance = null;
@@ -251,7 +248,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     {
       if (this.instance != null)
       {
-        Logger.log(Logger.DEBUG, this.servletName + ": " + resources.getString("ServletConfiguration.destroy"));
+        Logger.log(Logger.DEBUG,  resources, "ServletConfiguration.destroy", this.servletName);
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
         this.instance.destroy();

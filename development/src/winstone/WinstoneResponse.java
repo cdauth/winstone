@@ -163,8 +163,8 @@ public class WinstoneResponse implements HttpServletResponse
       int bodyBytes = this.outputStream.getBytesWritten();
       if (contentLength != bodyBytes)
       {
-        Logger.log(Logger.WARNING, resources.getString("WinstoneResponse.ShortOutput",
-          "[#contentLength]", contentLength + "", "[#bodyBytes]", bodyBytes + ""));
+        Logger.log(Logger.DEBUG, resources, "WinstoneResponse.ShortOutput",
+          new String[] {contentLength + "", bodyBytes + ""});
         //this.setContentLength(bodyBytes);
       }
     }
@@ -328,7 +328,7 @@ public class WinstoneResponse implements HttpServletResponse
         
     }
     else
-      Logger.log(Logger.WARNING, "Response.setLocale() ignored, because getWriter already called");
+      Logger.log(Logger.WARNING, resources, "WinstoneResponse.SetLocaleTooLate");
   }
 
   public ServletOutputStream getOutputStream() throws IOException
@@ -421,8 +421,8 @@ public class WinstoneResponse implements HttpServletResponse
     {sendError(sc, null);}
   public void sendError(int sc, String msg) throws IOException
   {
-    Logger.log(Logger.DEBUG, this.resources.getString("WinstoneResponse.SendingError", 
-            "[#code]", "" + sc, "[#msg]", msg));
+    Logger.log(Logger.DEBUG, this.resources, "WinstoneResponse.SendingError", 
+            new String[] {"" + sc, msg});
     
     boolean found = false;
     if ((this.webAppConfig != null) && (this.req != null) &&
@@ -439,21 +439,20 @@ public class WinstoneResponse implements HttpServletResponse
       catch (IllegalStateException err) {throw err;}
       catch (IOException err) {throw err;}
       catch (Throwable err)
-        {Logger.log(Logger.WARNING, this.resources.getString("WinstoneResponse.ErrorInErrorPage",
-              "[#path]", errorPage, "[#code]", sc + ""), err);}
+        {Logger.log(Logger.WARNING, this.resources, "WinstoneResponse.ErrorInErrorPage",
+              new String[] {errorPage, sc + ""}, err);}
     }
 
     // If all fails, show the default page
     if (!found)
     {
       this.statusCode = sc;
-      Map params = new HashMap();
-      params.put("[#statusCode]", sc + "");
-      params.put("[#msg]", (msg == null ? "" : msg));
-      params.put("[#serverVersion]", resources.getString("ServerVersion"));
-      params.put("[#date]", "" + new Date());
 
-      String output = resources.getString("WinstoneResponse.ErrorPage", params);
+      String output = resources.getString("WinstoneResponse.ErrorPage", new String[] {
+          sc + "",
+          (msg == null ? "" : msg),
+          resources.getString("ServerVersion"),
+          "" + new Date()});
       if (this.encoding == null)
         setContentLength(output.getBytes().length);
       else
@@ -520,8 +519,8 @@ public class WinstoneResponse implements HttpServletResponse
         {
           errWrapper = ((ServletException) errWrapper).getRootCause();
         
-          Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneResponse.TestingException", 
-            "[#exception]", exceptionClasses[n] + ""));
+          Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.TestingException", 
+            exceptionClasses[n] + "");
           try
           {
             if (exceptionClasses[n].isInstance(err))
@@ -545,8 +544,7 @@ public class WinstoneResponse implements HttpServletResponse
       PrintWriter pw = new PrintWriter(sw, true);
       err.printStackTrace(pw);
       sendError(SC_INTERNAL_SERVER_ERROR,
-        resources.getString("WinstoneResponse.ServletExceptionPage",
-        "[#stackTrace]", sw.toString()));
+        resources.getString("WinstoneResponse.ServletExceptionPage", sw.toString()));
     }
   }
 
