@@ -270,6 +270,11 @@ Security options:
          generated .java files into .class files at runtime.</li>
     </ul>
 
+  <p>Adding files to the startup classpath involves using a slightly different technique for 
+    starting Winstone. To start from the command line, you'll need something like:</p>
+
+    &nbsp;&nbsp;<code>java -cp ../dist/winstone_v0.6.jar:&lt;path to each jar above&gt; winstone.Launcher &lt;options&gt; </code>
+
   <p>Tomcat is available at http://jakarta.apache.org/tomcat/index.html - but please note that the
     license for Tomcat is not the same as Winstone. Please read carefully before packaging.</p>
 
