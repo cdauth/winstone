@@ -82,6 +82,8 @@ public class WinstoneRequest implements HttpServletRequest
   protected String authorization;
   protected boolean isSecure;
   protected AuthenticationPrincipal authenticatedUser;
+  protected List requestAttributeListeners;
+  protected List requestListeners;
 
   private WinstoneResourceBundle resources;
   private MessageDigest md5Digester;
@@ -108,6 +110,8 @@ public class WinstoneRequest implements HttpServletRequest
    */
   public void cleanUp()
   {
+    this.requestListeners = null;
+    this.requestAttributeListeners = null;
     this.listener = null;
     this.attributes.clear();
     this.parameters.clear();
@@ -202,6 +206,9 @@ public class WinstoneRequest implements HttpServletRequest
   public void setEncoding(String encoding)  {this.encoding = encoding;}
   public void setParsedParameters(Boolean parsed) {this.parsedParameters = parsed;}
 
+  public void setRequestListeners(List rl) {this.requestListeners = rl;}
+  public void setRequestAttributeListeners(List ral) {this.requestAttributeListeners = ral;}
+  
   /**
    * Gets parameters from the url encoded parameter string
    */

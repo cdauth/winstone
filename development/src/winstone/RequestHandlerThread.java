@@ -136,11 +136,12 @@ public class RequestHandlerThread implements Runnable
             }
 
             // Lookup a dispatcher, then process with it
-            req.setWebAppConfig(this.webAppConfig);
-            rsp.setWebAppConfig(this.webAppConfig);
+            this.webAppConfig.setRequestResponse(req, rsp);
             processRequest(req, rsp, path);
             this.outData.finishResponse();
             this.inData.finishRequest();
+            req.setWebAppConfig(null);
+            rsp.setWebAppConfig(null);
 
             Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.FinishRequest",
               "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));

@@ -29,6 +29,8 @@ import javax.servlet.ServletContextAttributeListener;
 import javax.servlet.ServletContextListener;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletRequestAttributeListener;
+import javax.servlet.ServletRequestListener;
 import javax.servlet.http.HttpSessionActivationListener;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionListener;
@@ -113,6 +115,8 @@ public class WebAppConfiguration implements ServletContext
 
   private List contextAttributeListeners;
   private List contextListeners;
+  private List requestListeners;
+  private List requestAttributeListeners;
   private List sessionActivationListeners;
   private List sessionAttributeListeners;
   private List sessionListeners;
@@ -184,6 +188,8 @@ public class WebAppConfiguration implements ServletContext
 
     this.contextAttributeListeners = new ArrayList();
     this.contextListeners = new ArrayList();
+    this.requestListeners = new ArrayList();
+    this.requestAttributeListeners = new ArrayList();
     this.sessionActivationListeners = new ArrayList();
     this.sessionAttributeListeners = new ArrayList();
     this.sessionListeners = new ArrayList();
@@ -338,6 +344,10 @@ public class WebAppConfiguration implements ServletContext
               this.contextAttributeListeners.add(listenerInstance);
             if (listenerInstance instanceof ServletContextListener)
               this.contextListeners.add(listenerInstance);
+            if (listenerInstance instanceof ServletRequestAttributeListener)
+              this.requestAttributeListeners.add(listenerInstance);
+            if (listenerInstance instanceof ServletRequestListener)
+              this.requestListeners.add(listenerInstance);
             if (listenerInstance instanceof HttpSessionActivationListener)
               this.sessionActivationListeners.add(listenerInstance);
             if (listenerInstance instanceof HttpSessionAttributeListener)
@@ -629,6 +639,19 @@ public class WebAppConfiguration implements ServletContext
   {
     this.launcher.destroyWebApp(this);
     this.launcher.initWebApp(this.prefix, new File(this.webRoot));
+  }
+
+  /**
+   * Marks a request/response as using this context
+   */
+  public void setRequestResponse(WinstoneRequest req, WinstoneResponse rsp)
+  {
+    req.setWebAppConfig(this);
+    rsp.setWebAppConfig(this);
+    
+    // Set listeners on the request
+    req.setRequestListeners(this.requestListeners);
+    req.setRequestAttributeListeners(this.requestAttributeListeners);
   }
 
   /**

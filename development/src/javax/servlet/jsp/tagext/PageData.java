@@ -17,18 +17,13 @@
  */
 package javax.servlet.jsp.tagext;
 
-import java.io.IOException;
-import javax.servlet.jsp.*;
+import java.io.InputStream;
 
 /**
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public interface SimpleTag extends JspTag
+public abstract class PageData
 {
-  public void doTag() throws JspException, IOException;
-  public JspTag getParent();
-  public void setJspBody(JspFragment jspBody);
-  public void setJspContext(JspContext pc);
-  public void setParent(JspTag parent);
+  public abstract InputStream getInputStream();
 }

@@ -17,18 +17,28 @@
  */
 package javax.servlet.jsp.tagext;
 
-import java.io.IOException;
-import javax.servlet.jsp.*;
+import java.util.*;
 
 /**
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public interface SimpleTag extends JspTag
+public abstract class TagLibraryValidator
 {
-  public void doTag() throws JspException, IOException;
-  public JspTag getParent();
-  public void setJspBody(JspFragment jspBody);
-  public void setJspContext(JspContext pc);
-  public void setParent(JspTag parent);
+  private Map initParameters;
+  
+  public TagLibraryValidator() {this.initParameters = new Hashtable();}
+  public Map getInitParameters() 
+    {return Collections.unmodifiableMap(this.initParameters);}
+  public void release() {this.initParameters.clear();}
+  public void setInitParameters(Map map) 
+  {
+    if (map != null)
+    {
+      this.initParameters.clear();
+      this.initParameters.putAll(map);
+    }
+  }
+  public ValidationMessage[] validate(String prefix, String uri, PageData page)  
+    {return null;}
 }

@@ -17,18 +17,23 @@
  */
 package javax.servlet.jsp.tagext;
 
-import java.io.IOException;
 import javax.servlet.jsp.*;
 
 /**
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public interface SimpleTag extends JspTag
+public class BodyTagSupport extends TagSupport implements BodyTag
 {
-  public void doTag() throws JspException, IOException;
-  public JspTag getParent();
-  public void setJspBody(JspFragment jspBody);
-  public void setJspContext(JspContext pc);
-  public void setParent(JspTag parent);
+  protected BodyContent bodyContent;
+  
+  public int doStartTag() throws JspException {return EVAL_BODY_BUFFERED;}
+  public int doEndTag() throws JspException {return super.doEndTag();}
+  public void doInitBody() throws JspException {}
+  public int doAfterBody() throws JspException {return super.doAfterBody();}
+
+  public BodyContent getBodyContent() {return this.bodyContent;} 
+  public JspWriter getPreviousOut() {return this.bodyContent.getEnclosingWriter();}
+  public void release() {super.release();}
+  public void setBodyContent(BodyContent b) {this.bodyContent = b;}
 }
