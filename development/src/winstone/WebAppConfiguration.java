@@ -251,6 +251,9 @@ public class WebAppConfiguration implements ServletContext
       this.mimeTypes.put(mapping.substring(0, delimPos).toLowerCase(), mapping.substring(delimPos + 1));
     }
 
+    // Add required context atttributes
+    this.attributes.put("javax.servlet.context.tempdir", new File(System.getProperty("java.io.tmpdir")));
+    
     // Parse the web.xml file
     if (elm != null)
       for (int n = 0; n < elm.getChildNodes().getLength(); n++)
