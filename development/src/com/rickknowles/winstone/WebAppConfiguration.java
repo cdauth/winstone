@@ -22,7 +22,14 @@ import java.io.*;
 import java.net.*;
 
 import org.w3c.dom.Node;
+import javax.servlet.ServletContextAttributeEvent;
+import javax.servlet.ServletContextAttributeListener;
+import javax.servlet.ServletContextListener;
+import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpSessionActivationListener;
+import javax.servlet.http.HttpSessionAttributeListener;
+import javax.servlet.http.HttpSessionListener;
 import javax.servlet.Servlet;
 import java.io.IOException;
 
@@ -48,6 +55,12 @@ public class WebAppConfiguration implements ServletContext
   final String ELEM_MIME_MAPPING    = "mime-mapping";
   final String ELEM_MIME_EXTENSION  = "extension";
   final String ELEM_MIME_TYPE       = "mime-type";
+  final String ELEM_CONTEXT_PARAM   = "context-param";
+  final String ELEM_PARAM_NAME      = "param-name";
+  final String ELEM_PARAM_VALUE     = "param-value";
+  final String ELEM_LISTENER        = "listener";
+  final String ELEM_LISTENER_CLASS  = "listener-class";
+  final String ELEM_DISTRIBUTABLE   = "distributable";
 
   final String STAR = "*";
   final String WEBAPP_LOGSTREAM = "WebApp";
@@ -77,11 +90,18 @@ public class WebAppConfiguration implements ServletContext
   private Map   servletInstances;
   private Map   exactMatchMounts;
 
+  private List contextAttributeListeners;
+  private List contextListeners;
+  private List sessionActivationListeners;
+  private List sessionAttributeListeners;
+  private List sessionListeners;
+
   private String  patterns[];
   private String  patternMounts[];
 
   private String  welcomeFiles[];
   private Integer sessionTimeout;
+  private boolean distributable;
 
   private ServletConfiguration staticResourceProcessor;
 
@@ -112,6 +132,14 @@ public class WebAppConfiguration implements ServletContext
 
     this.servletInstances = new Hashtable();
     this.exactMatchMounts = new Hashtable();
+
+    this.contextAttributeListeners = new ArrayList();
+    this.contextListeners = new ArrayList();
+    this.sessionActivationListeners = new ArrayList();
+    this.sessionAttributeListeners = new ArrayList();
+    this.sessionListeners = new ArrayList();
+
+    this.distributable = false;
 
     List localPatterns = new ArrayList();
     List localPatternMounts = new ArrayList();
@@ -176,6 +204,9 @@ public class WebAppConfiguration implements ServletContext
         if (nodeName.equals(ELEM_DISPLAY_NAME))
           this.displayName = child.getFirstChild().getNodeValue().trim();
 
+        else if (nodeName.equals(ELEM_DISTRIBUTABLE))
+          this.distributable = true;
+
         // Session config elements
         else if (nodeName.equals(ELEM_SESSION_CONFIG))
         {
@@ -195,6 +226,38 @@ public class WebAppConfiguration implements ServletContext
           this.servletInstances.put(instance.getServletName(), instance);
           if (instance.getLoadOnStartup() >= 0)
             startupServlets.add(instance);
+        }
+
+        // Construct the servlet instances
+        else if (nodeName.equals(ELEM_LISTENER))
+        {
+          String listenerClass = null;
+          for (int m = 0; m < child.getChildNodes().getLength(); m++)
+          {
+            Node listenerElm = (Node) child.getChildNodes().item(m);
+            if ((listenerElm.getNodeType() == Node.ELEMENT_NODE) &&
+                (listenerElm.getNodeName().equals(ELEM_LISTENER_CLASS)))
+              listenerClass = listenerElm .getFirstChild().getNodeValue().trim();
+          }
+          if (listenerClass != null)
+          try
+          {
+            Class listener = Class.forName(listenerClass, true, this.loader);
+            Object listenerInstance = listener.newInstance();
+            if (listenerInstance instanceof ServletContextAttributeListener)
+              this.contextAttributeListeners.add(listenerInstance);
+            if (listenerInstance instanceof ServletContextListener)
+              this.contextListeners.add(listenerInstance);
+            if (listenerInstance instanceof HttpSessionActivationListener)
+              this.sessionActivationListeners.add(listenerInstance);
+            if (listenerInstance instanceof HttpSessionAttributeListener)
+              this.sessionAttributeListeners.add(listenerInstance);
+            if (listenerInstance instanceof HttpSessionListener)
+              this.sessionListeners.add(listenerInstance);
+            Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfig.AddListener", "[#class]", listenerClass));
+          }
+          catch (Throwable err)
+            {Logger.log(Logger.WARNING, this.resources.getString("WebAppConfig.InvalidListener", "[#class]", listenerClass));}
         }
 
         // Process the servlet mappings
@@ -249,6 +312,28 @@ public class WebAppConfiguration implements ServletContext
             Logger.log(Logger.WARNING, this.resources.getString("WebAppConfig.InvalidMimeMapping",
                 "[#extension]", extension, "[#mimeType]", mimeType));
         }
+
+        // Process the list of welcome files
+        else if (nodeName.equals(ELEM_CONTEXT_PARAM))
+        {
+          String name = null;
+          String value  = null;
+          for (int m = 0; m < child.getChildNodes().getLength(); m++)
+          {
+            Node contextParamNode = (Node) child.getChildNodes().item(m);
+            if (contextParamNode.getNodeType() != Node.ELEMENT_NODE)
+              continue;
+            else if (contextParamNode.getNodeName().equals(ELEM_PARAM_NAME))
+              name = contextParamNode.getFirstChild().getNodeValue().trim();
+            else if (contextParamNode.getNodeName().equals(ELEM_PARAM_VALUE))
+              value = contextParamNode.getFirstChild().getNodeValue().trim();
+          }
+          if ((name != null) && (value != null))
+            this.initParameters.put(name, value);
+          else
+            Logger.log(Logger.WARNING, this.resources.getString("WebAppConfig.InvalidInitParam",
+                "[#name]", name, "[#value]", value));
+        }
       }
 
     // Add the default index.html welcomeFile if none are supplied
@@ -280,11 +365,15 @@ public class WebAppConfiguration implements ServletContext
     Arrays.sort(autoStarters);
     for (int n = 0; n < autoStarters.length; n++)
       ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null);
+
+    // Send init notifies
+    for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
+      ((ServletContextListener) i.next()).contextInitialized(new ServletContextEvent(this));
+
   }
 
   public String getPrefix()         {return this.prefix;}
   public String getWebroot()        {return this.webRoot;}
-//  public ClassLoader getLoader()    {return this.loader;}
   public Map getSessions()          {return this.sessions;}
   public String[] getWelcomeFiles() {return this.welcomeFiles;}
 
@@ -295,6 +384,10 @@ public class WebAppConfiguration implements ServletContext
   {
     for (Iterator i = this.servletInstances.values().iterator(); i.hasNext(); )
       ((ServletConfiguration) i.next()).destroy();
+
+    // Send destroy notifies
+    for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
+      ((ServletContextListener) i.next()).contextDestroyed(new ServletContextEvent(this));
   }
 
   /**
@@ -405,7 +498,9 @@ public class WebAppConfiguration implements ServletContext
 
   public WinstoneSession makeNewSession(String sessionId)
   {
-    WinstoneSession ws = new WinstoneSession(sessionId, this);
+    WinstoneSession ws = new WinstoneSession(sessionId, this,
+        this.sessionListeners, this.sessionAttributeListeners,
+        this.distributable, this.resources);
     if ((this.sessionTimeout != null) && (this.sessionTimeout.intValue() > 0))
       ws.setMaxInactiveInterval(this.sessionTimeout.intValue() * 60);
     else
@@ -424,8 +519,25 @@ public class WebAppConfiguration implements ServletContext
   // Application level attributes
   public Object getAttribute(String name)               {return this.attributes.get(name);}
   public Enumeration getAttributeNames()                {return Collections.enumeration(this.attributes.keySet());}
-  public void removeAttribute(String name)              {this.attributes.remove(name);}
-  public void setAttribute(String name, Object object)  {this.attributes.put(name, object);}
+  public void removeAttribute(String name)
+  {
+    Object me = this.attributes.get(name);
+    this.attributes.remove(name);
+    if (me != null)
+      for (Iterator i = this.contextAttributeListeners.iterator(); i.hasNext(); )
+        ((ServletContextAttributeListener) i.next()).attributeRemoved(new ServletContextAttributeEvent(this, name, me));
+  }
+  public void setAttribute(String name, Object object)
+  {
+    Object me = this.attributes.get(name);
+    this.attributes.put(name, object);
+    if (me != null)
+      for (Iterator i = this.contextAttributeListeners.iterator(); i.hasNext(); )
+        ((ServletContextAttributeListener) i.next()).attributeReplaced(new ServletContextAttributeEvent(this, name, me));
+    else
+      for (Iterator i = this.contextAttributeListeners.iterator(); i.hasNext(); )
+        ((ServletContextAttributeListener) i.next()).attributeAdded(new ServletContextAttributeEvent(this, name, object));
+  }
 
   // Application level init parameters
   public String getInitParameter(String name) {return (String) this.initParameters.get(name);}

@@ -449,7 +449,7 @@ public class HttpConnector
   }
 
   public void writeHeaders(WinstoneRequest req, WinstoneResponse rsp,
-                           WinstoneOutputStream outputStream, List headers, List cookies)
+                           PrintStream outputStream, List headers, List cookies)
     throws IOException
   {
     // Ensure bare minimum headers

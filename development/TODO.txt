@@ -1,0 +1,7 @@
+List of things to do:
+
+ - Add auto WAR extract instead of webroot
+ - Add security model - pluggable if possible, so Winstone can work in non-security mode
+ - Change build process to use external ant
+ - Add filter handling code
+ - Add listener handlers, etc

@@ -1,5 +1,5 @@
 
-Winstone Servlet Container v0.2
+Winstone Servlet Container v0.3
 ------------------
 
 This is an alpha release of the Winstone Servlet Container.  The homepage for
@@ -19,7 +19,7 @@ container - this is left to Tomcat, Jetty, Resin, JRun, Weblogic et al.
 The original goals in writing Winstone were:
  - Supply fast, reliable servlet container functionality for a single webapp per server
  - Limit the size of the core distribution jar to less than 100KB for as long as possible
-   (currently 101KB ... doh !!! time to trim some comments from the DTDs)
+   (currently 104KB ... doh !!! time to trim some comments from the DTDs)
  - Keep configuration files to an absolute minimum, using command line options to 
    optionally override sensible compiled in defaults. 
  - Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -31,7 +31,7 @@ Using Winstone
 
 To build Winstone, unpack the tree:
 
-  tar zxf winstone_src_v0.2.tar.gz
+  tar zxf winstone_src_v0.3.tar.gz
 
 Then build it:
 
@@ -43,16 +43,20 @@ Then build it:
 
 To run it:
 
-  java -jar winstone_v0.2.jar -webroot <location of webroot> (+ other options)
+  java -jar winstone_v0.3.jar -webroot <location of webroot> (+ other options)
+     - OR -
+  java -jar winstone_v0.3.jar -warfile <location of warfile> (+ other options)
 
 The Winstone.jar file will be in the winstone/dist directory after the build is complete.
 
 Command-line options:
 ---------------------
 
-   -webroot                = set document root folder. ** REQUIRED OPTION **
-   -prefix                 = add this prefix to all URLs (eg http://localhost:8080/prefix/resource). Default is none
+Required options: either -webroot OR -warfile
+   -webroot                = set document root folder.
+   -warfile                = set document root folder.
 
+   -prefix                 = add this prefix to all URLs (eg http://localhost:8080/prefix/resource). Default is none
    -debug                  = set the level of debug msgs (1-9). Default is 5 (INFO level)
    -port                   = set the listening port. Default is 8080
    -controlPort            = set the listening port. -1 to disable, Default disabled
@@ -61,7 +65,7 @@ Command-line options:
    -doHostnameLookups      = enable host name lookups on incoming connections (true/false). Default is true
    -useJasper              = enable jasper JSP handling (true/false). Default is false
    -useWinstoneClassLoader = enable WebApp classLoader (true/false). Default is true
-   -useInvoker             = enable the servlet invoker (true/false). Default is true
+   -useInvoker             = enable the servlet invoker (true/false). Default is false
    -invokerPrefix          = set the invoker prefix. Default is /servlet/
 
    -usage / -help          = show usage message
@@ -117,12 +121,21 @@ Caveats
 As a result of the design goals, there are a lot of things Winstone doesn't do (at least 
 not yet).
  - Servlet Filters are not supported (yet)
- - Servlet Attribute and Context listeners are not supported very well (yet)
  - There is no security model at all (yet)
  - HttpSession support is cookie-based only (no URL rewriting). I don't see any reason to 
    build this, since I've never come across anyone that actually uses URL rewriting. 
  - The messages are all in English only. These have been updated to use resource 
    bundles, but no translations yet.
+
+Recent additions
+----------------
+
+New features in v0.3:
+
+ - WAR files are now supported via the -warfile attribute.
+ - Servlet attribute, session, and context listeners are now fully supported. The 
+   HttpSessionActivationListener class will be fully supported once the session transfer
+   is implemented.
 
 Security Warning
 ----------------

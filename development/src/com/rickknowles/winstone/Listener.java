@@ -20,6 +20,7 @@ package com.rickknowles.winstone;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.jar.*;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
@@ -72,6 +73,7 @@ public class Listener implements Runnable, EntityResolver
   private HttpConnector connector;
 
   private Object requestHandlerSemaphore = new Boolean(true);
+  private int threadIndex = 0;
 
   /**
    * Constructor
@@ -89,8 +91,7 @@ public class Listener implements Runnable, EntityResolver
                        DEFAULT_CONTROL_PORT :
                        Integer.parseInt((String) args.get("controlPort")));
 
-    File webRoot = new File(args.get("webroot") == null ? WEB_ROOT
-                                                        : (String) args.get("webroot"));
+    File webRoot = getWebRoot((String) args.get("webroot"), (String) args.get("warfile"));
     if (!webRoot.exists())
       throw new WinstoneException(resources.getString("Listener.NoWebRoot") + webRoot);
 
@@ -122,7 +123,7 @@ public class Listener implements Runnable, EntityResolver
     boolean switchOnDirLists = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
     boolean switchOnJasper   = (useJasper != null)  && (useJasper.equalsIgnoreCase("true")  || useJasper.equalsIgnoreCase("yes"));
     boolean switchOnWCL      = (useWCL == null)     || (useWCL.equalsIgnoreCase("true")     || useWCL.equalsIgnoreCase("yes"));
-    boolean switchOnInvoker  = (useInvoker == null) || (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
+    boolean switchOnInvoker  = (useInvoker != null) && (useInvoker.equalsIgnoreCase("true") || useInvoker.equalsIgnoreCase("yes"));
     boolean switchOnHNL      = (hnl == null ? DEFAULT_HNL : (hnl.equalsIgnoreCase("yes") || hnl.equalsIgnoreCase("true")));
 
     this.connector = new HttpConnector(this.resources, switchOnHNL);
@@ -137,6 +138,71 @@ public class Listener implements Runnable, EntityResolver
 
     this.unusedRequestHandlerThreads = new Vector();
     this.usedRequestHandlerThreads = new Vector();
+  }
+
+  /**
+   * Setup the webroot. If a warfile is supplied, extract any files that the
+   * war file is newer than. If none is supplied, use the default.
+   */
+  private File getWebRoot(String webroot, String warfile) throws IOException
+  {
+    if (warfile != null)
+    {
+      Logger.log(Logger.INFO, this.resources.getString("Listener.BeginningWarExtraction"));
+
+      // open the war file
+      File warfileRef = new File(warfile);
+      if (!warfileRef.exists() || !warfileRef.isFile())
+        throw new WinstoneException(resources.getString("Listener.WarFileInvalid", "[#warfile]", warfile));
+
+      // Get the webroot folder (or a temp dir if none supplied)
+      File unzippedDir =(webroot != null ? new File(webroot) : new File(File.createTempFile("dummy", "dummy")
+                                            .getParent(), "winstone/" + warfileRef.getName()));
+      if (unzippedDir.exists())
+      {
+        if (!unzippedDir.isDirectory())
+          throw new WinstoneException(resources.getString("Listener.WebRootNotDirectory", "[#dir]", unzippedDir.getPath()));
+        else
+          Logger.log(Logger.DEBUG, resources.getString("Listener.WebRootExists", "[#dir]", unzippedDir.getCanonicalPath()));
+      }
+      else
+        unzippedDir.mkdirs();
+
+      // Iterate through the files
+      JarFile warArchive = new JarFile(warfileRef);
+      for (Enumeration enum = warArchive.entries(); enum.hasMoreElements(); )
+      {
+        JarEntry element = (JarEntry) enum.nextElement();
+        if (element.isDirectory())
+          continue;
+        String elemName = element.getName();
+
+        // If archive date is newer than unzipped file, overwrite
+        File outFile = new File(unzippedDir, elemName);
+        if (outFile.exists() && (outFile.lastModified() > warfileRef.lastModified()))
+          continue;
+
+        outFile.getParentFile().mkdirs();
+        byte buffer[] = new byte[1000];
+
+        // Copy out the extracted file
+        InputStream inContent = warArchive.getInputStream(element);
+        OutputStream outStream = new FileOutputStream(outFile);
+        int readBytes = inContent.read(buffer);
+        while (readBytes != -1)
+        {
+          outStream.write(buffer, 0, readBytes);
+          readBytes = inContent.read(buffer);
+        }
+        inContent.close();
+        outStream.close();
+      }
+
+      // Return webroot
+      return unzippedDir;
+    }
+    else
+      return new File(webroot == null ? WEB_ROOT : webroot);
   }
 
   /**
@@ -180,7 +246,7 @@ public class Listener implements Runnable, EntityResolver
           // If we're short an idle request handler
           while ((this.unusedRequestHandlerThreads.size() < MIN_IDLE_REQUEST_HANDLERS_IN_POOL) &&
                  (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL - MIN_IDLE_REQUEST_HANDLERS_IN_POOL))
-            this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.connector, this.resources));
+            this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++));
         }
 
         // Get the listener
@@ -214,9 +280,9 @@ public class Listener implements Runnable, EntityResolver
       // Release all handlers
       for (Iterator i = this.usedRequestHandlerThreads.iterator(); i.hasNext(); )
         releaseRequestHandler((RequestHandlerThread) i.next());
-      this.webAppConfig.destroy();
       for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
         ((RequestHandlerThread) i.next()).destroy();
+      this.webAppConfig.destroy();
     }
     catch (Throwable err)
       {Logger.log(Logger.ERROR, resources.getString("Listener.ShutdownError"), err);}
@@ -245,7 +311,7 @@ public class Listener implements Runnable, EntityResolver
             "[#used]", "" + this.usedRequestHandlerThreads.size(),
             "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
       }
-      rh.commenceRequestHandling(s);
+      rh.commenceRequestHandling(s, this.connector);
     }
 
     // If we are out (and not over our limit), allocate a new one
@@ -254,14 +320,14 @@ public class Listener implements Runnable, EntityResolver
       RequestHandlerThread rh = null;
       synchronized (this.requestHandlerSemaphore)
       {
-        rh = new RequestHandlerThread(this.webAppConfig, this, this.connector, this.resources);
+        rh = new RequestHandlerThread(this.webAppConfig, this, this.resources, this.threadIndex++);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
         Logger.log(Logger.FULL_DEBUG, resources.getString("Listener.NewRHPoolThread",
             "[#used]", "" + this.usedRequestHandlerThreads.size(),
             "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
       }
-      rh.commenceRequestHandling(s);
+      rh.commenceRequestHandling(s, this.connector);
     }
 
     // otherwise throw fail message - we've blown our limit
@@ -348,7 +414,7 @@ public class Listener implements Runnable, EntityResolver
     }
 
     WinstoneResourceBundle resources = new WinstoneResourceBundle(RESOURCE_FILE);
-    if (!args.containsKey("webroot"))
+    if (!args.containsKey("webroot") && !args.containsKey("warfile"))
       printUsage(resources);
     else
     {

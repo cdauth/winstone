@@ -33,22 +33,26 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
   private OutputStream socketOut;
   private int bufferSize;
   private int bufferPosition;
-  private int postHeaderPosition;
+  private int bytesWritten;
   private ByteArrayOutputStream buffer;
   private boolean committed;
-  private boolean headersWritten;
+  //private boolean headersWritten;
   private WinstoneResourceBundle resources;
+  private WinstoneResponse owner;
 
   /**
    * Constructor
    */
-  public WinstoneOutputStream(OutputStream out, WinstoneResourceBundle resources)
+  public WinstoneOutputStream(OutputStream out,
+                              WinstoneResourceBundle resources,
+                              WinstoneResponse owner)
   {
     this.resources = resources;
     this.socketOut = out;
     setBufferSize(DEFAULT_BUFFER_SIZE);
     this.committed = false;
-    this.headersWritten = false;
+    //this.headersWritten = false;
+    this.owner = owner;
     this.buffer = new ByteArrayOutputStream();
   }
 
@@ -57,26 +61,31 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
 
   public boolean isCommitted() {return this.committed;}
 
-  public boolean areHeadersWritten() {return this.headersWritten;}
-  public void setHeadersWritten(boolean headersWritten) {this.headersWritten = headersWritten;}
-  public int getPostHeaderBytesWritten() {return this.postHeaderPosition;}
-  
+  //public boolean areHeadersWritten() {return this.headersWritten;}
+  //public void setHeadersWritten(boolean headersWritten) {this.headersWritten = headersWritten;}
+  public int getBytesWritten() {return this.bytesWritten;}
+
   public void write(int oneChar) throws IOException
   {
     this.buffer.write(oneChar);
     this.bufferPosition++;
-    if (this.headersWritten)
-      this.postHeaderPosition++;
+    //if (this.headersWritten)
+    this.bytesWritten++;
     if (this.bufferPosition >= this.bufferSize)
       commit();
   }
 
   public void commit() throws IOException
   {
-    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.CommittedBytes", "[#postHeaderBytes]", "" + this.postHeaderPosition));
-    this.committed = true;
+    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.CommittedBytes", "[#postHeaderBytes]", "" + this.bytesWritten));
     this.buffer.flush();
+
+    // If we haven't written the headers yet, write them out
+    if (!this.committed)
+      this.owner.writeHeaders(new PrintStream(this.socketOut, true));
     this.buffer.writeTo(this.socketOut);
+
+    this.committed = true;
     this.buffer.reset();
     this.bufferPosition = 0;
   }
@@ -90,7 +99,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
       Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.ResetBuffer", "[#discardBytes]", this.bufferPosition + ""));
       this.buffer.reset();
       this.bufferPosition = 0;
-      this.postHeaderPosition = 0;
+      this.bytesWritten = 0;
     }
   }
 }

@@ -61,11 +61,11 @@ public class WinstoneResponse implements HttpServletResponse
     this.resources = resources;
     this.req = req;
     this.connector = connector;
-    this.outputStream = new WinstoneOutputStream(out, resources);
     this.headers = new ArrayList();
-    this.encoding = req.getCharacterEncoding();
-
     this.cookies = new ArrayList();
+    this.encoding = req.getCharacterEncoding();
+    this.outputStream = new WinstoneOutputStream(out, resources, this);
+
     this.protocol = req.getProtocol();
     this.statusCode = SC_OK;
     connector.validateHeaders(req, this);
@@ -101,11 +101,17 @@ public class WinstoneResponse implements HttpServletResponse
       int contentLength = 0;
       try {contentLength = Integer.parseInt(length);}
       catch (Throwable err) {return;}
-      int bodyBytes = this.outputStream.getPostHeaderBytesWritten();
+      int bodyBytes = this.outputStream.getBytesWritten();
       if (contentLength != bodyBytes)
         Logger.log(Logger.WARNING, resources.getString("WinstoneResponse.ShortOutput",
           "[#contentLength]", contentLength + "", "[#bodyBytes]", bodyBytes + ""));
     }
+  }
+
+  public void writeHeaders(PrintStream writeTo) throws IOException
+  {
+    this.connector.writeHeaders(this.req, this, writeTo,
+                                this.headers, this.cookies);
   }
 
   // ServletResponse interface methods
@@ -124,11 +130,11 @@ public class WinstoneResponse implements HttpServletResponse
 
   public ServletOutputStream getOutputStream() throws IOException
   {
-    if (!this.outputStream.areHeadersWritten())
-    {
-      this.connector.writeHeaders(this.req, this, this.outputStream, this.headers, this.cookies);
-      this.outputStream.setHeadersWritten(true);
-    }
+    //if (!this.outputStream.areHeadersWritten())
+    //{
+    //  this.connector.writeHeaders(this.req, this, this.outputStream, this.headers, this.cookies);
+    //  this.outputStream.setHeadersWritten(true);
+    //}
     return this.outputStream;
   }
 
