@@ -61,7 +61,9 @@ Authors:
     </javac>
 
     <copy todir="${winstone.build}/classes">
-      <fileset dir="src" includes="**/*.dtd,**/*.properties,**/*.xsd"/>
+      <fileset dir="src" 
+      	       includes="**/*.dtd,**/*.properties,**/*.xsd"
+               excludes="winstone/testCase/**"/>
     </copy>   
   </target>
 
@@ -85,6 +87,11 @@ Authors:
         <fileset dir="lib" includes="**/*.jar,**/*.zip"/>
      </classpath>
     </javac>
+
+    <copy todir="${winstone.build}/test">
+      <fileset dir="src" 
+      	       includes="winstone/testCase/**/*.dtd,winstone/testCase/**/*.properties,winstone/testCase/**/*.xsd"/>
+    </copy>   
   </target>
 
   <target name="build-testApplication" depends="compile">
