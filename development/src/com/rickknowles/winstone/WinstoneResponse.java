@@ -56,7 +56,6 @@ public class WinstoneResponse implements HttpServletResponse
   public WinstoneResponse(WinstoneResourceBundle resources)
   {
     this.resources = resources;
-    this.protocolClass = protocolClass;
     this.headers = new ArrayList();
     this.cookies = new ArrayList();
     this.encoding = null; // default

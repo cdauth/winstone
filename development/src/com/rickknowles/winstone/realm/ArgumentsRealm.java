@@ -18,7 +18,6 @@
 package com.rickknowles.winstone.realm;
 
 import java.util.*;
-import java.security.Principal;
 import com.rickknowles.winstone.*;
 
 /**

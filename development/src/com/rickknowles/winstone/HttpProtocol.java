@@ -19,7 +19,6 @@
 package com.rickknowles.winstone;
 
 import java.io.*;
-import java.net.Socket;
 import java.util.*;
 import javax.servlet.http.Cookie;
 

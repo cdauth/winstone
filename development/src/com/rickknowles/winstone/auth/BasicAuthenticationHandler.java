@@ -48,7 +48,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler
   {
     // Return unauthorized, and set the realm name
     response.setHeader("WWW-Authenticate", "Basic Realm=\"" + this.realmName + "\"");
-    response.sendError(response.SC_UNAUTHORIZED,
+    response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
       this.resources.getString("BasicAuthenticationHandler.UnauthorizedMessage"));
   }
 
@@ -73,7 +73,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler
             decoded.substring(0, delimPos).trim(), decoded.substring(delimPos + 1).trim());
         if (principal != null)
         {
-          principal.setAuthType(request.BASIC_AUTH);
+          principal.setAuthType(HttpServletRequest.BASIC_AUTH);
           request.setRemoteUser(principal);
         }
       }

@@ -18,7 +18,6 @@
 package com.rickknowles.winstone;
 
 import java.lang.reflect.*;
-import java.security.Principal;
 import java.util.*;
 import org.w3c.dom.Node;
 import javax.servlet.http.HttpServletRequest;
@@ -177,7 +176,7 @@ public abstract class AuthenticationHandler
           String msg = this.resources.getString("AuthenticationHandler.ConstraintNeedsSSL",
             "[#name]", this.constraints[n].getName());
           Logger.log(Logger.DEBUG, msg);
-          response.sendError(response.SC_FORBIDDEN, msg);
+          response.sendError(HttpServletResponse.SC_FORBIDDEN, msg);
           return false;
         }
 

@@ -19,9 +19,7 @@ package com.rickknowles.winstone;
 
 import java.net.*;
 import java.io.*;
-import java.util.Map;
 import javax.servlet.ServletException;
-import javax.servlet.http.*;
 
 /**
  * The threads to which incoming requests get allocated.

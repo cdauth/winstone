@@ -115,19 +115,19 @@ public class StaticResourceServlet extends HttpServlet
 
     // Send a 404 if not found
     if (!res.exists())
-      response.sendError(response.SC_NOT_FOUND,
+      response.sendError(HttpServletResponse.SC_NOT_FOUND,
             this.resources.getString("StaticResourceServlet.PathNotFound",
               "[#path]", path));
 
     // Check we are below the webroot
     else if (!res.getCanonicalPath().startsWith(this.webRoot))
-      response.sendError(response.SC_FORBIDDEN,
+      response.sendError(HttpServletResponse.SC_FORBIDDEN,
             this.resources.getString("StaticResourceServlet.PathInvalid",
               "[#path]", path));
 
     // Check we are below the webroot
     else if (res.getCanonicalPath().startsWith(this.webRoot + "/WEB-INF"))
-      response.sendError(response.SC_FORBIDDEN,
+      response.sendError(HttpServletResponse.SC_FORBIDDEN,
             this.resources.getString("StaticResourceServlet.PathInvalid",
               "[#path]", path));
 
@@ -143,7 +143,7 @@ public class StaticResourceServlet extends HttpServlet
         else if (this.directoryList)
           generateDirectoryList(request, response, path);
         else
-          response.sendError(response.SC_FORBIDDEN,
+          response.sendError(HttpServletResponse.SC_FORBIDDEN,
               this.resources.getString("StaticResourceServlet.AccessDenied"));
       }
       else
@@ -158,7 +158,7 @@ public class StaticResourceServlet extends HttpServlet
       String mimeType = getServletContext().getMimeType(res.getName().toLowerCase());
       if (mimeType != null)
         response.setContentType(mimeType);
-      response.setStatus(response.SC_NOT_MODIFIED);
+      response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
       response.setContentLength(0);
       response.getOutputStream().close();
     }
@@ -170,7 +170,7 @@ public class StaticResourceServlet extends HttpServlet
       if (mimeType != null)
         response.setContentType(mimeType);
       InputStream resStream = new FileInputStream(res);
-      response.setStatus(response.SC_OK);
+      response.setStatus(HttpServletResponse.SC_OK);
       response.setContentLength((int)res.length());
       response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
       OutputStream out = response.getOutputStream();

@@ -158,7 +158,7 @@ public class InvokerServlet extends HttpServlet
       String errMsg = this.resources.getString("InvokerServlet.NoMatchingServletFound",
                                  "[#requestURI]", req.getRequestURI());
       Logger.log(Logger.WARNING, errMsg);
-      rsp.sendError(rsp.SC_NOT_FOUND, errMsg);
+      rsp.sendError(HttpServletResponse.SC_NOT_FOUND, errMsg);
     }
     else
       invokedServlet.getRequestDispatcher(localPath, null, null, null).forward(req, rsp);
@@ -172,7 +172,7 @@ public class InvokerServlet extends HttpServlet
     ServletConfiguration invokedServlet = getInvokableInstance(localPath);
 
     if (invokedServlet == null)
-      rsp.sendError(rsp.SC_NOT_FOUND,
+      rsp.sendError(HttpServletResponse.SC_NOT_FOUND,
         this.resources.getString("InvokerServlet.NoMatchingServletFound",
                                  "[#requestURI]", req.getRequestURI()));
     else

@@ -18,7 +18,6 @@
 package javax.servlet.http;
 
 import java.io.*;
-import java.util.Locale;
 import javax.servlet.*;
 
 /**
@@ -55,9 +54,9 @@ public abstract class HttpServlet extends javax.servlet.GenericServlet implement
     throws ServletException, IOException
   {
 	  if (request.getProtocol().endsWith("1.1"))
-	    response.sendError(response.SC_METHOD_NOT_ALLOWED, method + " not allowed");
+	    response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, method + " not allowed");
 	  else
-	    response.sendError(response.SC_BAD_REQUEST, method + " not allowed");
+	    response.sendError(HttpServletResponse.SC_BAD_REQUEST, method + " not allowed");
   }
 
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -106,7 +105,7 @@ public abstract class HttpServlet extends javax.servlet.GenericServlet implement
 	  	    doGet(request, response);
 		    }
         else
-  		    response.setStatus(response.SC_NOT_MODIFIED);
+  		    response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
   		}
     }
   	else if (method.equals(METHOD_HEAD))

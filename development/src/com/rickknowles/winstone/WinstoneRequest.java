@@ -20,12 +20,10 @@ package com.rickknowles.winstone;
 import java.io.*;
 import java.text.*;
 import java.util.*;
-import java.net.*;
 import javax.servlet.http.Cookie;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpUtils;
 import java.security.Principal;
 
 /**
@@ -166,7 +164,7 @@ public class WinstoneRequest implements HttpServletRequest
   public void setCookies(Cookie cookies[])  {this.cookies = cookies;}
   public void setContentLength(int len)     {this.contentLength = len;}
   public void setContentType(String type)   {this.contentType = type;}
-  public void setAuthorization(String auth) {this.authorization = authorization;}
+  public void setAuthorization(String auth) {this.authorization = auth;}
   public void setLocales(List locales)      {this.locales = locales;}
   public void setSessionCookie(String sc)   {this.sessionCookie = sc;}
   public void setRemoteUser(AuthenticationPrincipal user) {this.authenticatedUser = user;}

@@ -23,9 +23,7 @@ import junit.framework.TestSuite;
 
 import com.meterware.httpunit.*;
 
-import java.net.*;
 import java.io.*;
-import java.util.*;
 import org.xml.sax.SAXException;
 
 import com.rickknowles.winstone.*;
@@ -94,7 +92,7 @@ public class HttpConnectorTest extends TestCase
     //WebResponse wresp2 = wc.getResponse(wreq);
     //Thread.sleep(2000);
     //WebResponse wresp3 = wc.getResponse(wreq);
-    this.assertTrue("Loading login page", wresp1.getContentLength() > 0);
+    assertTrue("Loading login page", wresp1.getContentLength() > 0);
   }
 }
 

@@ -19,10 +19,6 @@ package com.rickknowles.winstone;
 
 import org.w3c.dom.Node;
 import java.util.*;
-import java.io.IOException;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * Models a restriction on a particular set of resources in the webapp.

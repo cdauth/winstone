@@ -18,7 +18,6 @@
 package com.rickknowles.winstone;
 
 import java.lang.reflect.*;
-import java.security.Principal;
 import java.util.*;
 
 /**

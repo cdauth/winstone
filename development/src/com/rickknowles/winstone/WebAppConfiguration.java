@@ -30,7 +30,6 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSessionActivationListener;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionListener;
-import javax.servlet.Servlet;
 import java.io.IOException;
 
 /**

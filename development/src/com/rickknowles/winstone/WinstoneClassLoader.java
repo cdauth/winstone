@@ -141,7 +141,7 @@ public class WinstoneClassLoader extends URLClassLoader implements Runnable
     {
       try
       {
-        Thread.currentThread().sleep(RELOAD_SEARCH_SLEEP);
+        Thread.sleep(RELOAD_SEARCH_SLEEP);
         Set loadedClassesCopy = new HashSet(this.loadedClasses);
 
         for (Iterator i = loadedClassesCopy.iterator(); i.hasNext() && !interrupted; )
@@ -195,7 +195,7 @@ public class WinstoneClassLoader extends URLClassLoader implements Runnable
               "[#oldDate]",  "" + new Date(oldClassDate.longValue())));
             this.webAppConfig.resetClassLoader();
           }
-          Thread.currentThread().sleep(RELOAD_SEARCH_SLEEP);
+          Thread.sleep(RELOAD_SEARCH_SLEEP);
         }
       }
       catch (Throwable err)
