@@ -40,10 +40,12 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher
   private ClassLoader loader;
   private Object semaphore;
   private String requestedPath;
+  private WinstoneResourceBundle resources;
 
   public RequestDispatcher(Servlet instance, String name, ClassLoader loader,
-    Object semaphore, String requestedPath)
+    Object semaphore, String requestedPath, WinstoneResourceBundle resources)
   {
+    this.resources = resources;
     this.instance = instance;
     this.name = name;
     this.loader = loader;
@@ -82,7 +84,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher
   {
     Logger.log(Logger.FULL_DEBUG, "FORWARD: " + this.name);
     if (response.isCommitted())
-      throw new IllegalStateException("Called RequestDispatcher.forward() on committed response");
+      throw new IllegalStateException(resources.getString("RequestDispatcher.ForwardCommitted"));
 
     response.resetBuffer();
 

@@ -44,6 +44,8 @@ public class Listener implements Runnable, EntityResolver
   final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
   final String DTD_2_3_URL    = "javax/servlet/resources/web-app_2_3.dtd";
 
+  static final String RESOURCE_FILE    = "com.rickknowles.winstone.LocalStrings";
+
   private int LISTENER_TIMEOUT = 500; // every 500ms reset the listener socket
   private int CONTROL_TIMEOUT = 1; // wait 10ms for control connection
   private int DEFAULT_PORT = 8080;
@@ -54,10 +56,11 @@ public class Listener implements Runnable, EntityResolver
   private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 10;
   private int MAX_REQUEST_HANDLERS_IN_POOL = 100;
 
-  private String WEB_ROOT = "webapp";
+  private String WEB_ROOT = "webroot";
   private String WEB_INF  = "WEB-INF";
   private String WEB_XML  = "web.xml";
 
+  private WinstoneResourceBundle resources;
   private Map arguments;
   private int listenPort;
   private int controlPort;
@@ -72,8 +75,11 @@ public class Listener implements Runnable, EntityResolver
   /**
    * Constructor
    */
-  public Listener(Map args) throws IOException
+  public Listener(Map args, WinstoneResourceBundle resources) throws IOException
   {
+    // Load resources
+    this.resources = resources;
+
     this.arguments = args;
     this.listenPort = (args.get("port") == null ?
                        DEFAULT_PORT :
@@ -82,9 +88,10 @@ public class Listener implements Runnable, EntityResolver
                        DEFAULT_CONTROL_PORT :
                        Integer.parseInt((String) args.get("controlPort")));
 
-    File webRoot = new File(args.get("webroot") == null ? WEB_ROOT : (String) args.get("webroot"));
+    File webRoot = new File(args.get("webroot") == null ? WEB_ROOT
+                                                        : (String) args.get("webroot"));
     if (!webRoot.exists())
-      throw new WinstoneException("Web root not found - " + webRoot.getCanonicalPath());
+      throw new WinstoneException(resources.getString("Listener.NoWebRoot") + webRoot);
 
     Node webXMLParentNode = null;
     File webInfFolder = new File(webRoot, WEB_INF);
@@ -105,13 +112,19 @@ public class Listener implements Runnable, EntityResolver
     String useJasper = (String) args.get("jasper");
     String hnl = (String) args.get("doHostnameLookups");
 
-    this.connector = new HttpConnector(hnl == null ? DEFAULT_HNL :
-                                       (hnl.equalsIgnoreCase("yes") || hnl.equalsIgnoreCase("true")));
+    this.connector = new HttpConnector(this.resources, hnl == null ? DEFAULT_HNL :
+                                       (hnl.equalsIgnoreCase("yes")
+                                          || hnl.equalsIgnoreCase("true")));
     this.webAppConfig = new WebAppConfiguration(webRoot.getCanonicalPath(),
                                                 (String) args.get("prefix"),
-                                                (dirLists == null) || dirLists.equalsIgnoreCase("true") || dirLists.equalsIgnoreCase("yes"),
-                                                (useJasper != null) && (useJasper.equalsIgnoreCase("true") || useJasper.equalsIgnoreCase("yes")),
-                                                webXMLParentNode);
+                                                (dirLists == null)
+                                                   || dirLists.equalsIgnoreCase("true")
+                                                   || dirLists.equalsIgnoreCase("yes"),
+                                                (useJasper != null)
+                                                   && (useJasper.equalsIgnoreCase("true")
+                                                       || useJasper.equalsIgnoreCase("yes")),
+                                                webXMLParentNode,
+                                                this.resources);
 
     this.unusedRequestHandlerThreads = new Vector();
     this.usedRequestHandlerThreads = new Vector();
@@ -134,10 +147,12 @@ public class Listener implements Runnable, EntityResolver
         controlSocket.setSoTimeout(CONTROL_TIMEOUT);
       }
 
-      Logger.log(Logger.INFO, "Winstone running: port=" + this.listenPort +
-                              " controlPort=" + (this.controlPort > 0 ? "" + this.controlPort : "disabled")+
-                              " prefix=" + this.webAppConfig.getPrefix() +
-                              " webroot=" + this.webAppConfig.getWebroot());
+      Map params = new HashMap();
+      params.put("[#port]", this.listenPort + "");
+      params.put("[#controlPort]", (this.controlPort > 0 ? "" + this.controlPort : resources.getString("Listener.ControlDisabled")));
+      params.put("[#prefix]", this.webAppConfig.getPrefix());
+      params.put("[#webroot]", this.webAppConfig.getWebroot());
+      Logger.log(Logger.INFO, resources.getString("Listener.StartupOK", params));
 
       // Enter the main loop
       while (!interrupted)
@@ -156,7 +171,7 @@ public class Listener implements Runnable, EntityResolver
           // If we're short an idle request handler
           while ((this.unusedRequestHandlerThreads.size() < MIN_IDLE_REQUEST_HANDLERS_IN_POOL) &&
                  (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL - MIN_IDLE_REQUEST_HANDLERS_IN_POOL))
-            this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.connector));
+            this.unusedRequestHandlerThreads.add(new RequestHandlerThread(this.webAppConfig, this, this.connector, this.resources));
         }
 
         // Get the listener
@@ -195,10 +210,9 @@ public class Listener implements Runnable, EntityResolver
         ((RequestHandlerThread) i.next()).destroy();
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, "Error during listener init or shutdown", err);}
+      {Logger.log(Logger.ERROR, resources.getString("Listener.ShutdownError"), err);}
 
-    Logger.log(Logger.INFO, "Winstone shutdown successfully - " + Thread.activeCount() +
-          " active threads remaining");
+    Logger.log(Logger.INFO, resources.getString("Listener.ShutdownOK"));
     System.exit(0);
   }
 
@@ -218,9 +232,9 @@ public class Listener implements Runnable, EntityResolver
         rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, "RHPool: Using pooled handler thread - used: " +
-            this.usedRequestHandlerThreads.size() + " unused: " +
-            this.unusedRequestHandlerThreads.size());
+        Logger.log(Logger.FULL_DEBUG, resources.getString("Listener.UsingRHPoolThread",
+            "[#used]", "" + this.usedRequestHandlerThreads.size(),
+            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
       }
       rh.commenceRequestHandling(s);
     }
@@ -231,12 +245,12 @@ public class Listener implements Runnable, EntityResolver
       RequestHandlerThread rh = null;
       synchronized (this.requestHandlerSemaphore)
       {
-        rh = new RequestHandlerThread(this.webAppConfig, this, this.connector);
+        rh = new RequestHandlerThread(this.webAppConfig, this, this.connector, this.resources);
         this.unusedRequestHandlerThreads.remove(rh);
         this.usedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, "RHPool: Using new handler thread - used: " +
-            this.usedRequestHandlerThreads.size() + " unused: " +
-            this.unusedRequestHandlerThreads.size());
+        Logger.log(Logger.FULL_DEBUG, resources.getString("Listener.NewRHPoolThread",
+            "[#used]", "" + this.usedRequestHandlerThreads.size(),
+            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
       }
       rh.commenceRequestHandling(s);
     }
@@ -245,8 +259,7 @@ public class Listener implements Runnable, EntityResolver
     else
     {
       s.close();
-      Logger.log(Logger.ERROR, "ERROR: Request ignored because there were no " +
-          "more request handlers available in the pool");
+      Logger.log(Logger.ERROR, resources.getString("Listener.NoRHPoolThreads"));
     }
   }
 
@@ -261,12 +274,12 @@ public class Listener implements Runnable, EntityResolver
       {
         this.usedRequestHandlerThreads.remove(rh);
         this.unusedRequestHandlerThreads.add(rh);
-        Logger.log(Logger.FULL_DEBUG, "RHPool: Releasing request handler - used: " +
-          this.usedRequestHandlerThreads.size() + " unused: " +
-          this.unusedRequestHandlerThreads.size());
+        Logger.log(Logger.FULL_DEBUG, resources.getString("Listener.ReleasingRHPoolThread",
+            "[#used]", "" + this.usedRequestHandlerThreads.size(),
+            "[#unused]", "" + this.unusedRequestHandlerThreads.size()));
       }
       else
-        Logger.log(Logger.WARNING, "RHPool: Releasing unknown handler. Ignoring");
+        Logger.log(Logger.WARNING, resources.getString("Listener.UnknownRHPoolThread"));
     }
   }
 
@@ -287,11 +300,11 @@ public class Listener implements Runnable, EntityResolver
       return builder.parse(in);
     }
     catch (ParserConfigurationException errParser)
-      {throw new WinstoneException("Error parsing XML files", errParser);}
+      {throw new WinstoneException(resources.getString("Listener.WebXMLParseError"), errParser);}
     catch (SAXException errSax)
-      {throw new WinstoneException("Error parsing XML files", errSax);}
+      {throw new WinstoneException(resources.getString("Listener.WebXMLParseError"), errSax);}
     catch (IOException errIO)
-      {throw new WinstoneException("Error parsing XML files", errIO);}
+      {throw new WinstoneException(resources.getString("Listener.WebXMLParseError"), errIO);}
   }
 
   public InputSource resolveEntity(String publicName, String url)
@@ -319,41 +332,55 @@ public class Listener implements Runnable, EntityResolver
     for (int n = 0; n < argv.length;  n++)
     {
       String option = argv[n];
-      if (option.startsWith("-"))
-        args.put(option.substring(1), argv[n+1]);
+      if (option.equals("-help") || option.equals("-usage"))
+        args.put(option.substring(1), "true");
+      else if (option.startsWith("-"))
+        args.put(option.substring(1), (n + 1 >= argv.length ? "" : argv[n+1]));
     }
 
-    if (args.containsKey("usage"))
-      printUsage();
+    WinstoneResourceBundle resources = new WinstoneResourceBundle(RESOURCE_FILE);
+    if (!args.containsKey("webroot"))
+      printUsage(resources);
+    else
+    {
+      if (args.containsKey("usage") || args.containsKey("help"))
+        printUsage(resources);
 
-    Logger.setCurrentDebugLevel(args.get("debug") == null ?
-                                Logger.DEBUG :
-                                Integer.parseInt((String) args.get("debug")));
-    Listener listener = new Listener(args);
-    Thread th = new Thread(listener);
-    th.start();
+      Logger.setCurrentDebugLevel(args.get("debug") == null ?
+                                  Logger.DEBUG :
+                                  Integer.parseInt((String) args.get("debug")));
+      try
+      {
+        Listener listener = new Listener(args, resources);
+        Thread th = new Thread(listener);
+        th.start();
+      }
+      catch (WinstoneException err) {System.err.println(err.getMessage());}
+    }
   }
 
-  private static void printUsage()
+  private static void printUsage(WinstoneResourceBundle resources)
   {
     PrintWriter pw = new PrintWriter(System.out, true);
-    pw.println("Winstone Server v0.1, (c) 2003 Rick Knowles");
+    pw.println(resources.getString("Listener.UsageInstructions", "[#version]", resources.getString("ServerVersion")));
+/*
+    pw.println(resources.getString("ServerVersion") + ", (c) 2003 Rick Knowles");
     pw.println("Usage: java com.rickknowles.winstone.Listener [-option value] [-option value] [etc]");
     pw.println("");
     pw.println("Options:");
+    pw.println("   -webroot           = set document root folder. ** REQUIRED OPTION **");
     pw.println("   -prefix            = add this prefix to all URLs (eg http://localhost:8080/prefix/resource).");
     pw.println("                        Default is none");
-    pw.println("   -webroot           = set document root folder. Default <currentdir>/webroot");
-    pw.println("   -debug             = set the level of debug msgs (1-9). Default is 5 (INFO only)");
+    pw.println("   -debug             = set the level of debug msgs (1-9). Default is 5 (INFO level)");
     pw.println("");
     pw.println("   -port              = set the listening port. Default is 8080");
-    pw.println("   -controlPort       = set the listening port. Default is 8081, -1 to disable");
+    pw.println("   -controlPort       = set the listening port. -1 to disable, Default disabled");
     pw.println("");
     pw.println("   -directoryListings = enable directory lists (true/false). Default is true");
     pw.println("   -jasper            = enable jasper JSP handling (true/false). Default is false");
     pw.println("   -doHostnameLookups = enable host name lookups on incoming connections (true/false).");
     pw.println("                        Default is true");
-    pw.println("   -usage             = show this message");
+    pw.println("   -usage / -help     = show this message");
     pw.println("");
     pw.println("This program is free software; you can redistribute it and/or");
     pw.println("modify it under the terms of the GNU General Public License");
@@ -369,6 +396,7 @@ public class Listener implements Runnable, EntityResolver
     pw.println("Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.");
     pw.println("");
     pw.println("");
+*/
   }
 }
 

@@ -63,14 +63,18 @@ public class WinstoneRequest implements HttpServletRequest
   private List locales;
   private String authorization;
 
+  private WinstoneResourceBundle resources;
+
   /**
    * InputStream factory method.
    */
   public WinstoneRequest(WinstoneInputStream inData,
                          HttpConnector connector,
-                         WebAppConfiguration webappConfig)
+                         WebAppConfiguration webappConfig,
+                         WinstoneResourceBundle resources)
     throws IOException
   {
+    this.resources = resources;
     this.webappConfig = webappConfig;
     this.inputData = inData;
     this.connector = connector;
@@ -157,7 +161,7 @@ public class WinstoneRequest implements HttpServletRequest
   public ServletInputStream getInputStream() throws IOException
   {
     if ((this.parsedParameters != null) && this.parsedParameters.booleanValue())
-      Logger.log(Logger.ERROR, "Called getInputStream after getParameter ... error");
+      Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.BothMethods"));
     else
       this.parsedParameters = new Boolean(false);
     return this.inputData;
@@ -216,7 +220,8 @@ public class WinstoneRequest implements HttpServletRequest
     else if (param instanceof String[])
       return (String []) param;
     else
-      throw new WinstoneException("Unknown parameter type: " + name);
+      throw new WinstoneException(resources.getString("WinstoneRequest.UnknownParamType")
+                                  + name + " - " + param.getClass());
   }
 
   public Map getParameterMap()
@@ -253,7 +258,7 @@ public class WinstoneRequest implements HttpServletRequest
     else try
       {return headerDF.parse(dateHeader).getTime();}
     catch (java.text.ParseException err)
-      {throw new IllegalArgumentException("Can't convert to date - " + dateHeader);}
+      {throw new IllegalArgumentException(resources.getString("WinstoneRequest.BadDate") + dateHeader);}
   }
   public String getHeader(String name)          {return extractFirstHeader(name);}
   public Enumeration getHeaderNames()           {return Collections.enumeration(extractHeaderNameList());}
@@ -314,7 +319,7 @@ public class WinstoneRequest implements HttpServletRequest
           (session.getMaxInactiveInterval() + (session.getLastAccessedTime() * 1000) > nowDate))
       {
         session.invalidate();
-        Logger.log(Logger.DEBUG, "Invalidating session: " + session.getId());
+        Logger.log(Logger.DEBUG, resources.getString("WinstoneRequest.InvalidateSession") + session.getId());
         if (create)
           session = (WinstoneSession) this.webappConfig.getSessions().get(makeNewSession());
         else

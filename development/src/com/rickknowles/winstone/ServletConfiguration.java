@@ -46,25 +46,29 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   private ClassLoader loader;
   private int loadOnStartup;
 
+  private WinstoneResourceBundle resources;
   private Object servletSemaphore = new Boolean(true);
 
   protected ServletConfiguration(WebAppConfiguration webAppConfig,
-                                 ClassLoader loader)
+                                 ClassLoader loader,
+                                 WinstoneResourceBundle resources)
   {
     this.webAppConfig = webAppConfig;
     this.loader = loader;
     this.initParameters = new Hashtable();
     this.loadOnStartup = -1;
+    this.resources = resources;
   }
 
   public ServletConfiguration(WebAppConfiguration webAppConfig,
                               ClassLoader loader,
+                              WinstoneResourceBundle resources,
                               String name,
                               String className,
                               Map initParams,
                               int loadOnStartup)
   {
-    this(webAppConfig, loader);
+    this(webAppConfig, loader, resources);
     if (initParams != null)
       this.initParameters.putAll(initParams);
     this.name = name;
@@ -74,9 +78,10 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
 
   public ServletConfiguration(WebAppConfiguration webAppConfig,
                               ClassLoader loader,
+                              WinstoneResourceBundle resources,
                               Node elm)
   {
-    this(webAppConfig, loader);
+    this(webAppConfig, loader, resources);
 
     // Parse the web.xml file entry
     for (int n = 0; n < elm.getChildNodes().getLength(); n++)
@@ -111,7 +116,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
           this.initParameters.put(paramName, paramValue);
       }
     }
-    Logger.log(Logger.FULL_DEBUG, "Loaded instance " + this.name + " class: " + this.classFile);
+    Logger.log(Logger.FULL_DEBUG, resources.getString("ServletConfiguration.DeployedInstance",
+        "[#name]", this.name, "[#class]", this.classFile));
   }
 
   /**
@@ -126,7 +132,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       {
         Class servletClass = Class.forName(classFile, true, this.loader);
         this.instance = (javax.servlet.Servlet) servletClass.newInstance();
-        Logger.log(Logger.DEBUG, this.name + ": init");
+        Logger.log(Logger.DEBUG, this.name + ": " + resources.getString("ServletConfiguration.init"));
 
         // Initialise with the correct classloader
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -135,16 +141,16 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
         Thread.currentThread().setContextClassLoader(cl);
       }
       catch (ClassNotFoundException err)
-        {Logger.log(Logger.ERROR, "Failed to load class " + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
       catch (IllegalAccessException err)
-        {Logger.log(Logger.ERROR, "Failed to load class " + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
       catch (InstantiationException err)
-        {Logger.log(Logger.ERROR, "Failed to load class " + this.classFile, err);}
+        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
       catch (javax.servlet.ServletException err)
-        {Logger.log(Logger.ERROR, "Failed to initialise servlet " + this.name +
+        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.InitError") + this.name +
                                           " - " + this.classFile, err);}
     }
-    return new RequestDispatcher(this.instance, this.name, this.loader, this.servletSemaphore, requestedPath);
+    return new RequestDispatcher(this.instance, this.name, this.loader, this.servletSemaphore, requestedPath, this.resources);
   }
 
   public int getLoadOnStartup()               {return this.loadOnStartup;}
@@ -173,7 +179,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     {
       if (this.instance != null)
       {
-        Logger.log(Logger.DEBUG, this.name + ": destroy");
+        Logger.log(Logger.DEBUG, this.name + ": " + resources.getString("ServletConfiguration.destroy"));
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
         this.instance.destroy();

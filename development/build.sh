@@ -20,7 +20,7 @@ fi
 
 JAVACMD=$JAVA_HOME/bin/java
 
-cp=$ANT_HOME/lib/ant.jar:$ANT_HOME/lib/jaxp.jar:$ANT_HOME/lib/crimson.jar
-cp=$cp:$JAVA_HOME/lib/tools.jar:$CLASSPATH
+cp=$ANT_HOME%/lib/ant.jar:./lib/crimson.jar:$ANT_HOME/lib/commons-net.jar:$ANT_HOME/lib/ant-launcher.jar
+cp=$CLASSPATH:$ANT_HOME/lib/ant-commons-net.jar:$JAVA_HOME/lib/tools.jar
 
 $JAVACMD -classpath $cp:$CLASSPATH $ANT_OPTS org.apache.tools.ant.Main "$@"

@@ -61,10 +61,12 @@ public class HttpConnector
   final String LOCATION_HEADER        = "Location";
 
   private boolean doHostNameLookups;
+  private WinstoneResourceBundle resources;
 
-  public HttpConnector(boolean doHostNameLookups)
+  public HttpConnector(WinstoneResourceBundle resources, boolean doHostNameLookups)
   {
     this.doHostNameLookups = doHostNameLookups;
+    this.resources = resources;
   }
 
   public String getScheme() {return "http";}
@@ -84,7 +86,7 @@ public class HttpConnector
     // Method
     int spacePos = uriLine.indexOf(' ');
     if (spacePos == -1)
-      throw new WinstoneException("Error uriLine: " + uriLine);
+      throw new WinstoneException(resources.getString("HttpConnector.ErrorUriLine") + uriLine);
     String method = uriLine.substring(0, spacePos).toUpperCase();
     String servletURI = null;
     String fullURI = null;
@@ -179,12 +181,12 @@ public class HttpConnector
             Cookie thisCookie = new Cookie(cookieLine.substring(0, equalPos),
                                            cookieLine.substring(equalPos + 1));
             cookieList.add(thisCookie);
-            Logger.log(Logger.FULL_DEBUG, "Cookie name: " + thisCookie.getName() +
-                        " value: " + thisCookie.getValue());
+            Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.CookieFound",
+                  "[#cookieName]", thisCookie.getName(), "[#cookieValue]", thisCookie.getValue()));
             if (thisCookie.getName().equals(SESSION_COOKIE_NAME))
             {
               req.setSessionCookie(thisCookie.getValue());
-              Logger.log(Logger.FULL_DEBUG, "Found session cookie: " + req.getSessionCookie());
+              Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.SessionCookieFound", "[#cookieValue]", thisCookie.getValue()));
             }
           }
         }
@@ -306,16 +308,15 @@ public class HttpConnector
    */
   private Map extractParameters(String urlEncodedParams)
   {
-    Logger.log(Logger.FULL_DEBUG, "Parsing parameters: " + urlEncodedParams);
+    Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.ParsingParameters") + urlEncodedParams);
     Map params = new Hashtable();
     StringTokenizer st = new StringTokenizer(urlEncodedParams, "&", false);
     while (st.hasMoreTokens())
     {
       String token = st.nextToken();
-      Logger.log(Logger.FULL_DEBUG, "URL Encoded parameter " + token);
       int equalPos = token.indexOf('=');
       if (equalPos == -1)
-        Logger.log(Logger.WARNING, "Ignoring bad parameter: " + token);
+        Logger.log(Logger.WARNING, resources.getString("HttpConnector.IgnoringBadParameter") + token);
       else try
       {
         String decodedName = decodeURLToken(token.substring(0, equalPos));
@@ -339,10 +340,11 @@ public class HttpConnector
           params.put(decodedName, oneMore);
         }
         else
-          Logger.log(Logger.WARNING, "Unknown param type: " + decodedName + " = " + decodedValue.getClass());
+          Logger.log(Logger.WARNING, resources.getString("HttpConnector.UnknownParameterType",
+              "[#name]", decodedName + " = " + decodedValue.getClass()));
       }
       catch (Exception err)
-        {Logger.log(Logger.ERROR, "Error parsing requestParams", err);}
+        {Logger.log(Logger.ERROR, resources.getString("HttpConnector.ErrorParameters"), err);}
     }
     return params;
   }
@@ -383,13 +385,13 @@ public class HttpConnector
   {
     if ((parsedParameters != null) && !parsedParameters.booleanValue())
     {
-      Logger.log(Logger.WARNING, "WARNING: Called getParameter() after getInputStream()");
+      Logger.log(Logger.WARNING, resources.getString("HttpConnector.BothMethodsCalled"));
       return new Boolean(true);
     }
     else if (parsedParameters == null)
     try
     {
-      Logger.log(Logger.FULL_DEBUG, "Parsing request body for post parameters");
+      Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.ParsingBodyParameters"));
       if (method.equals(METHOD_POST) &&
           (contentType != null) && contentType.equals(POST_PARAMETERS))
       {
@@ -397,18 +399,18 @@ public class HttpConnector
         byte paramBuffer[] = new byte[contentLength];
         int readCount = inData.read(paramBuffer);
         if (readCount != contentLength)
-          Logger.log(Logger.WARNING, "Content-length said " + contentLength +
-                                        ", actual length was " + readCount);
+          Logger.log(Logger.WARNING, resources.getString("HttpConnector.IncorrectContentLength",
+            "[#contentLength]", contentLength + "", "[#readCount]", readCount + ""));
         String paramLine = new String(paramBuffer);
         Map postParams = extractParameters(paramLine.trim());
-        Logger.log(Logger.FULL_DEBUG, "Param line: " + postParams);
+        Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.ParamLine") + postParams);
         params.putAll(postParams);
       }
       return new Boolean(true);
     }
     catch (Throwable err)
     {
-      Logger.log(Logger.ERROR, "Error parsing body of the request", err);
+      Logger.log(Logger.ERROR, resources.getString("HttpConnector.ErrorBodyParameters"), err);
       return null;
     }
     else
@@ -466,7 +468,7 @@ public class HttpConnector
         rsp.addCookie(cookie);
       }
     }
-    
+
     StringBuffer out = new StringBuffer();
     out.append(req.getProtocol()).append(" ").append(rsp.getStatus()).append(CR_LF);
 
@@ -479,7 +481,7 @@ public class HttpConnector
         writeCookie((Cookie) i.next(), out);
     }
     out.append(CR_LF);
-    Logger.log(Logger.FULL_DEBUG, "Out headers: " + out.toString());
+    Logger.log(Logger.FULL_DEBUG, resources.getString("HttpConnector.OutHeaders") + out.toString());
     outputStream.print(out.toString());
   }
 

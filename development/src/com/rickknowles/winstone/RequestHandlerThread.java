@@ -46,12 +46,16 @@ public class RequestHandlerThread implements Runnable
   private String prefix;
   private HttpConnector connector;
 
+  private WinstoneResourceBundle resources;
+
   /**
    * Constructor - this is called by the handler pool, and just sets up
    * for when a real request comes along.
    */
-  public RequestHandlerThread(WebAppConfiguration webAppConfig, Listener listener, HttpConnector connector)
+  public RequestHandlerThread(WebAppConfiguration webAppConfig, Listener listener,
+    HttpConnector connector, WinstoneResourceBundle resources)
   {
+    this.resources = resources;
     this.webAppConfig = webAppConfig;
     this.prefix = webAppConfig.getPrefix();
     this.listener = listener;
@@ -69,7 +73,7 @@ public class RequestHandlerThread implements Runnable
   {
     try
     {
-      Logger.log(Logger.FULL_DEBUG, "New socket opened - remotePort " + this.socket.getPort());
+      Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.OpenedPort") + this.socket.getPort());
 
       // Set the stream time out, so that if
       this.socket.setSoTimeout(CONNECTION_TIMEOUT);
@@ -82,15 +86,16 @@ public class RequestHandlerThread implements Runnable
         try
         {
           long requestId = System.currentTimeMillis();
-          Logger.log(Logger.FULL_DEBUG, "Starting request id: " + requestId);
+          Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.StartRequest") + requestId);
 
           // Actually process the request
-          WinstoneInputStream inData = new WinstoneInputStream(in);
+          WinstoneInputStream inData = new WinstoneInputStream(in, this.resources);
           byte uriBuffer[] = inData.readLine();
           String uriLine = new String(uriBuffer);
           WinstoneRequest req = new WinstoneRequest(inData,
                                                   this.connector,
-                                                  this.webAppConfig);
+                                                  this.webAppConfig,
+                                                  this.resources);
           this.connector.parseSocketInfo(this.socket, req);
           String servletURI = this.connector.parseURILine(uriLine, req);
           this.connector.parseHeaders(req, inData);
@@ -108,9 +113,11 @@ public class RequestHandlerThread implements Runnable
             path = servletURI.substring(this.prefix.length());
           else
           {
-            Logger.log(Logger.WARNING, "Request URL " + servletURI + " not in prefix " + this.prefix);
-            WinstoneResponse rsp = new WinstoneResponse(req, out, this.connector);
-            rsp.sendError(WinstoneResponse.SC_NOT_FOUND, "Request URL " + servletURI + " not found.<br><br>");
+            Logger.log(Logger.WARNING, resources.getString("RequestHandlerThread.NotInPrefix",
+              "[#url]", servletURI, "[#prefix]", this.prefix));
+            WinstoneResponse rsp = new WinstoneResponse(req, out, this.connector, resources);
+            rsp.sendError(WinstoneResponse.SC_NOT_FOUND,
+                          resources.getString("RequestHandlerThread.NotInPrefixPage", "[#url]", servletURI));
             rsp.flushBuffer();
             rsp.verifyContentLength();
             continueFlag = false;
@@ -118,10 +125,10 @@ public class RequestHandlerThread implements Runnable
           }
 
           // Handle with the dispatcher we found
-          WinstoneResponse rsp = new WinstoneResponse(req, out, this.connector);
+          WinstoneResponse rsp = new WinstoneResponse(req, out, this.connector, resources);
           processRequest(req, rsp, path);
 
-          Logger.log(Logger.FULL_DEBUG, "Finishing request id: " + requestId);
+          Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.StartRequest") + requestId);
           continueFlag = !connector.closeAfterRequest(req, rsp);
 
           // Try keep alive if allowed
@@ -132,10 +139,10 @@ public class RequestHandlerThread implements Runnable
             int sleepPeriod = KEEP_ALIVE_SLEEP;
             while ((in.available() == 0) && (System.currentTimeMillis() < lastRequestDate + KEEP_ALIVE_TIMEOUT))
             {
-              Logger.log(Logger.FULL_DEBUG, "Sleep time: (port " +
-                          this.socket.getPort() + ") - " + (lastRequestDate +
-                          KEEP_ALIVE_TIMEOUT - System.currentTimeMillis()) +
-                          "ms - sleep=" + sleepPeriod + "ms");
+              //Logger.log(Logger.FULL_DEBUG, "Sleep time: (port " +
+              //            this.socket.getPort() + ") - " + (lastRequestDate +
+              //            KEEP_ALIVE_TIMEOUT - System.currentTimeMillis()) +
+              //            "ms - sleep=" + sleepPeriod + "ms");
               Thread.currentThread().sleep(sleepPeriod);
               sleepPeriod = Math.min(sleepPeriod * 2, KEEP_ALIVE_SLEEP_MAX);
             }
@@ -146,7 +153,7 @@ public class RequestHandlerThread implements Runnable
         catch (InterruptedIOException errIO)
         {
           continueFlag = false;
-          Logger.log(Logger.FULL_DEBUG, "Socket read timed out - exiting request handler thread");
+          Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.SocketTimeout"));
         }
         catch (SocketException errIO) {continueFlag = false;}
       }
@@ -157,9 +164,9 @@ public class RequestHandlerThread implements Runnable
     catch (Throwable err)
     {
       try {this.socket.close();} catch (IOException errIO) {}
-      Logger.log(Logger.ERROR, "Error within request handler thread", err);
+      Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.RequestError"), err);
     }
-    Logger.log(Logger.FULL_DEBUG, "Closed socket - remotePort " + this.socket.getPort());
+    Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.ClosedPort") + this.socket.getPort());
     this.socket = null;
 
     // Before finishing, allocate another thread to run on this object
@@ -176,25 +183,21 @@ public class RequestHandlerThread implements Runnable
       javax.servlet.RequestDispatcher rd = this.webAppConfig.getRequestDispatcher(path);
       if (rd != null)
       {
-        Logger.log(Logger.FULL_DEBUG, "Processing with RD: " + ((RequestDispatcher) rd).getName());
+        Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.HandlingRD") + ((RequestDispatcher) rd).getName());
         rd.forward(new HttpServletRequestWrapper(req), new HttpServletResponseWrapper(rsp));
       }
       else
-        Logger.log(Logger.ERROR, "ERROR: Null request handler");
+        Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.NullRD"));
     }
     catch (Throwable err)
     {
-      Logger.log(Logger.INFO, "Untrapped Error in Servlet", err);
+      Logger.log(Logger.WARNING, resources.getString("RequestHandlerThread.UntrappedError"), err);
 
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw, true);
-      pw.print("<h3>Untrapped error in servlet</h3><br>");
-      pw.print("<pre>");
       err.printStackTrace(pw);
-      pw.print("</pre>");
-
       rsp.resetBuffer();
-      rsp.sendError(rsp.SC_INTERNAL_SERVER_ERROR, sw.toString());
+      rsp.sendError(rsp.SC_INTERNAL_SERVER_ERROR, resources.getString("RequestHandlerThread.ServletExceptionPage", "[#stackTrace]", sw.toString()));
     }
     rsp.flushBuffer();
     rsp.verifyContentLength();

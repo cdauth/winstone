@@ -35,10 +35,12 @@ public class WinstoneClassLoader extends URLClassLoader
   final static String LIB = "lib";
 
   private List classPaths;
+  private WinstoneResourceBundle resources;
 
-  public WinstoneClassLoader(String webRoot, ClassLoader cl)
+  public WinstoneClassLoader(String webRoot, ClassLoader cl, WinstoneResourceBundle resources)
   {
     super(new URL[0], cl);
+    this.resources = resources;
     this.classPaths = new ArrayList();
     try
     {
@@ -51,10 +53,10 @@ public class WinstoneClassLoader extends URLClassLoader
       {
         addURL(new URL("file", null, classesFolder.getCanonicalPath() + "/"));
         classPaths.add(classesFolder.getCanonicalPath());
-        Logger.log(Logger.DEBUG, "Adding webapp classes folder to classpath");
+        Logger.log(Logger.DEBUG, resources.getString("WinstoneClassLoader.WebAppClasses"));
       }
       else
-        Logger.log(Logger.WARNING, "No classes folder found - " + classesFolder.toString());
+        Logger.log(Logger.WARNING, resources.getString("WinstoneClassLoader.NoWebAppClasses") + " - " + classesFolder.toString());
 
       // Lib folder's jar files
       File libFolder = new File(webInfFolder, LIB);
@@ -68,17 +70,19 @@ public class WinstoneClassLoader extends URLClassLoader
           {
             addURL(jars[n].toURL());
             classPaths.add(jars[n].getCanonicalPath());
-            Logger.log(Logger.DEBUG, "Adding jar file (" + jars[n].getName() + ") to classpath");
+            Logger.log(Logger.DEBUG, resources.getString("WinstoneClassLoader.WebAppLib",
+              "[#name]", jars[n].getName()));
           }
         }
       }
       else
-        Logger.log(Logger.WARNING, "No lib folder found - " + libFolder.toString());
+        Logger.log(Logger.WARNING, resources.getString("WinstoneClassLoader.NoWebAppLib")
+                  + " - " + libFolder.toString());
     }
     catch (MalformedURLException err)
-      {throw new WinstoneException("Bad URL in WinstoneClassLoader", err);}
+      {throw new WinstoneException(resources.getString("WinstoneClassLoader.BadURL"), err);}
     catch (IOException err)
-      {throw new WinstoneException("IOException in WinstoneClassLoader", err);}
+      {throw new WinstoneException(resources.getString("WinstoneClassLoader.IOException"), err);}
   }
 
   public String getClasspath()

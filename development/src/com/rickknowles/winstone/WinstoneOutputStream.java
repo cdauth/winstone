@@ -37,12 +37,14 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
   private ByteArrayOutputStream buffer;
   private boolean committed;
   private boolean headersWritten;
+  private WinstoneResourceBundle resources;
 
   /**
    * Constructor
    */
-  public WinstoneOutputStream(OutputStream out)
+  public WinstoneOutputStream(OutputStream out, WinstoneResourceBundle resources)
   {
+    this.resources = resources;
     this.socketOut = out;
     setBufferSize(DEFAULT_BUFFER_SIZE);
     this.committed = false;
@@ -71,7 +73,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
 
   public void commit() throws IOException
   {
-    Logger.log(Logger.FULL_DEBUG, "Written " + this.postHeaderPosition + " bytes to response body");
+    Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.CommittedBytes", "[#postHeaderBytes]", "" + this.postHeaderPosition));
     this.committed = true;
     this.buffer.flush();
     this.buffer.writeTo(this.socketOut);
@@ -82,10 +84,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
   public void reset()
   {
     if (isCommitted())
-      throw new IllegalStateException("OutputStream already committed");
+      throw new IllegalStateException(resources.getString("WinstoneOutputStream.AlreadyCommitted"));
     else
     {
-      Logger.log(Logger.FULL_DEBUG, "Resetting buffer - discarding " + this.bufferPosition + " bytes");
+      Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneOutputStream.ResetBuffer", "[#discardBytes]", this.bufferPosition + ""));
       this.buffer.reset();
       this.bufferPosition = 0;
       this.postHeaderPosition = 0;

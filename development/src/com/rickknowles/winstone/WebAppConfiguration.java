@@ -47,14 +47,18 @@ public class WebAppConfiguration implements ServletContext
   final String ELEM_SESSION_CONFIG  = "session-timeout";
 
   final String STAR = "*";
-
+  final String WEBAPP_LOGSTREAM = "WebApp";
+  
   final String JSP_SERVLET_NAME       = "JspServlet";
   final String JSP_SERVLET_MAPPING    = "*.jsp";
   final String JSP_SERVLET_CLASS      = "org.apache.jasper.servlet.JspServlet";
   final String JSP_SERVLET_LOG_LEVEL  = "DEBUG";
   
+  private WinstoneResourceBundle resources;
+
   private String webRoot;
   private String prefix;
+  private String contextName;
   private WinstoneClassLoader loader;
 
   private String displayName;
@@ -81,11 +85,14 @@ public class WebAppConfiguration implements ServletContext
                              String prefix,
                              boolean directoryListings,
                              boolean useJasper,
-                             Node elm)
+                             Node elm,
+                             WinstoneResourceBundle resources)
   {
+    this.resources = resources;
     this.webRoot = webRoot;
     this.prefix = (prefix != null ? prefix : "");
-    this.loader = new WinstoneClassLoader(webRoot, this.getClass().getClassLoader());
+    this.contextName = WEBAPP_LOGSTREAM;
+    this.loader = new WinstoneClassLoader(webRoot, this.getClass().getClassLoader(), this.resources);
 
     this.attributes = new Hashtable();
     this.initParameters = new Hashtable();
@@ -110,8 +117,8 @@ public class WebAppConfiguration implements ServletContext
       Map jspParams = new HashMap();
       jspParams.put("logVerbosityLevel", JSP_SERVLET_LOG_LEVEL);
       jspParams.put("fork", "false");
-      ServletConfiguration sc = new ServletConfiguration(this, this.loader, JSP_SERVLET_NAME,
-        JSP_SERVLET_CLASS, jspParams, 3);
+      ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
+        JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
       this.servletInstances.put(JSP_SERVLET_NAME, sc);
       startupServlets.add(sc);
       processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, localPatterns, localPatternMounts);
@@ -144,7 +151,7 @@ public class WebAppConfiguration implements ServletContext
         // Construct the servlet instances
         else if (nodeName.equals(ELEM_SERVLET))
         {
-          ServletConfiguration instance = new ServletConfiguration(this, this.loader, child);
+          ServletConfiguration instance = new ServletConfiguration(this, this.loader, this.resources, child);
           this.servletInstances.put(instance.getServletName(), instance);
           if (instance.getLoadOnStartup() >= 0)
             startupServlets.add(instance);
@@ -202,7 +209,7 @@ public class WebAppConfiguration implements ServletContext
     staticParams.put("welcomeFileCount", "" + this.welcomeFiles.length);
     for (int n = 0; n < this.welcomeFiles.length; n++)
       staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
-    this.staticResourceProcessor = new ServletConfiguration(this, this.getClassLoader(),
+    this.staticResourceProcessor = new ServletConfiguration(this, this.getClassLoader(), this.resources,
       "StaticResourceProcessor", "com.rickknowles.winstone.StaticResourceServlet", staticParams, 0);
     this.staticResourceProcessor.getRequestDispatcher(null);
 
@@ -235,8 +242,8 @@ public class WebAppConfiguration implements ServletContext
   {
     // If pattern contains asterisk, goes in pattern match, otherwise exact
     if ((pattern == null) || (name == null))
-      Logger.log(Logger.WARNING, "WebAppConfig: Invalid pattern mount for " + name +
-                                 " pattern " + pattern + " - ignoring");
+      Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidMount",
+                                          "[#name]", name, "[#pattern]", pattern));
     // exact mount
     else if (pattern.indexOf(STAR) == -1)
       this.exactMatchMounts.put(pattern, name);
@@ -254,15 +261,16 @@ public class WebAppConfiguration implements ServletContext
       if ((first != 0) || (last != pattern.length() - 1))
       {
         String newPattern = pattern.substring(first, last);
-        Logger.log(Logger.WARNING, "WebAppConfig: Invalid pattern " + pattern +
-                                   " - using: " + newPattern);
+        Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidPattern",
+                                          "[#newPattern]", newPattern, "[#pattern]", pattern));
         localPatterns.add(newPattern);
       }
       else
         localPatterns.add(pattern);
       localPatternMounts.add(name);
     }
-    Logger.log(Logger.FULL_DEBUG, "Mapped: " + name + " to " + pattern);
+    Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.MappedPattern",
+                                          "[#name]", name, "[#pattern]", pattern));
   }
 
   /**
@@ -271,7 +279,8 @@ public class WebAppConfiguration implements ServletContext
    */
   private ServletConfiguration urlMatch(String path)
   {
-    Logger.log(Logger.FULL_DEBUG, "URL Match - path: " + path);
+    Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.URLMatch",
+                                          "[#path]", path));
 
     // Check exact matches first
     String exact = (String) this.exactMatchMounts.get(path);
@@ -361,9 +370,9 @@ public class WebAppConfiguration implements ServletContext
   public Enumeration getInitParameterNames()  {return Collections.enumeration(this.initParameters.keySet());}
 
   // Server info
-  public String getServerInfo() {return "Winstone Server v0.1";}
+  public String getServerInfo() {return resources.getString("ServerVersion");}
   public int getMajorVersion()  {return 2;}
-  public int getMinorVersion()  {return 3;}
+  public int getMinorVersion()  {return 2;}
 
   // Weird mostly deprecated crap to do with getting servlet instances
   public javax.servlet.ServletContext getContext(String uri)  {return this;}
@@ -375,7 +384,8 @@ public class WebAppConfiguration implements ServletContext
 
   // Context level log statements
   public void log(String msg)                           {Logger.log(Logger.INFO, msg);}
-  public void log(String message, Throwable throwable)  {Logger.log(Logger.ERROR, message, throwable);}
+  public void log(String message, Throwable throwable)
+    {Logger.log(Logger.ERROR, this.contextName, message, throwable);}
   public void log(Exception exception, String msg)      {this.log(msg, exception);}
 
   // Getting request dispatchers
@@ -410,15 +420,17 @@ public class WebAppConfiguration implements ServletContext
     try
       {return new File(webRoot, path).toURL();}
     catch (MalformedURLException err)
-      {throw new WinstoneException("Bad resource path", err);}
+      {throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath"), err);}
   }
+
   public InputStream getResourceAsStream(String path)
   {
     try
       {return this.getResource(path).openStream();}
     catch (IOException err)
-      {throw new WinstoneException("Error opening stream", err);}
+      {throw new WinstoneException(resources.getString("WebAppConfig.ErrorOpeningStream"), err);}
   }
+
   public String getRealPath(String path)
   {
     // Trim the prefix
@@ -468,7 +480,6 @@ public class WebAppConfiguration implements ServletContext
       String entry = this.prefix + "/" +
               (workingPath.length() != 0 ? workingPath.toString() + "/" : "") +
               children[n].getName() + (children[n].isDirectory() ? "/" : "");
-      Logger.log(Logger.FULL_DEBUG, "getResourcePath: path=" + path + ", entry=" + entry);
       out.add(entry);
     }
     return out;
@@ -476,4 +487,3 @@ public class WebAppConfiguration implements ServletContext
 
 }
 
- 
