@@ -1208,7 +1208,8 @@ public class WebAppConfiguration implements ServletContext, Comparator
     if (servlet != null)
     {
       RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
-      rd.setForErrorDispatcher(servletPath.toString(), 
+      if (rd != null)
+        rd.setForErrorDispatcher(servletPath.toString(), 
           pathInfo.toString().equals("") ? null : pathInfo.toString(), 
           queryString, originalURI, statusCode, exception, errorURI, 
           throwingServletName, this.filterPatternsError);

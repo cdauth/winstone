@@ -201,11 +201,20 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
         Thread.currentThread().setContextClassLoader(cl);
       }
       catch (ClassNotFoundException err)
-        {Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);}
+      {
+        Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);
+        return null;
+      }
       catch (IllegalAccessException err)
-        {Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);}
+      {
+        Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);
+        return null;
+      }
       catch (InstantiationException err)
-        {Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);}
+      {
+        Logger.log(Logger.ERROR, resources, "ServletConfiguration.ClassLoadError", this.classFile, err);
+        return null;
+      }
       catch (javax.servlet.ServletException err)
       {
         this.instance = null;

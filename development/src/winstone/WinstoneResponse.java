@@ -527,8 +527,15 @@ public class WinstoneResponse implements HttpServletResponse
                 .getErrorDispatcher((String) errorPages.get(exceptionClasses[n]),
                   new Integer(SC_INTERNAL_SERVER_ERROR), err, throwingServletName,
                   req.getRequestURI());
-              found = true;
-              rd.forward(req, this);
+              if (rd != null)
+              {
+                found = true;
+                rd.forward(req, this);
+              }
+              else
+                Logger.log(Logger.WARNING, resources, "WinstoneResponse.SkippingException", 
+                     new String[] {exceptionClasses[n].getName(), 
+                     (String) errorPages.get(exceptionClasses[n])});
             }
           }
           catch (Throwable err2) {/* Skipping */}
