@@ -179,16 +179,16 @@ public class ObjectPool
   {
     synchronized (this.requestHandlerSemaphore)
     {
-      if (this.usedRequestHandlerThreads.contains(rh))
-      {
+      //if (this.usedRequestHandlerThreads.contains(rh))
+      //{
         this.usedRequestHandlerThreads.remove(rh);
         this.unusedRequestHandlerThreads.add(rh);
         Logger.log(Logger.FULL_DEBUG, resources, "ObjectPool.ReleasingRHPoolThread",
             new String[] {"" + this.usedRequestHandlerThreads.size(),
                           "" + this.unusedRequestHandlerThreads.size()});
-      }
-      else
-        Logger.log(Logger.WARNING, resources, "ObjectPool.UnknownRHPoolThread");
+      //}
+      //else
+      //  Logger.log(Logger.WARNING, resources, "ObjectPool.UnknownRHPoolThread");
     }
   }
 
