@@ -97,7 +97,7 @@ public class WinstoneClassLoader extends URLClassLoader
 
 //  protected Class findClass(String name) throws ClassNotFoundException
 //  {
-//    Logger.log(Logger.DEBUG, "Loading class " + name);
+//    Logger.log(Logger.FULL_DEBUG, "Loading class " + name);
 //    return super.findClass(name);
 //  }
 }

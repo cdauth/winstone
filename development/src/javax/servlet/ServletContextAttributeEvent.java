@@ -18,8 +18,6 @@
 package javax.servlet;
 
 /**
- * ClassƒNƒ‰ƒX
- * <P>
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  */
 public class ServletContextAttributeEvent extends ServletContextEvent

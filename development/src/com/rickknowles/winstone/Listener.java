@@ -355,7 +355,7 @@ public class Listener implements Runnable, EntityResolver
         Thread th = new Thread(listener);
         th.start();
       }
-      catch (WinstoneException err) {System.err.println(err.getMessage());}
+      catch (WinstoneException err) {System.err.println(err.getMessage()); err.printStackTrace();}
     }
   }
 

@@ -130,13 +130,15 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       if (this.instance == null)
       try
       {
-        Class servletClass = Class.forName(classFile, true, this.loader);
-        this.instance = (javax.servlet.Servlet) servletClass.newInstance();
-        Logger.log(Logger.DEBUG, this.name + ": " + resources.getString("ServletConfiguration.init"));
-
-        // Initialise with the correct classloader
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(this.loader);
+
+        Class servletClass = Class.forName(classFile, true, this.loader);
+        this.instance = (javax.servlet.Servlet) servletClass.newInstance();
+        Logger.log(Logger.DEBUG, this.name + ": " + resources.getString("ServletConfiguration.init") + 
+          " (classloader: " + this.instance.getClass().getClassLoader().getClass().getName() + ")");
+
+        // Initialise with the correct classloader
         this.instance.init(this);
         Thread.currentThread().setContextClassLoader(cl);
       }

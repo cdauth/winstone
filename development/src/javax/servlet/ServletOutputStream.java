@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * ClassƒNƒ‰ƒX
- * <P>
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  */
 public abstract class ServletOutputStream extends OutputStream

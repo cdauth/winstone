@@ -107,13 +107,13 @@ public class HttpConnector
     int questionPos = fullURI.indexOf('?');
     if ((questionPos != -1) && (method != null))
     {
-      servletURI = java.net.URLDecoder.decode(fullURI.substring(0, questionPos));
+      servletURI = fullURI.substring(0, questionPos);
       String queryString = fullURI.substring(questionPos + 1);
       req.setQueryString(queryString);
       req.getParameters().putAll(extractParameters(queryString));
     }
     else
-      servletURI = java.net.URLDecoder.decode(fullURI);
+      servletURI = fullURI;
 
     req.setMethod(method);
     req.setRequestURI(fullURI);

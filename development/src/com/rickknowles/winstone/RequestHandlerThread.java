@@ -71,9 +71,10 @@ public class RequestHandlerThread implements Runnable
    */
   public void run()
   {
+    int thisPort = this.socket.getPort();
     try
     {
-      Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.OpenedPort") + this.socket.getPort());
+      Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.OpenedPort") + thisPort);
 
       // Set the stream time out, so that if
       this.socket.setSoTimeout(CONNECTION_TIMEOUT);
@@ -166,7 +167,7 @@ public class RequestHandlerThread implements Runnable
       try {this.socket.close();} catch (IOException errIO) {}
       Logger.log(Logger.ERROR, resources.getString("RequestHandlerThread.RequestError"), err);
     }
-    Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.ClosedPort") + this.socket.getPort());
+    Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.ClosedPort") + thisPort);
     this.socket = null;
 
     // Before finishing, allocate another thread to run on this object
