@@ -23,6 +23,7 @@ import java.util.*;
 import javax.naming.*;
 import java.lang.reflect.*;
 import org.w3c.dom.Node;
+import javax.mail.Session;
 
 /**
  * Implements a simple web.xml + command line arguments style jndi manager
@@ -191,18 +192,21 @@ public class WebAppJNDIManager implements JNDIManager
     // If we are working with a datasource    
     if (className.equals("javax.sql.DataSource"))
     {
-      Map relevantArgs = new HashMap();
-      for (Iterator i = args.keySet().iterator(); i.hasNext(); )
-      {
-        String key = (String) i.next();
-        if (key.startsWith("jndi.param." + name + "."))
-          relevantArgs.put(key.substring(6 + name.length()), args.get(key));
-      }
       try
-        {return new WinstoneDataSource(name, relevantArgs, this.loader, this.resources);}
+        {return new WinstoneDataSource(name, extractRelevantArgs(args, name), this.loader, this.resources);}
       catch (Throwable err)
         {Logger.log(Logger.ERROR, this.resources.getString(
           "WebAppJNDIManager.ErrorBuildingDatasource", "[#name]", name), err);}
+    }
+
+    // If we are working with a mail session    
+    else if (className.equals("javax.mail.Session"))
+    {
+      try
+        {return Session.getInstance(extractRelevantArgs(args, name), null);}
+      catch (Throwable err)
+        {Logger.log(Logger.ERROR, this.resources.getString(
+          "WebAppJNDIManager.ErrorBuildingMailSession", "[#name]", name), err);}
     }
     
     // If unknown type, try to instantiate with the string constructor
@@ -218,4 +222,20 @@ public class WebAppJNDIManager implements JNDIManager
         "WebAppJNDIManager.ErrorBuildingObject", "[#name]", name, "[#class]", className), err);}
     return null;
   }
+
+  /**
+   * Rips the parameters relevant to a particular resource from the command args 
+   */
+  private Properties extractRelevantArgs(Map input, String name)
+  {  
+    Properties relevantArgs = new Properties();
+    for (Iterator i = input.keySet().iterator(); i.hasNext(); )
+    {
+      String key = (String) i.next();
+      if (key.startsWith("jndi.param." + name + "."))
+        relevantArgs.put(key.substring(12 + name.length()), input.get(key));
+    }
+    return relevantArgs;
+  }
+  
 }

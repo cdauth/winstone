@@ -26,6 +26,8 @@ Authors:
   <property name="xml-apis.jar" value="c:/java/junit/xml-apis.jar"/>
   <property name="xerces.jar" value="c:/java/junit/xercesImpl.jar"/>
   <property name="nekohtml.jar" value="c:/java/junit/nekohtml.jar"/>
+  <property name="activation.jar" value="c:/java/mail/activation.jar"/>
+  <property name="mail.jar" value="c:/java/mail/mail.jar"/>
   <property name="junit.runner" value="junit.textui.TestRunner"/>
   <property name="packages" value="com.rickknowles.winstone.*,com.rickknowles.winstone.**,javax.servlet.*,javax.servlet.**"/>
 
@@ -56,6 +58,8 @@ Authors:
         <pathelement location="${java.home}/lib/dt.jar"/>
         <pathelement location="${java.home}/jre/lib/rt.jar"/>
         <fileset dir="lib" includes="**/*.jar,**/*.zip"/>
+        <pathelement location="${activation.jar}"/>
+        <pathelement location="${mail.jar}"/>
      </classpath>
     </javac>
 
