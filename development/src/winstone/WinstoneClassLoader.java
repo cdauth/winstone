@@ -57,7 +57,7 @@ public class WinstoneClassLoader extends URLClassLoader
       if (classesFolder.exists())
       {
         Logger.log(Logger.DEBUG, resources, "WinstoneClassLoader.WebAppClasses");
-        addURL(new URL("file", null, classesFolder.getCanonicalPath() + "/"));
+        addURL(new URL("file", "", classesFolder.getCanonicalPath() + "/"));
         classPaths.add(classesFolder);
       }
       else
