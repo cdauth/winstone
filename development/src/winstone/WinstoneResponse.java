@@ -495,6 +495,16 @@ public class WinstoneResponse implements HttpServletResponse
       }
     }
     
+    // If body not parsed
+    if (this.req.getParsedParameters() == null)
+      this.req.getParameterNames(); // dummy to force parsing of the request
+    else if (this.req.getParsedParameters().equals(Boolean.FALSE))
+    {
+      // read full stream length
+      InputStream in = this.req.getInputStream();
+      while (in.read() != -1);
+    }
+        
     this.statusCode = HttpServletResponse.SC_MOVED_TEMPORARILY;
     setHeader(LOCATION_HEADER, fullLocation.toString());
     setContentLength(0);
