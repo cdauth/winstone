@@ -34,7 +34,7 @@ public class HttpListener implements Listener, Runnable
 {
   protected static int LISTENER_TIMEOUT = 5000; // every 5s reset the listener socket
   protected static int CONNECTION_TIMEOUT = 60000;
-  protected static int BACKLOG_COUNT = 1000;
+  protected static int BACKLOG_COUNT = 5000;
   protected static boolean DEFAULT_HNL = true;
 
   protected static int KEEP_ALIVE_TIMEOUT   = 10000;
