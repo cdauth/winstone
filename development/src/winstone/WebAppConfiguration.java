@@ -1281,8 +1281,6 @@ public class WebAppConfiguration implements ServletContext, Comparator
     // Trim the prefix
     if (path == null)
       return null;
-    else if (!path.startsWith("/"))
-      return null;
     else try
     {
    	  File res = new File(this.webRoot, path);
