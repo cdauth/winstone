@@ -20,8 +20,7 @@ package winstone;
 import java.util.*;
 import org.w3c.dom.Node;
 
-import javax.servlet.ServletContext;
-import javax.servlet.Servlet;
+import javax.servlet.*;
 
 /**
  * This is the one that keeps a specific servlet instance's config, as
@@ -32,15 +31,15 @@ import javax.servlet.Servlet;
  */
 public class ServletConfiguration implements javax.servlet.ServletConfig, Comparable
 {
-  final String ELEM_NAME              = "servlet-name";
-  final String ELEM_DISPLAY_NAME      = "display-name";
-  final String ELEM_CLASS             = "servlet-class";
-  final String ELEM_JSP_FILE          = "jsp-file";
-  final String ELEM_DESCRIPTION       = "description";
-  final String ELEM_INIT_PARAM        = "init-param";
-  final String ELEM_INIT_PARAM_NAME   = "param-name";
-  final String ELEM_INIT_PARAM_VALUE  = "param-value";
-  final String ELEM_LOAD_ON_STARTUP   = "load-on-startup";
+  static final String ELEM_NAME              = "servlet-name";
+  static final String ELEM_DISPLAY_NAME      = "display-name";
+  static final String ELEM_CLASS             = "servlet-class";
+  static final String ELEM_JSP_FILE          = "jsp-file";
+  static final String ELEM_DESCRIPTION       = "description";
+  static final String ELEM_INIT_PARAM        = "init-param";
+  static final String ELEM_INIT_PARAM_NAME   = "param-name";
+  static final String ELEM_INIT_PARAM_VALUE  = "param-value";
+  static final String ELEM_LOAD_ON_STARTUP   = "load-on-startup";
 
   private String servletName;
   private String classFile;
@@ -51,6 +50,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   private int loadOnStartup;
   private String prefix;
   private String jspFile;
+  private boolean unavailableException;
 
   private WinstoneResourceBundle resources;
   private Object servletSemaphore = new Boolean(true);
@@ -66,6 +66,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     this.loadOnStartup = -1;
     this.resources = resources;
     this.prefix = prefix;
+    this.unavailableException = false;
   }
 
   public ServletConfiguration(ServletContext webAppConfig,
@@ -149,7 +150,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   {
     synchronized (this.servletSemaphore)
     {
-      if (this.instance == null)
+      if ((this.instance == null) && !isUnavailable())
       try
       {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -173,12 +174,17 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       catch (InstantiationException err)
         {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.ClassLoadError") + this.classFile, err);}
       catch (javax.servlet.ServletException err)
-        {Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.InitError") + this.servletName +
-                                          " - " + this.classFile, err);}
+      {
+        this.instance = null;
+        Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.InitError") + this.servletName +
+                                          " - " + this.classFile, err);
+        if (err instanceof UnavailableException)
+          setUnavailable();
+      }
     }
 
     // Build filter chain
-    return new RequestDispatcher(this.instance, this.servletName, this.loader,
+    return new RequestDispatcher(this, this.instance, this.servletName, this.loader,
         this.servletSemaphore, requestedPath, this.resources, filters, 
         filterPatterns, authHandler, this.prefix, this.jspFile == null ? requestedPath : this.jspFile);
   }
@@ -216,6 +222,16 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
         Thread.currentThread().setContextClassLoader(cl);
       }
     }
+  }
+  
+  public boolean isUnavailable() {return this.unavailableException;}
+  
+  public void setUnavailable() 
+  {
+    this.unavailableException = true;
+    if (this.instance != null)
+      this.instance.destroy();
+    this.instance = null;
   }
 }
 

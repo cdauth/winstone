@@ -94,8 +94,14 @@ public class StaticResourceServlet extends HttpServlet
               "[#path]", path));
 
     // Check we are not below the web-inf
-    else if (!isInclude && res.getCanonicalPath().startsWith(new File(this.webRoot, "WEB-INF").getPath()))
-      response.sendError(HttpServletResponse.SC_FORBIDDEN,
+    else if (!isInclude && res.getCanonicalPath().toUpperCase().startsWith(new File(this.webRoot, "WEB-INF").getPath().toUpperCase()))
+      response.sendError(HttpServletResponse.SC_NOT_FOUND,
+            this.resources.getString("StaticResourceServlet.PathInvalid",
+              "[#path]", path));
+
+    // Check we are not below the meta-inf
+    else if (!isInclude && res.getCanonicalPath().toUpperCase().startsWith(new File(this.webRoot, "META-INF").getPath().toUpperCase()))
+      response.sendError(HttpServletResponse.SC_NOT_FOUND,
             this.resources.getString("StaticResourceServlet.PathInvalid",
               "[#path]", path));
 

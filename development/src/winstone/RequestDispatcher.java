@@ -32,6 +32,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
 {
   final String JSP_FILE = "org.apache.catalina.jsp_file";
 
+  private ServletConfiguration config;
   private Servlet instance;
   private String name;
   private String prefix;
@@ -53,11 +54,12 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
    * needed to handle a servlet excecution, such as security constraints,
    * filters, etc.
    */
-  public RequestDispatcher(Servlet instance, String name, ClassLoader loader,
-    Object semaphore, String requestedPath, WinstoneResourceBundle resources,
-    Map filters, String filterPatterns[], AuthenticationHandler authHandler,
-    String prefix, String jspFile)
+  public RequestDispatcher(ServletConfiguration config, Servlet instance, 
+    String name, ClassLoader loader, Object semaphore, String requestedPath, 
+    WinstoneResourceBundle resources, Map filters, String filterPatterns[], 
+    AuthenticationHandler authHandler, String prefix, String jspFile)
   {
+    this.config = config;
     this.resources = resources;
     this.instance = instance;
     this.name = name;
@@ -118,11 +120,19 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.jspFile != null)
         request.setAttribute(JSP_FILE, this.jspFile);
-      if (this.instance instanceof SingleThreadModel)
-        synchronized (this.semaphore)
-          {this.instance.service(request, includer);}
-      else
-        this.instance.service(request, includer);
+      try 
+      {
+        if (this.instance instanceof SingleThreadModel)
+          synchronized (this.semaphore)
+          	{this.instance.service(request, includer);}
+        else
+          this.instance.service(request, includer);
+      }
+      catch (UnavailableException err)
+      {
+        this.config.setUnavailable();
+        throw err;
+      }
       Thread.currentThread().setContextClassLoader(cl);
       includer.finish();
     }
@@ -190,11 +200,19 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.jspFile != null)
         request.setAttribute(JSP_FILE, this.jspFile);
-      if (this.instance instanceof SingleThreadModel)
-        synchronized (this.semaphore)
-          {this.instance.service(bareRequest, bareResponse);}
-      else
-        this.instance.service(bareRequest, bareResponse);
+      try 
+      {
+        if (this.instance instanceof SingleThreadModel)
+          synchronized (this.semaphore)
+          	{this.instance.service(bareRequest, bareResponse);}
+        else
+          this.instance.service(bareRequest, bareResponse);
+      }
+      catch (UnavailableException err)
+      {
+        this.config.setUnavailable();
+        throw err;
+      }
       Thread.currentThread().setContextClassLoader(cl);
     }
   }

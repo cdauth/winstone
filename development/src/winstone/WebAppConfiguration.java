@@ -78,6 +78,7 @@ public class WebAppConfiguration implements ServletContext
   static final String ELEM_ENV_ENTRY           = "env-entry";
 
   static final String STAR = "*";
+  static final String SLASH = "/";
   static final String WEBAPP_LOGSTREAM = "WebApp";
   
   static final String JSP_SERVLET_NAME       = "JspServlet";
@@ -122,8 +123,10 @@ public class WebAppConfiguration implements ServletContext
   private List sessionListeners;
 
   private Map exactServletMatchMounts;
-  private String servletPatterns[];
-  private String servletPatternMounts[];
+  private String servletFolderPatterns[];
+  private String servletFolderPatternMounts[];
+  private String servletExtensionPatterns[];
+  private String servletExtensionPatternMounts[];
   private String filterPatterns[];
 
   private AuthenticationHandler authenticationHandler;
@@ -199,8 +202,10 @@ public class WebAppConfiguration implements ServletContext
     this.distributable = false;
 
     this.exactServletMatchMounts = new Hashtable();
-    List localServletPatterns = new ArrayList();
-    List localServletPatternMounts = new ArrayList();
+    List localFolderPatterns = new ArrayList();
+    List localFolderPatternMounts = new ArrayList();
+    List localExtensionPatterns = new ArrayList();
+    List localExtensionPatternMounts = new ArrayList();
     List localFilterPatterns = new ArrayList();
 
     List localWelcomeFiles = new ArrayList();
@@ -226,8 +231,10 @@ public class WebAppConfiguration implements ServletContext
         this.prefix, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
       this.servletInstances.put(JSP_SERVLET_NAME, sc);
       startupServlets.add(sc);
-      processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, this.exactServletMatchMounts,
-                     localServletPatterns, localServletPatternMounts);
+      processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING, 
+          this.exactServletMatchMounts, 
+          localFolderPatterns, localFolderPatternMounts,
+          localExtensionPatterns, localExtensionPatternMounts);
     }
 
     // Initialise invoker servlet if requested
@@ -239,8 +246,10 @@ public class WebAppConfiguration implements ServletContext
       ServletConfiguration sc = new ServletConfiguration(this, this.loader, this.resources,
           this.prefix, INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams, 3);
       this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
-      processMapping(INVOKER_SERVLET_NAME, invokerPrefix + STAR, this.exactServletMatchMounts,
-                     localServletPatterns, localServletPatternMounts);
+      processMapping(INVOKER_SERVLET_NAME, invokerPrefix + STAR, 
+          this.exactServletMatchMounts, 
+          localFolderPatterns, localFolderPatternMounts,
+          localExtensionPatterns, localExtensionPatternMounts);
     }
 
     // init mimeTypes set
@@ -378,7 +387,9 @@ public class WebAppConfiguration implements ServletContext
             else if (mapNodeName.equals(ELEM_URL_PATTERN))
               pattern = mapChild.getFirstChild().getNodeValue().trim();
           }
-          processMapping(name, pattern, this.exactServletMatchMounts, localServletPatterns, localServletPatternMounts);
+          processMapping(name, pattern, this.exactServletMatchMounts, 
+              localFolderPatterns, localFolderPatternMounts,
+              localExtensionPatterns, localExtensionPatternMounts);
         }
 
         // Process the filter mappings
@@ -557,10 +568,14 @@ public class WebAppConfiguration implements ServletContext
     // Take the elements out of the lists and build arrays
     this.welcomeFiles = (String []) localWelcomeFiles.toArray(
                                     new String[localWelcomeFiles.size()]);
-    this.servletPatterns = (String []) localServletPatterns.toArray(
-                                    new String[localServletPatterns.size()]);
-    this.servletPatternMounts = (String []) localServletPatternMounts.toArray(
-                                    new String[localServletPatternMounts.size()]);
+    this.servletFolderPatterns = (String []) localFolderPatterns.toArray(
+                                    new String[localFolderPatterns.size()]);
+    this.servletFolderPatternMounts = (String []) localFolderPatternMounts.toArray(
+                                    new String[localFolderPatternMounts.size()]);
+    this.servletExtensionPatterns = (String []) localExtensionPatterns.toArray(
+        														new String[localExtensionPatterns.size()]);
+    this.servletExtensionPatternMounts = (String []) localExtensionPatternMounts.toArray(
+        														new String[localExtensionPatternMounts.size()]);
     this.filterPatterns = (String []) localFilterPatterns.toArray(
                                     new String[localFilterPatterns.size()]);
 
@@ -577,16 +592,16 @@ public class WebAppConfiguration implements ServletContext
     this.staticResourceProcessor.getRequestDispatcher(null, this.filterInstances,
       this.filterPatterns, this.authenticationHandler);
 
+    // Send init notifies
+    for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
+      ((ServletContextListener) i.next()).contextInitialized(new ServletContextEvent(this));
+
     // Initialise load on startup servlets
     Object autoStarters[] = startupServlets.toArray();
     Arrays.sort(autoStarters);
     for (int n = 0; n < autoStarters.length; n++)
       ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null,
                   this.filterInstances, this.filterPatterns, this.authenticationHandler);
-
-    // Send init notifies
-    for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
-      ((ServletContextListener) i.next()).contextInitialized(new ServletContextEvent(this));
   }
 
   public String getPrefix()             {return this.prefix;}
@@ -658,37 +673,58 @@ public class WebAppConfiguration implements ServletContext
    * Here we process url patterns into the exactMatch and patternMatch map/list
    */
   private void processMapping(String name, String pattern,
-      Map exactPatterns, List localPatterns, List localPatternMounts)
+      Map exactPatterns, List folderPatterns, List folderPatternMounts,
+      List extensionPatterns, List extensionPatternMounts)
   {
     // If pattern contains asterisk, goes in pattern match, otherwise exact
     if ((pattern == null) || (name == null))
+    {
       Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidMount",
-                                          "[#name]", name, "[#pattern]", pattern));
+                                          	"[#name]", name, "[#pattern]", pattern));
+    	return;
+    }
+    
     // exact mount
-    else if (pattern.indexOf(STAR) == -1)
+    int firstStarPos = pattern.indexOf(STAR);
+    if (firstStarPos == -1)
+    {
       exactPatterns.put(pattern, name);
-    // pattern mount - 1 star
-    else if (pattern.indexOf(STAR) == pattern.lastIndexOf(STAR))
-    {
-      localPatterns.add(pattern);
-      localPatternMounts.add(name);
+    	Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.MappedPattern",
+        "[#name]", name, "[#pattern]", pattern));
+    	return;
     }
-    // pattern mount 2 or more stars
-    else
+    
+    // > 1 star = error
+    int patternLength = pattern.length();
+    int lastStarPos = pattern.lastIndexOf(STAR);
+    if (firstStarPos != lastStarPos)
+      Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidMount",
+          																	"[#name]", name, "[#pattern]", pattern));
+
+    // check for folder style mapping (ends in /*)
+    else if (pattern.indexOf(SLASH + STAR) == (patternLength - (SLASH + STAR).length()))
     {
-      int first = pattern.indexOf(STAR);
-      int last = pattern.lastIndexOf(STAR);
-      if ((first != 0) || (last != pattern.length() - 1))
-      {
-        String newPattern = pattern.substring(first, last);
-        Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidPattern",
-                                          "[#newPattern]", newPattern, "[#pattern]", pattern));
-        localPatterns.add(newPattern);
-      }
-      else
-        localPatterns.add(pattern);
-      localPatternMounts.add(name);
+      folderPatternMounts.add(name);
+      folderPatterns.add(pattern.substring(0, pattern.length() - 
+        																		(SLASH + STAR).length()));
     }
+    // check for non-extension match
+    else if (pattern.indexOf(SLASH) != -1)
+      Logger.log(Logger.WARNING, resources.getString("WebAppConfig.InvalidMount",
+          	"[#name]", name, "[#pattern]", pattern));
+
+    // check for extension match at the beginning
+    else if (firstStarPos == 0)
+    {
+      extensionPatternMounts.add(name);
+      extensionPatterns.add(pattern.substring(STAR.length()));
+    }
+    else if (firstStarPos == (patternLength - STAR.length()))
+    {
+      extensionPatternMounts.add(name);
+      extensionPatterns.add(pattern.substring(0, patternLength - STAR.length()));
+    }
+      
     Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.MappedPattern",
                                           "[#name]", name, "[#pattern]", pattern));
   }
@@ -707,12 +743,21 @@ public class WebAppConfiguration implements ServletContext
     if (exact != null)
       return (ServletConfiguration) this.servletInstances.get(exact);
 
-    // Check pattern mounts
-    for (int n = 0; n < this.servletPatterns.length; n++)
-      if (wildcardMatch(this.servletPatterns[n], path))
-        return (ServletConfiguration) this.servletInstances.get(this.servletPatternMounts[n]);
+    // TODO: Make the folder check step through each dir to match
+    
+    // Check folder pattern mounts
+    for (int n = 0; n < this.servletFolderPatterns.length; n++)
+      if (wildcardMatch(this.servletFolderPatterns[n], path))
+        return (ServletConfiguration) this.servletInstances.get(this.servletFolderPatternMounts[n]);
 
-    // return null, which indicates this should be handled as static content
+    // TODO: Make the extension check match after last slash
+
+    // Check extension pattern mounts
+    for (int n = 0; n < this.servletExtensionPatterns.length; n++)
+      if (wildcardMatch(this.servletExtensionPatterns[n], path))
+        return (ServletConfiguration) this.servletInstances.get(this.servletExtensionPatternMounts[n]);
+
+    // return null, which indicates this should be handled by default servlet
     return null;
   }
 
@@ -891,17 +936,12 @@ public class WebAppConfiguration implements ServletContext
     // Trim the prefix
     if (path == null)
       return null;
-    else if (path.startsWith(this.prefix))
-      path = path.substring(this.prefix.length());
-
-    // Trim the leading /
-    if (path.startsWith("/"))
-      path = path.substring(1);
-
-    try
-      {return new File(webRoot, path).toURL();}
+    else if (!path.startsWith("/"))
+      throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath", "[#path]", path));      
+  	else try
+      {return new File(webRoot, path.substring(1)).toURL();}
     catch (MalformedURLException err)
-      {throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath"), err);}
+      {throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath", "[#path]", path), err);}
   }
 
   public InputStream getResourceAsStream(String path)
@@ -917,13 +957,9 @@ public class WebAppConfiguration implements ServletContext
     // Trim the prefix
     if (path == null)
       return null;
-    else if (path.startsWith(this.prefix))
-      path = path.substring(this.prefix.length());
-
-    // Trim the leading /
-    if (path.startsWith("/"))
-      path = path.substring(1);
-    try
+    else if (!path.startsWith("/"))
+      return null;
+    else try
     {
    	  File res = new File(this.webRoot, path);
    	  if (res.isDirectory())
@@ -939,37 +975,30 @@ public class WebAppConfiguration implements ServletContext
     // Trim the prefix
     if (path == null)
       return null;
-
-    StringBuffer workingPath = new StringBuffer(path);
-    if (workingPath.toString().startsWith(this.prefix))
-      workingPath.delete(0, this.prefix.length());
-
-    // Trim the leading /
-    if ((workingPath.length() > 0) && (workingPath.charAt(0) == '/'))
-      workingPath.deleteCharAt(0);
-
-    // Trim the trailing /
-    if ((workingPath.length() > 0) &&
-        (workingPath.charAt(workingPath.length() - 1) == '/'))
-      workingPath.deleteCharAt(workingPath.length() - 1);
-
-    // Find all the files in this folder
-    File inPath = new File(this.webRoot, workingPath.toString());
-    if (!inPath.exists())
-      return null;
-    else if (!inPath.isDirectory())
-      return null;
-    File children[] = inPath.listFiles();
-    Set out = new HashSet();
-    for (int n = 0; n < children.length; n++)
+    else if (!path.startsWith("/"))
+      throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath", "[#path]", path));      
+    else
     {
-      // Write the entry as prefix + subpath + child element
-      String entry = this.prefix + "/" +
-              (workingPath.length() != 0 ? workingPath.toString() + "/" : "") +
+      String workingPath = path.substring(1, path.length() - 
+          									(path.charAt(path.length() - 1) == '/' ? 2 : 1));
+      File inPath = new File(this.webRoot, workingPath);
+      // Find all the files in this folder
+      if (!inPath.exists())
+        return null;
+      else if (!inPath.isDirectory())
+        return null;
+      File children[] = inPath.listFiles();
+      Set out = new HashSet();
+      for (int n = 0; n < children.length; n++)
+      {
+        // Write the entry as prefix + subpath + child element
+        String entry = //this.prefix + 
+        			"/" + (workingPath.length() != 0 ? workingPath + "/" : "") +
               children[n].getName() + (children[n].isDirectory() ? "/" : "");
-      out.add(entry);
+        out.add(entry);
+      }
+      return out;
     }
-    return out;
   }
   
   /**

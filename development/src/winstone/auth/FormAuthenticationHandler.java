@@ -41,9 +41,9 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
   static final String ELEM_FORM_LOGIN_PAGE = "form-login-page";
   static final String ELEM_FORM_ERROR_PAGE = "form-error-page";
   
-  final String FORM_ACTION = "j_security_check";
-  final String FORM_USER   = "j_username";
-  final String FORM_PASS   = "j_password";
+  static final String FORM_ACTION = "j_security_check";
+  static final String FORM_USER   = "j_username";
+  static final String FORM_PASS   = "j_password";
   
   private String loginPage;
   private String errorPage;
