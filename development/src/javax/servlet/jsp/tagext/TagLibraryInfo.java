@@ -70,7 +70,7 @@ public abstract class TagLibraryInfo
   {
     TagFileInfo[] tagFiles = getTagFiles();
     if (tagFiles != null)
-      for (int n = 0; n < tags.length; n++)
+      for (int n = 0; n < tagFiles.length; n++)
         if ((tagFiles[n].getName() != null) &&
             tagFiles[n].getName().equals(shortname))
           return tagFiles[n];

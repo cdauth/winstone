@@ -60,7 +60,7 @@ Authors:
     </javac>
 
     <copy todir="${winstone.build}/classes">
-      <fileset dir="src" includes="**/*.dtd,**/*.properties"/>
+      <fileset dir="src" includes="**/*.dtd,**/*.properties,**/*.xsd"/>
     </copy>   
   </target>
 
@@ -117,12 +117,21 @@ Authors:
 
   <target name="dist" depends="clean,compile">
     <mkdir dir="${winstone.dist}" />
-    <jar   jarfile="${winstone.dist}/winstone.jar"
-           basedir="${winstone.build}/classes"
-           includes="**" manifest="manifest.winstone"/> 
-    <jar   jarfile="${winstone.dist}/winstone-lite.jar"
-           basedir="${winstone.build}/classes"
-           includes="javax/**,winstone/*" manifest="manifest.winstone"/> 
+    <jar jarfile="${winstone.dist}/winstone.jar"
+         basedir="${winstone.build}/classes"
+         includes="**">
+		<manifest>
+			<attribute name="Main-Class" value="winstone.Launcher"/>
+		</manifest>
+    </jar> 
+    <jar jarfile="${winstone.dist}/winstone-lite.jar"
+    	 basedir="${winstone.build}/classes"
+    	 includes="javax/servlet/*,javax/servlet/http/*,javax/servlet/resources/web-app*.dtd,winstone/*">
+		<manifest>
+			<attribute name="Main-Class" value="winstone.Launcher"/>
+		</manifest>
+   	</jar>
+           
   </target>
 
   <target name="backup" depends="timestamp">

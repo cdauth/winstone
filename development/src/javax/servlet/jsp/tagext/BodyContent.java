@@ -32,7 +32,11 @@ public abstract class BodyContent extends JspWriter
     super(e.getBufferSize(), e.isAutoFlush());
     this.enclosingWriter = e;
   }
-  public void clearBody() {}
+  public void clearBody() 
+  {
+    try {clear();}
+    catch (IOException err) {throw new RuntimeException("Error in clearBody", err);}
+  }
   public void flush() throws IOException 
     {throw new IOException("Flush is illegal");} 
   public JspWriter getEnclosingWriter() {return this.enclosingWriter;}

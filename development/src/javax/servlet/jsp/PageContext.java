@@ -26,7 +26,7 @@ import java.io.IOException;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public abstract class PageContext
+public abstract class PageContext extends JspContext
 {
   public static final int PAGE_SCOPE = 1;
   public static final int REQUEST_SCOPE = 2;
