@@ -25,6 +25,7 @@ import java.util.*;
 /**
  * Implements the main listener daemon thread. This is the class that
  * gets launched by the command line, and owns the server socket, etc.
+ * Note that this class is also used as the base class for the HTTPS listener.
  *
  * @author  <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
@@ -94,9 +95,6 @@ public class HttpListener implements Listener, Runnable
               ? new ServerSocket(this.listenPort, BACKLOG_COUNT)
               : new ServerSocket(this.listenPort, BACKLOG_COUNT, 
                                   InetAddress.getByName(this.listenAddress));
-    ss.setSoTimeout(LISTENER_TIMEOUT);
-    Logger.log(Logger.INFO, resources, "HttpListener.StartupOK",
-                                      this.listenPort + "");
     return ss;
   }
   
@@ -110,6 +108,9 @@ public class HttpListener implements Listener, Runnable
     try
     {
       ServerSocket ss = getServerSocket();
+      ss.setSoTimeout(LISTENER_TIMEOUT);
+      Logger.log(Logger.INFO, resources, "HttpListener.StartupOK",
+            new String[] {getConnectorName().toUpperCase(), this.listenPort + ""});
 
       // Enter the main loop
       while (!interrupted)
@@ -129,9 +130,9 @@ public class HttpListener implements Listener, Runnable
       ss.close();
     }
     catch (Throwable err)
-      {Logger.log(Logger.ERROR, resources, "HttpListener.ShutdownError", err);}
+      {Logger.log(Logger.ERROR, resources, "HttpListener.ShutdownError", getConnectorName().toUpperCase(), err);}
 
-    Logger.log(Logger.INFO, resources, "HttpListener.ShutdownOK");
+    Logger.log(Logger.INFO, resources, "HttpListener.ShutdownOK", getConnectorName().toUpperCase());
   }
 
   /**

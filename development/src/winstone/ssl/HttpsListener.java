@@ -64,8 +64,8 @@ public class HttpsListener extends HttpListener
   protected String getConnectorName() {return "https";}
   
   /**
-   * Gets a server socket - this is mostly for the purpose of allowing an 
-   * override in the SSL connector.
+   * Gets a server socket - this gets as SSL socket instead of the standard
+   * socket returned in the base class.
    */
   protected ServerSocket getServerSocket() throws IOException
   {
@@ -78,10 +78,7 @@ public class HttpsListener extends HttpListener
               ? factory.createServerSocket(this.listenPort, BACKLOG_COUNT)
               : factory.createServerSocket(this.listenPort, BACKLOG_COUNT, 
                                   InetAddress.getByName(this.listenAddress)));
-    ss.setSoTimeout(LISTENER_TIMEOUT);
     ss.setEnableSessionCreation(true);
-    Logger.log(Logger.INFO, localResources, "HttpsListener.StartupOK",
-                                      this.listenPort + "");
     return ss;
   }
   
