@@ -32,6 +32,7 @@ import java.text.*;
  */
 public class StaticResourceServlet extends HttpServlet
 {
+  final String JSP_FILE = "org.apache.catalina.jsp_file";
   final String CACHED_RESOURCE_DATE_HEADER = "If-Modified-Since";
   final String LAST_MODIFIED_DATE_HEADER   = "Last-Modified";
 
@@ -95,7 +96,7 @@ public class StaticResourceServlet extends HttpServlet
     throws ServletException, IOException
   {
     // Trim the host name if supplied
-    String requestURI = trimQueryString(trimHostName(request.getRequestURI()));
+    String requestURI = (String) request.getAttribute(JSP_FILE);
 
     // Get the URI from the servlet, check for prefix
     String path = null;

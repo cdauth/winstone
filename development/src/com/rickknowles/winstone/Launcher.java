@@ -55,7 +55,7 @@ public class Launcher implements EntityResolver, Runnable
   static final String WEB_INF  = "WEB-INF";
   static final String WEB_XML  = "web.xml";
 
-  private int CONTROL_TIMEOUT = 5000; // wait 5s for control connection
+  private int CONTROL_TIMEOUT = 10; // wait 5s for control connection
   private int DEFAULT_CONTROL_PORT = -1;
   private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
@@ -139,7 +139,7 @@ public class Launcher implements EntityResolver, Runnable
       this.listeners.add(httpListener);
     }
     catch (Throwable err)
-      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"), err);}
+      {Logger.log(Logger.DEBUG, this.resources.getString("Launcher.HTTPNotFound"));}
     try
     {
       Class ajpClass = Class.forName(AJP_LISTENER_CLASS);
@@ -264,6 +264,8 @@ public class Launcher implements EntityResolver, Runnable
             interrupted = true; //any connection on control port is interpreted as a shutdown
             cs.close();
           }
+          else
+            Thread.sleep(CONTROL_TIMEOUT);
         }
         catch (InterruptedIOException err) {}
       }

@@ -30,4 +30,6 @@ set WINSTONE_OPTS=%WINSTONE_OPTS% --useJasper
 @rem ********************************************************************
 set WINSTONE_OPTS=%WINSTONE_OPTS% --useInvoker
 
+echo Options: %WINSTONE_OPTS%
+
 %JAVA_HOME%\bin\java -server -cp %CP% %JAVA_OPTS% com.rickknowles.winstone.Launcher %WINSTONE_OPTS%

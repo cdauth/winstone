@@ -17,12 +17,25 @@
  */
 package com.rickknowles.winstone.realm;
 
-import com.rickknowles.winstone.*;
-import java.util.*;
-import java.io.*;
-import org.w3c.dom.*;
-import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.StringTokenizer;
+
 import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+
+import com.rickknowles.winstone.AuthenticationPrincipal;
+import com.rickknowles.winstone.AuthenticationRealm;
+import com.rickknowles.winstone.Logger;
+import com.rickknowles.winstone.WinstoneException;
+import com.rickknowles.winstone.WinstoneResourceBundle;
 
 /**
  * @author rickk
@@ -69,6 +82,7 @@ public class FileRealm extends AuthenticationRealm
       for (int n = 0; n < rootElm.getChildNodes().getLength(); n++)
       {
         Node child = (Node) rootElm.getChildNodes().item(n);
+  
         if ((child.getNodeType() == Node.ELEMENT_NODE) &&
             (child.getNodeName().equals(ELEM_USER)))
         {
@@ -78,13 +92,13 @@ public class FileRealm extends AuthenticationRealm
           // Loop through for attributes
           for (int j = 0; j < child.getAttributes().getLength(); j++)
           {
-            Node thisAtt = child.getAttributes().item(n);
+            Node thisAtt = child.getAttributes().item(j);
             if (thisAtt.getNodeName().equals(ATT_USERNAME)) 
-              userName = thisAtt.getFirstChild().getNodeValue();
+              userName = thisAtt.getNodeValue();
             else if (thisAtt.getNodeName().equals(ATT_PASSWORD)) 
-              password = thisAtt.getFirstChild().getNodeValue();
+              password = thisAtt.getNodeValue();
             else if (thisAtt.getNodeName().equals(ATT_ROLELIST)) 
-              roleList = thisAtt.getFirstChild().getNodeValue();
+              roleList = thisAtt.getNodeValue();
           }
 
           if ((userName == null) || (password == null) || (roleList == null))
@@ -107,7 +121,7 @@ public class FileRealm extends AuthenticationRealm
       Logger.log(Logger.FULL_DEBUG, resources.getString("FileRealm.Initialised",
           "[#userCount]", "" + this.passwords.size()));
     }
-    catch (IOException err) 
+    catch (java.io.IOException err) 
       {throw new WinstoneException(this.resources.getString("FileRealm.ErrorLoading"), err);
     }
   }
@@ -123,7 +137,7 @@ public class FileRealm extends AuthenticationRealm
       // Use JAXP to create a document builder
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setExpandEntityReferences(false);
-      factory.setValidating(true);
+      factory.setValidating(false);
       factory.setNamespaceAware(false);
       factory.setIgnoringComments(true);
       factory.setCoalescing(true);
