@@ -113,10 +113,13 @@ public class ObjectPool
 
   public void destroy()
   {
-    for (Iterator i = this.usedRequestHandlerThreads.iterator(); i.hasNext(); )
-      releaseRequestHandler((RequestHandlerThread) i.next());
-    for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
-      ((RequestHandlerThread) i.next()).destroy();
+    synchronized (this.requestHandlerSemaphore)
+    {
+      for (Iterator i = this.usedRequestHandlerThreads.iterator(); i.hasNext(); )
+        releaseRequestHandler((RequestHandlerThread) i.next());
+      for (Iterator i = this.unusedRequestHandlerThreads.iterator(); i.hasNext(); )
+        ((RequestHandlerThread) i.next()).destroy();
+    }
   }
 
   /**
