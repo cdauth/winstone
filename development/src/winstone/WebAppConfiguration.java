@@ -92,7 +92,7 @@ public class WebAppConfiguration implements ServletContext
   static final String DEFAULT_REALM_CLASS    = "winstone.realm.ArgumentsRealm";
   static final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.WebAppJNDIManager";
 
-  static final String RELOADING_CL_CLASS     = "winstone.classloader.ReloadingClassLoader";
+  static final String RELOADING_CL_CLASS     = "winstone.classLoader.ReloadingClassLoader";
 
   private WinstoneResourceBundle resources;
   private Launcher launcher;

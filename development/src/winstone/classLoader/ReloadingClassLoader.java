@@ -35,7 +35,7 @@ import winstone.*;
 public class ReloadingClassLoader extends WinstoneClassLoader implements Runnable
 {
   final int RELOAD_SEARCH_SLEEP = 50;
-  private static final String LOCAL_RESOURCE_FILE = "winstone.classloader.LocalStrings";
+  private static final String LOCAL_RESOURCE_FILE = "winstone.classLoader.LocalStrings";
 
   private boolean interrupted;
   private boolean reloadable;
