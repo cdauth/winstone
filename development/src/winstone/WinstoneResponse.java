@@ -523,12 +523,14 @@ public class WinstoneResponse implements HttpServletResponse
         
           Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.TestingException", 
             exceptionClasses[n] + "");
+          String errorPage = null;
           try
           {
             if (exceptionClasses[n].isInstance(err))
             {
+              errorPage = (String) errorPages.get(exceptionClasses[n]);
               javax.servlet.RequestDispatcher rd = this.webAppConfig
-                .getErrorDispatcher((String) errorPages.get(exceptionClasses[n]),
+                .getErrorDispatcher(errorPage,
                   new Integer(SC_INTERNAL_SERVER_ERROR), err, throwingServletName,
                   req.getRequestURI());
               if (rd != null)
@@ -542,7 +544,9 @@ public class WinstoneResponse implements HttpServletResponse
                      (String) errorPages.get(exceptionClasses[n])});
             }
           }
-          catch (Throwable err2) {/* Skipping */}
+          catch (Throwable err2) 
+          	{Logger.log(Logger.WARNING, this.resources, "WinstoneResponse.ErrorInErrorPage",
+                  new String[] {errorPage, "" + 500}, err);}
         }
       }
     }
