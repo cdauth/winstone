@@ -239,6 +239,11 @@ public class WinstoneResponse implements HttpServletResponse
     {
       out.append(OUT_COOKIE_HEADER1).append(": ");
       out.append(cookie.getName()).append("=").append(cookie.getValue());
+      if (cookie.getDomain() != null)
+      {
+        out.append("; Domain=");
+        out.append(cookie.getDomain());
+      }
       if (cookie.getMaxAge() >= 0)
       {
         long expiryMS = System.currentTimeMillis() + (long) (1000 * (long) cookie.getMaxAge());
