@@ -150,7 +150,7 @@ public class HttpsListener extends HttpListener
   {
     try
     {
-      InputStream in = new FileInputStream(keyStoreName);
+      InputStream in = new FileInputStream(new File(".", keyStoreName));
       char[] passwordChars = password == null ? null : password.toCharArray();
       KeyStore ks = KeyStore.getInstance("JKS");
       ks.load(in, passwordChars);
