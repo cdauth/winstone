@@ -46,7 +46,7 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
    * subclass for handling that auth type.
    */
   protected BaseAuthenticationHandler(Node loginConfigNode, List constraintNodes,
-    WinstoneResourceBundle resources, AuthenticationRealm realm)
+      Set rolesAllowed, WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
     this.realm = realm;
     this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); //resources;
@@ -63,7 +63,7 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
     // Build security constraints
     this.constraints = new SecurityConstraint[constraintNodes.size()]; 
     for (int n = 0; n < constraints.length; n++)
-      this.constraints[n] = new SecurityConstraint((Node) constraintNodes.get(n), resources, this.resources, n);
+      this.constraints[n] = new SecurityConstraint((Node) constraintNodes.get(n), rolesAllowed, resources, this.resources, n);
   }
 
   /**
@@ -115,13 +115,9 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
           return false;
         }
         else
-        {
           // Logger.log(Logger.FULL_DEBUG, "Allowed - authorization accepted");
           // Ensure that secured resources are not cached
-          response.setHeader("Pragma", "No-cache");
-          response.setHeader("Cache-Control", "No-cache");
-          response.setDateHeader("Expires", 1);
-        }
+          setNoCache(response);
       }
     }
     // If we made it this far without a check being run, there must be none applicable
@@ -129,6 +125,13 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
     return true;
   }
 
+  protected void setNoCache(HttpServletResponse response)
+  {
+    response.setHeader("Pragma", "No-cache");
+    response.setHeader("Cache-Control", "No-cache");
+    response.setDateHeader("Expires", 1);
+  }
+  
   /**
    * The actual auth request implementation.
    */

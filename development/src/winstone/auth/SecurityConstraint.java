@@ -55,14 +55,15 @@ public class SecurityConstraint
   /**
    * Constructor
    */
-  public SecurityConstraint(Node elm, WinstoneResourceBundle mainResources, 
+  public SecurityConstraint(Node elm, Set rolesAllowed, 
+      WinstoneResourceBundle mainResources, 
       WinstoneResourceBundle localResources, int counter)
   {
     this.resources = localResources;
     this.needsSSL = false;
-    List localUrlPatternList = new ArrayList();
-    List localMethodSetList = new ArrayList();
-    List localRolesAllowed = new ArrayList();
+    Set localUrlPatternList = new HashSet();
+    Set localMethodSetList = new HashSet();
+    Set localRolesAllowed = new HashSet();
 
     for (int i = 0; i < elm.getChildNodes().getLength(); i++)
     {
@@ -96,9 +97,14 @@ public class SecurityConstraint
         for (int k = 0; k < child.getChildNodes().getLength(); k++)
         {
           Node roleChild = child.getChildNodes().item(k);
-          if ((roleChild.getNodeType() == Node.ELEMENT_NODE) &&
-               roleChild.getNodeName().equals(ELEM_ROLE_NAME))
-            localRolesAllowed.add(roleChild.getFirstChild().getNodeValue().trim());
+          if ((roleChild.getNodeType() != Node.ELEMENT_NODE) || 
+              !roleChild.getNodeName().equals(ELEM_ROLE_NAME))
+            continue;
+          String roleName = roleChild.getFirstChild().getNodeValue().trim();
+          if (roleName.equals("*"))
+            localRolesAllowed.addAll(rolesAllowed);
+          else 
+            localRolesAllowed.add(roleName);
         }
       }
       else if (child.getNodeName().equals(ELEM_USER_DATA_CONSTRAINT))

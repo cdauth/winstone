@@ -243,6 +243,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         req.setServletPath(this.servletPath);
         req.setPathInfo(this.pathInfo);
         req.setRequestURI(this.prefix + this.requestURI);
+        req.setSecurityRoleRefsMap(this.config.getSecurityRoleRefs());
       }
       
 
@@ -306,7 +307,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   {
     // Have we eval'd security constraints yet ?
     if (this.authHandler != null)
-      return this.authHandler.processAuthentication(request, response, this.servletPath);
+      return this.authHandler.processAuthentication(request, response, 
+          this.servletPath + (this.pathInfo == null ? "" : this.pathInfo));
     else
       return true;
   }

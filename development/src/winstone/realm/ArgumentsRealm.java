@@ -44,7 +44,7 @@ public class ArgumentsRealm implements AuthenticationRealm
    * Constructor - this sets up an authentication realm, using the arguments supplied
    * on the command line as a source of userNames/passwords/roles.
    */
-  public ArgumentsRealm(WinstoneResourceBundle resources, Map args)
+  public ArgumentsRealm(WinstoneResourceBundle resources, Set rolesAllowed, Map args)
   {
     this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); //resources;
     this.passwords = new Hashtable();
@@ -57,14 +57,19 @@ public class ArgumentsRealm implements AuthenticationRealm
       {
         String userName = key.substring(PASSWORD_PREFIX.length());
         String password = (String) args.get(key);
-        this.passwords.put(userName, password);
 
         String roleList = (String) args.get(ROLES_PREFIX + userName);
         StringTokenizer st = new StringTokenizer(roleList, ",");
-        String roleArray[] = new String[st.countTokens()];
-        for (int n = 0; n < roleArray.length; n++)
-          roleArray[n] = st.nextToken();
+        List rl = new ArrayList();
+        for (; st.hasMoreTokens(); )
+        {
+          String currentRole = st.nextToken();
+          if (rolesAllowed.contains(currentRole))
+            rl.add(currentRole);
+        }
+        Object roleArray[] = rl.toArray();
         Arrays.sort(roleArray);
+        this.passwords.put(userName, password);
         this.roles.put(userName, Arrays.asList(roleArray));
       }
     }

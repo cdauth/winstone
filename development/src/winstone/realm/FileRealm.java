@@ -17,26 +17,12 @@
  */
 package winstone.realm;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.io.*;
+import java.util.*;
+import javax.xml.parsers.*;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-
-import winstone.AuthenticationPrincipal;
-import winstone.AuthenticationRealm;
-import winstone.Logger;
-import winstone.WinstoneException;
-import winstone.WinstoneResourceBundle;
+import org.w3c.dom.*;
+import winstone.*;
 
 
 /**
@@ -64,7 +50,7 @@ public class FileRealm implements AuthenticationRealm
    * Constructor - this sets up an authentication realm, using the file supplied
    * on the command line as a source of userNames/passwords/roles.
    */
-  public FileRealm(WinstoneResourceBundle resources, Map args)
+  public FileRealm(WinstoneResourceBundle resources, Set rolesAllowed, Map args)
   {
     this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); //resources;
     this.passwords = new Hashtable();
@@ -111,14 +97,18 @@ public class FileRealm implements AuthenticationRealm
               this.resources.getString("FileRealm.SkippingUser", "[#name]", userName));
           else
           {
-            this.passwords.put(userName, password);
-          
             // Parse the role list into an array and sort it
             StringTokenizer st = new StringTokenizer(roleList, ",");
-            String roleArray[] = new String[st.countTokens()];
-            for (int k = 0; k < roleArray.length; k++)
-              roleArray[k] = st.nextToken();
+            List rl = new ArrayList();
+            for (; st.hasMoreTokens(); )
+            {
+              String currentRole = st.nextToken();
+              if (rolesAllowed.contains(currentRole))
+                rl.add(currentRole);
+            }
+            Object roleArray[] = rl.toArray();
             Arrays.sort(roleArray);
+            this.passwords.put(userName, password);
             this.roles.put(userName, Arrays.asList(roleArray));
           }
         }

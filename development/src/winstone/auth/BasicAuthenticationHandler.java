@@ -33,9 +33,9 @@ import winstone.*;
 public class BasicAuthenticationHandler extends BaseAuthenticationHandler
 {
   public BasicAuthenticationHandler(Node loginConfigNode, List constraintNodes, 
-    WinstoneResourceBundle resources, AuthenticationRealm realm)
+    Set rolesAllowed, WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
-    super(loginConfigNode, constraintNodes, resources, realm);
+    super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
     Logger.log(Logger.DEBUG, this.resources.getString("BasicAuthenticationHandler.Initialised",
       "[#name]", realmName));
   }

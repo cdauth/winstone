@@ -1,10 +1,5 @@
 Points of non-compliance with Servlet 2.4 Specification
 -------------------------------------------------------
-     - 12.3 Match security-role-ref in IsUserInRole
-     - 12.7 run-as element in servlet
-     - 12.8.1 * = all roles
-     - 12.8.2 New security syntax
-     - 13.2 Canonical paths in web.xml
 		 - Parsing of the 2.4 web.xml file
 
 List of other things to do:
@@ -16,7 +11,7 @@ Short-term
      - Move all debugging message lookups into logger (performance)
 
 Long-term
-     - In memory response cache for preset url patterns ? Not a good idea, (session cookies)
+     - In memory cache for default servlet, caches previously requested files ?
      - Cache filter chain calculation for known URLs
      - Add more automated tests as part of release process:
        - url matching (evaluation of servletPath/pathInfo)
@@ -91,7 +86,11 @@ DONE - 11.1 Rule order for URL match
 DONE - 11.2 default mapping of /
 DONE - 11.2.1 *.jsp mapping is overrideable
 DONE - 12.2 Security on incoming only
+DONE - 12.3 Match security-role-ref in IsUserInRole
+IGNR - 12.7 run-as element in servlet
+DONE - 12.8.1 * = all roles
 DONE - 13.1 Locale-mapping element
+IGNR - 13.2 Canonical paths in web.xml
 
 v0.5
 DONE - Implement session clustering between multiple Winstone instances

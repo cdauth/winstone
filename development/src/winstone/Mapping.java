@@ -53,7 +53,7 @@ public class Mapping implements java.util.Comparator
   public static Mapping createFromURL(String mappedTo, String pattern, WinstoneResourceBundle resources)
   {
     if ((pattern == null) || (mappedTo == null))
-      throw new WinstoneException(resources.getString("WebAppConfig.InvalidMount",
+      throw new WinstoneException(resources.getString("Mapping.InvalidMount",
                                           	"[#name]", mappedTo, "[#pattern]", pattern));
 
     Mapping me = new Mapping(mappedTo, resources);
@@ -66,13 +66,13 @@ public class Mapping implements java.util.Comparator
     {
       me.urlPattern = pattern;
       me.patternType = EXACT_PATTERN;
-    	Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.MappedPattern",
+    	Logger.log(Logger.FULL_DEBUG, resources.getString("Mapping.MappedPattern",
         "[#name]", mappedTo, "[#pattern]", pattern));
     }
 
     // > 1 star = error
     else if (firstStarPos != lastStarPos)
-      throw new WinstoneException(resources.getString("WebAppConfig.InvalidMount",
+      throw new WinstoneException(resources.getString("Mapping.InvalidMount",
           																	"[#name]", mappedTo, "[#pattern]", pattern));
 
     // check for default servlet, ie mapping = exactly /*
@@ -90,7 +90,7 @@ public class Mapping implements java.util.Comparator
     }
     // check for non-extension match
     else if (pattern.indexOf(SLASH) != -1)
-      throw new WinstoneException(resources.getString("WebAppConfig.InvalidMount",
+      throw new WinstoneException(resources.getString("Mapping.InvalidMount",
           	"[#name]", mappedTo, "[#pattern]", pattern));
 
     // check for extension match at the beginning (eg *blah)
@@ -108,10 +108,10 @@ public class Mapping implements java.util.Comparator
       me.isPatternFirst = true;
     }
     else
-      throw new WinstoneException(resources.getString("WebAppConfig.InvalidMount",
+      throw new WinstoneException(resources.getString("Mapping.InvalidMount",
         	"[#name]", mappedTo, "[#pattern]", pattern));
       
-    Logger.log(Logger.FULL_DEBUG, resources.getString("WebAppConfig.MappedPattern",
+    Logger.log(Logger.FULL_DEBUG, resources.getString("Mapping.MappedPattern",
                                           "[#name]", mappedTo, "[#pattern]", pattern));
     return me;
   }
@@ -123,7 +123,7 @@ public class Mapping implements java.util.Comparator
   public static Mapping createFromLink(String mappedTo, String linkName, WinstoneResourceBundle resources)
   {
     if ((linkName == null) || (mappedTo == null))
-      throw new WinstoneException(resources.getString("WebAppConfig.InvalidLink",
+      throw new WinstoneException(resources.getString("Mapping.InvalidLink",
                                           	"[#name]", mappedTo, "[#link]", linkName));
 
     Mapping me = new Mapping(mappedTo, resources);

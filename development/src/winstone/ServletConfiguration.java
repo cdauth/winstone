@@ -43,7 +43,11 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   static final String ELEM_INIT_PARAM_NAME   = "param-name";
   static final String ELEM_INIT_PARAM_VALUE  = "param-value";
   static final String ELEM_LOAD_ON_STARTUP   = "load-on-startup";
-
+  static final String ELEM_RUN_AS            = "run-as";
+  static final String ELEM_SECURITY_ROLE_REF = "security-role-ref";
+  static final String ELEM_ROLE_NAME         = "role-name";
+  static final String ELEM_ROLE_LINK         = "role-link";
+  
   private String servletName;
   private String classFile;
   private Servlet instance;
@@ -53,6 +57,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   private int loadOnStartup;
   private String prefix;
   private String jspFile;
+  private String runAsRole;
+  private Map securityRoleRefs;
   private boolean unavailableException;
 
   private WinstoneResourceBundle resources;
@@ -70,6 +76,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
     this.resources = resources;
     this.prefix = prefix;
     this.unavailableException = false;
+    this.securityRoleRefs = new Hashtable();
   }
 
   public ServletConfiguration(ServletContext webAppConfig,
@@ -131,6 +138,33 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
         }
         if ((paramName != null) && (paramValue != null))
           this.initParameters.put(paramName, paramValue);
+      }
+      else if (nodeName.equals(ELEM_RUN_AS))
+      {
+        for (int m = 0; m < child.getChildNodes().getLength(); m++)
+        {
+          Node roleElm = (Node) child.getChildNodes().item(m);
+          if ((roleElm.getNodeType() == Node.ELEMENT_NODE) &&
+              (roleElm.getNodeName().equals(ELEM_ROLE_NAME)))
+            this.runAsRole = roleElm.getFirstChild().getNodeValue().trim();
+        }
+      }
+      else if (nodeName.equals(ELEM_SECURITY_ROLE_REF))
+      {
+        String name = null;
+        String link = null;
+        for (int k = 0; k < child.getChildNodes().getLength(); k++)
+        {
+          Node roleRefNode = child.getChildNodes().item(k);
+          if (roleRefNode.getNodeType() != Node.ELEMENT_NODE)
+            continue;
+          else if (roleRefNode.getNodeName().equals(ELEM_ROLE_NAME))
+            name = roleRefNode.getFirstChild().getNodeValue().trim();
+          else if (roleRefNode.getNodeName().equals(ELEM_ROLE_LINK))
+            link = roleRefNode.getFirstChild().getNodeValue().trim();
+        }
+        if ((name != null) && (link != null))
+          this.initParameters.put(name, link);
       }
     }
     
@@ -194,8 +228,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
   public int getLoadOnStartup()               {return this.loadOnStartup;}
   public String getInitParameter(String name) {return (String) this.initParameters.get(name);}
   public Enumeration getInitParameterNames()  {return Collections.enumeration(this.initParameters.keySet());}
-  public javax.servlet.ServletContext getServletContext() {return this.webAppConfig;}
-  public String getServletName()  {return this.servletName;}
+  public ServletContext getServletContext()   {return this.webAppConfig;}
+  public String getServletName()              {return this.servletName;}
+  public Map getSecurityRoleRefs()            {return this.securityRoleRefs;}
 
   /**
    * This was included so that the servlet instances could be sorted on their

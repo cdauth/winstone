@@ -178,7 +178,7 @@ public class WinstoneSession implements HttpSession, Serializable
   public void invalidate()
   {
     // Notify session listeners of invalidated session -- backwards
-    for (int n = this.sessionListeners.length; n >= 0; n--)
+    for (int n = this.sessionListeners.length - 1; n >= 0; n--)
       this.sessionListeners[n].sessionDestroyed(new HttpSessionEvent(this));
 
     List keys = new ArrayList(this.sessionData.keySet());

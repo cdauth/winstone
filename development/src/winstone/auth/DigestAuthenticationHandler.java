@@ -38,10 +38,10 @@ public class DigestAuthenticationHandler extends BaseAuthenticationHandler
   private MessageDigest md5Digester;
 
   public DigestAuthenticationHandler(Node loginConfigNode, List constraintNodes, 
-    WinstoneResourceBundle resources, AuthenticationRealm realm)
+    Set rolesAllowed, WinstoneResourceBundle resources, AuthenticationRealm realm)
       throws NoSuchAlgorithmException
   {
-    super(loginConfigNode, constraintNodes, resources, realm);
+    super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
     this.md5Digester = MessageDigest.getInstance("MD5");
     Logger.log(Logger.DEBUG, this.resources.getString("DigestAuthenticationHandler.Initialised",
       "[#name]", realmName));

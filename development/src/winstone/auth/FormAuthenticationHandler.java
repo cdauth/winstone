@@ -18,7 +18,7 @@
 package winstone.auth;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 
 import javax.servlet.http.*;
 import javax.servlet.*;
@@ -57,9 +57,9 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
    * @param realmName The name of the realm this handler claims
    */
   public FormAuthenticationHandler(Node loginConfigNode, List constraintNodes, 
-    WinstoneResourceBundle resources, AuthenticationRealm realm)
+    Set rolesAllowed, WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
-    super(loginConfigNode, constraintNodes, resources, realm);
+    super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
 
     for (int n = 0; n < loginConfigNode.getChildNodes().getLength(); n++)
     {
@@ -125,6 +125,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
     // Forward on to the login page
     Logger.log(Logger.FULL_DEBUG, "Forwarding to the login page");
     javax.servlet.RequestDispatcher rd = request.getRequestDispatcher(this.loginPage);
+    setNoCache(response);
     rd.forward(request, response);
   }
 
@@ -152,31 +153,31 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
       // Send to stashed request
       else
       {
+        // Iterate back as far as we can
+        ServletRequest wrapperCheck = request;
+        while (wrapperCheck instanceof HttpServletRequestWrapper)
+          wrapperCheck = ((HttpServletRequestWrapper) wrapperCheck).getRequest();
+        
         // Get the stashed request
         WinstoneRequest actualRequest = null;
-        if (request instanceof WinstoneRequest)
-          actualRequest = (WinstoneRequest) request;
-        else if (request instanceof HttpServletRequestWrapper)
+        if (wrapperCheck instanceof WinstoneRequest)
         {
-          HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
-          if (wrapper.getRequest() instanceof WinstoneRequest)
-            actualRequest = (WinstoneRequest) wrapper.getRequest();
-          else
-            Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapper.getRequest().getClass().getName()));
+          actualRequest = (WinstoneRequest) wrapperCheck;
+          actualRequest.setRemoteUser(principal);
         }
         else
-          Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", request.getClass().getName()));
+          Logger.log(Logger.WARNING, this.resources.getString("FormAuthenticationHandler.CantSetUser", "[#class]", wrapperCheck.getClass().getName()));
 
-        WinstoneSession session = (WinstoneSession) actualRequest.getSession(true);
+        WinstoneSession session = (WinstoneSession) request.getSession(true);
         principal.setAuthType(HttpServletRequest.FORM_AUTH);
         session.setAuthenticatedUser(principal);
         String previousLocation = this.loginPage;
-        if (session.getCachedRequest() != null)
+        if ((session.getCachedRequest() != null) && (actualRequest != null))
         {
           // Repopulate this request from the params we saved
           ((CachedRequest)session.getCachedRequest()).transferContent(actualRequest);
           previousLocation = request.getServletPath();
-          session.setCachedRequest(null);
+          //session.setCachedRequest(null); - commented out so that refreshes will work
         }
         else
           Logger.log(Logger.DEBUG, this.resources.getString("FormAuthenticationHandler.NoCachedRequest"));

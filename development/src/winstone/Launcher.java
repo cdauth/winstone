@@ -41,18 +41,20 @@ import org.xml.sax.SAXException;
  */
 public class Launcher implements EntityResolver, Runnable
 {
-  final String DTD_2_2_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN";
-  final String DTD_2_2_URL    = "javax/servlet/resources/web-app_2_2.dtd";
+  static final String DTD_2_2_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN";
+  static final String DTD_2_2_URL    = "javax/servlet/resources/web-app_2_2.dtd";
 
-  final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
-  final String DTD_2_3_URL    = "javax/servlet/resources/web-app_2_3.dtd";
+  static final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
+  static final String DTD_2_3_URL    = "javax/servlet/resources/web-app_2_3.dtd";
 
-  final String XSD_2_4_PUBLIC = "-//Sun Microsystems, Inc.//XSD Web Application 2.4//EN";
-  final String XSD_2_4_URL    = "javax/servlet/resources/web-app_2_4.xsd";
+  static final String XSD_2_4_PUBLIC = "-//Sun Microsystems, Inc.//XSD Web Application 2.4//EN";
+  static final String XSD_2_4_URL    = "javax/servlet/resources/web-app_2_4.xsd";
 
-  final String HTTP_LISTENER_CLASS = "winstone.HttpListener";
-  final String AJP_LISTENER_CLASS  = "winstone.ajp13.Ajp13Listener";
-  final String CLUSTER_CLASS       = "winstone.cluster.SimpleCluster";
+  static final String HTTP_LISTENER_CLASS = "winstone.HttpListener";
+  static final String AJP_LISTENER_CLASS  = "winstone.ajp13.Ajp13Listener";
+  static final String CLUSTER_CLASS       = "winstone.cluster.SimpleCluster";
+  
+  final String CRIMSON_PREFIX = "org.apache.crimson.";
 
   static final String RESOURCE_FILE    = "winstone.LocalStrings";
   static final String WEB_ROOT = "webroot";
@@ -350,10 +352,23 @@ public class Launcher implements EntityResolver, Runnable
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setExpandEntityReferences(false);
       factory.setValidating(true);
-      factory.setNamespaceAware(false);
+      factory.setNamespaceAware(true);
       factory.setIgnoringComments(true);
       factory.setCoalescing(true);
       factory.setIgnoringElementContentWhitespace(true);
+
+      // If we have (and can parse) the 2.4 xsd, set to redirect locally to use it
+      if ((getClass().getClassLoader().getResource(XSD_2_4_URL) != null) &&
+          !factory.getClass().getName().startsWith(CRIMSON_PREFIX))
+      {
+        factory.setAttribute(
+            "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
+            "http://www.w3.org/2001/XMLSchema");
+        factory.setAttribute(
+            "http://java.sun.com/xml/jaxp/properties/schemaSource",
+            getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
+      }
+
       DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setEntityResolver(this);
       return builder.parse(in);
@@ -377,9 +392,8 @@ public class Launcher implements EntityResolver, Runnable
       return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_2_URL));
     else if (publicName.equals(DTD_2_3_PUBLIC))
       return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_3_URL));
-    //else if (publicName.equals(XSD_2_4_PUBLIC) &&
-    //    (getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL) != null))
-    //  return new InputSource(getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
+    else if (publicName.equals(XSD_2_4_PUBLIC))
+      return new InputSource(getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
     else
       return new InputSource(url);
   }

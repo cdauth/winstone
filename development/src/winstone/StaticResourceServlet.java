@@ -50,7 +50,6 @@ public class StaticResourceServlet extends HttpServlet
   private String webRoot;
   private String prefix;
   private boolean directoryList;
-  private String welcomeFiles[];
   private WinstoneResourceBundle resources;
   
   public void init(ServletConfig config) throws ServletException
@@ -62,11 +61,6 @@ public class StaticResourceServlet extends HttpServlet
     String dirList = config.getInitParameter("directoryList");
     this.directoryList = (dirList == null) || dirList.equalsIgnoreCase("true")
                                            || dirList.equalsIgnoreCase("yes");
-
-    int welcomeFileCount = Integer.parseInt(config.getInitParameter("welcomeFileCount"));
-    this.welcomeFiles = new String[welcomeFileCount];
-    for (int n = 0; n < welcomeFileCount; n++)
-      this.welcomeFiles[n] = config.getInitParameter("welcomeFile_" + n);
   }
 
   public void doPost(HttpServletRequest request, HttpServletResponse response)

@@ -20,6 +20,7 @@ package winstone;
 import java.io.*;
 import java.text.*;
 import java.util.*;
+
 import javax.servlet.http.Cookie;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpSession;
@@ -87,6 +88,7 @@ public class WinstoneRequest implements HttpServletRequest
   protected AuthenticationPrincipal authenticatedUser;
   protected ServletRequestAttributeListener requestAttributeListeners[];
   protected ServletRequestListener requestListeners[];
+  protected Map securityRoleRefs;
 
   private WinstoneResourceBundle resources;
   private MessageDigest md5Digester;
@@ -115,6 +117,7 @@ public class WinstoneRequest implements HttpServletRequest
   {
     this.requestListeners = null;
     this.requestAttributeListeners = null;
+    this.securityRoleRefs = null;
     this.listener = null;
     this.attributes.clear();
     this.parameters.clear();
@@ -209,7 +212,9 @@ public class WinstoneRequest implements HttpServletRequest
   public void setLocales(List locales)      {this.locales = locales;}
   public void setSessionCookie(String sc)   {this.sessionCookie = sc;}
   public void setEncoding(String encoding)  {this.encoding = encoding;}
+  
   public void setParsedParameters(Boolean parsed) {this.parsedParameters = parsed;}
+  public void setSecurityRoleRefsMap(Map refs)    {this.securityRoleRefs = refs;}
 
   public void setRequestListeners(ServletRequestListener rl[]) 
     {this.requestListeners = rl;}
@@ -673,7 +678,17 @@ public class WinstoneRequest implements HttpServletRequest
 
   public Principal getUserPrincipal()       {return this.authenticatedUser;}
   public boolean isUserInRole(String role)
-    {return this.authenticatedUser == null ? false : this.authenticatedUser.isUserIsInRole(role);}
+  {
+    if (this.authenticatedUser == null)
+      return false;
+    else if (this.securityRoleRefs == null)
+      return this.authenticatedUser.isUserIsInRole(role);
+    else
+    {
+      String replacedRole = (String) this.securityRoleRefs.get(role);
+      return this.authenticatedUser.isUserIsInRole(replacedRole == null ? role : replacedRole);
+    }
+  }
   public String getAuthType()
     {return this.authenticatedUser == null ? null : this.authenticatedUser.getAuthType();}
   public String getRemoteUser()
@@ -774,5 +789,6 @@ public class WinstoneRequest implements HttpServletRequest
    * @deprecated
    */
   public boolean isRequestedSessionIdFromUrl()      {return isRequestedSessionIdFromURL();}
+
 }
 

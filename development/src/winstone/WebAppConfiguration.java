@@ -245,7 +245,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
     List localWelcomeFiles = new ArrayList();
     List startupServlets = new ArrayList();
 
-    List rolesAllowed = new ArrayList();
+    Set rolesAllowed = new HashSet();
     List constraintNodes = new ArrayList();
     List envEntryNodes = new ArrayList();
     List localErrorPagesByExceptionList = new ArrayList();
@@ -595,15 +595,15 @@ public class WebAppConfiguration implements ServletContext, Comparator
       {
         // Build the realm
         Class realmClass = Class.forName(realmClassName);
-        Constructor realmConstr = realmClass.getConstructor(new Class[] {WinstoneResourceBundle.class, Map.class});
-        this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, startupArgs});
+        Constructor realmConstr = realmClass.getConstructor(new Class[] {WinstoneResourceBundle.class, Set.class, Map.class});
+        this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(new Object[] {resources, rolesAllowed, startupArgs});
 
         // Build the authentication handler
         Class authClass = Class.forName(authClassName);
         Constructor authConstr = authClass.getConstructor(new Class[] 
-          {Node.class, List.class, WinstoneResourceBundle.class, AuthenticationRealm.class});
+          {Node.class, List.class, Set.class, WinstoneResourceBundle.class, AuthenticationRealm.class});
         this.authenticationHandler = (AuthenticationHandler) authConstr.newInstance(new Object[] 
-          {loginConfigNode, constraintNodes, resources, authenticationRealm});
+          {loginConfigNode, constraintNodes, rolesAllowed, resources, authenticationRealm});
       }
       catch (ClassNotFoundException err)
         {Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfig.AuthDisabled", "[#type]", authMethod));}
@@ -690,9 +690,6 @@ public class WebAppConfiguration implements ServletContext, Comparator
     	staticParams.put("webRoot", this.webRoot);
     	staticParams.put("prefix", this.prefix);
     	staticParams.put("directoryList", "" + useDirLists);
-    	staticParams.put("welcomeFileCount", "" + this.welcomeFiles.length);
-    	for (int n = 0; n < this.welcomeFiles.length; n++)
-    		staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
     	ServletConfiguration defaultServlet = new ServletConfiguration(this, this.loader,
     		this.resources, this.prefix, this.defaultServletName, DEFAULT_SERVLET_CLASS, staticParams, 0);
     	defaultServlet.getRequestDispatcher(this.filterInstances);

@@ -33,9 +33,9 @@ import java.security.cert.X509Certificate;
 public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler
 {
   public ClientcertAuthenticationHandler(Node loginConfigNode, List constraintNodes, 
-    WinstoneResourceBundle resources, AuthenticationRealm realm)
+    Set rolesAllowed, WinstoneResourceBundle resources, AuthenticationRealm realm)
   {
-    super(loginConfigNode, constraintNodes, resources, realm);
+    super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
     Logger.log(Logger.DEBUG, this.resources.getString("ClientcertAuthenticationHandler.Initialised",
       "[#name]", realmName));
   }
