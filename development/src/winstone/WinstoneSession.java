@@ -108,7 +108,7 @@ public class WinstoneSession implements HttpSession, Serializable
     if (this.distributable &&
         (value != null) &&
         !(value instanceof java.io.Serializable))
-      Logger.log(Logger.WARNING, this.resources.getString("WinstoneSession.AttributeNotSerializable",
+      throw new IllegalArgumentException(this.resources.getString("WinstoneSession.AttributeNotSerializable",
           "[#name]", name, "[#class]", value.getClass().getName()));
 
     // valueBound must be before binding
