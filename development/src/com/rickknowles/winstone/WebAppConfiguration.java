@@ -118,68 +118,69 @@ public class WebAppConfiguration implements ServletContext
     }
 
     // Parse the web.xml file
-    for (int n = 0; n < elm.getChildNodes().getLength(); n++)
-    {
-      Node child = elm.getChildNodes().item(n);
-      if (child.getNodeType() != Node.ELEMENT_NODE)
-        continue;
-      String nodeName = child.getNodeName();
-
-      if (nodeName.equals(ELEM_DISPLAY_NAME))
-        this.displayName = child.getFirstChild().getNodeValue().trim();
-
-      // Session config elements
-      else if (nodeName.equals(ELEM_SESSION_CONFIG))
+    if (elm != null)
+      for (int n = 0; n < elm.getChildNodes().getLength(); n++)
       {
-        for (int m = 0; m < child.getChildNodes().getLength(); m++)
+        Node child = elm.getChildNodes().item(n);
+        if (child.getNodeType() != Node.ELEMENT_NODE)
+          continue;
+        String nodeName = child.getNodeName();
+
+        if (nodeName.equals(ELEM_DISPLAY_NAME))
+          this.displayName = child.getFirstChild().getNodeValue().trim();
+
+        // Session config elements
+        else if (nodeName.equals(ELEM_SESSION_CONFIG))
         {
-          Node timeoutElm = (Node) child.getChildNodes().item(m);
-          if ((timeoutElm.getNodeType() == Node.ELEMENT_NODE) &&
-              (timeoutElm.getNodeName().equals(ELEM_SESSION_TIMEOUT)))
-            this.sessionTimeout = new Integer(timeoutElm.getFirstChild().getNodeValue().trim());
+          for (int m = 0; m < child.getChildNodes().getLength(); m++)
+          {
+            Node timeoutElm = (Node) child.getChildNodes().item(m);
+            if ((timeoutElm.getNodeType() == Node.ELEMENT_NODE) &&
+                (timeoutElm.getNodeName().equals(ELEM_SESSION_TIMEOUT)))
+              this.sessionTimeout = new Integer(timeoutElm.getFirstChild().getNodeValue().trim());
+          }
         }
-      }
 
-      // Construct the servlet instances
-      else if (nodeName.equals(ELEM_SERVLET))
-      {
-        ServletConfiguration instance = new ServletConfiguration(this, this.loader, child);
-        this.servletInstances.put(instance.getServletName(), instance);
-        if (instance.getLoadOnStartup() >= 0)
-          startupServlets.add(instance);
-      }
-
-      // Process the servlet mappings
-      else if (nodeName.equals(ELEM_MAPPING))
-      {
-        String name    = null;
-        String pattern = null;
-
-        // Parse the element and extract
-        for (int k = 0; k < child.getChildNodes().getLength(); k++)
+        // Construct the servlet instances
+        else if (nodeName.equals(ELEM_SERVLET))
         {
-          Node mapChild = child.getChildNodes().item(k);
-          if (mapChild.getNodeType() != Node.ELEMENT_NODE)
-            continue;
-          String mapNodeName = mapChild.getNodeName();
-          if (mapNodeName.equals(ELEM_SERVLET_NAME))
-            name = mapChild.getFirstChild().getNodeValue().trim();
-          else if (mapNodeName.equals(ELEM_URL_PATTERN))
-            pattern = mapChild.getFirstChild().getNodeValue().trim();
+          ServletConfiguration instance = new ServletConfiguration(this, this.loader, child);
+          this.servletInstances.put(instance.getServletName(), instance);
+          if (instance.getLoadOnStartup() >= 0)
+            startupServlets.add(instance);
         }
-        processMapping(name, pattern, localPatterns, localPatternMounts);
-      }
 
-      // Process the list of welcome files
-      else if (nodeName.equals(ELEM_WELCOME_FILES))
-        for (int m = 0; m < child.getChildNodes().getLength(); m++)
+        // Process the servlet mappings
+        else if (nodeName.equals(ELEM_MAPPING))
         {
-          Node welcomeFile = (Node) child.getChildNodes().item(m);
-          if ((welcomeFile.getNodeType() == Node.ELEMENT_NODE) &&
-              (welcomeFile.getNodeName().equals(ELEM_WELCOME_FILE)))
-            localWelcomeFiles.add(welcomeFile.getFirstChild().getNodeValue().trim());
+          String name    = null;
+          String pattern = null;
+
+          // Parse the element and extract
+          for (int k = 0; k < child.getChildNodes().getLength(); k++)
+          {
+            Node mapChild = child.getChildNodes().item(k);
+            if (mapChild.getNodeType() != Node.ELEMENT_NODE)
+              continue;
+            String mapNodeName = mapChild.getNodeName();
+            if (mapNodeName.equals(ELEM_SERVLET_NAME))
+              name = mapChild.getFirstChild().getNodeValue().trim();
+            else if (mapNodeName.equals(ELEM_URL_PATTERN))
+              pattern = mapChild.getFirstChild().getNodeValue().trim();
+          }
+          processMapping(name, pattern, localPatterns, localPatternMounts);
         }
-    }
+
+        // Process the list of welcome files
+        else if (nodeName.equals(ELEM_WELCOME_FILES))
+          for (int m = 0; m < child.getChildNodes().getLength(); m++)
+          {
+            Node welcomeFile = (Node) child.getChildNodes().item(m);
+            if ((welcomeFile.getNodeType() == Node.ELEMENT_NODE) &&
+                (welcomeFile.getNodeName().equals(ELEM_WELCOME_FILE)))
+              localWelcomeFiles.add(welcomeFile.getFirstChild().getNodeValue().trim());
+          }
+      }
 
     // Take the elements out of the lists and build arrays
     this.welcomeFiles = (String []) localWelcomeFiles.toArray(

@@ -86,18 +86,20 @@ public class Listener implements Runnable, EntityResolver
     if (!webRoot.exists())
       throw new WinstoneException("Web root not found - " + webRoot.getCanonicalPath());
 
+    Node webXMLParentNode = null;
     File webInfFolder = new File(webRoot, WEB_INF);
-    if (!webInfFolder.exists())
-      throw new WinstoneException("WEB-INF folder not found - " + webInfFolder.getCanonicalPath());
-
-    File webXmlFile = new File(webInfFolder, WEB_XML);
-    if (!webXmlFile.exists())
-      throw new WinstoneException("web.xml file not found - " + webXmlFile.getCanonicalPath());
-
-    InputStream inWebXML = new FileInputStream(webXmlFile);
-    Document webXMLDoc = parseStreamToXML(inWebXML);
-    inWebXML.close();
-
+    if (webInfFolder.exists())
+    {
+      File webXmlFile = new File(webInfFolder, WEB_XML);
+      if (webXmlFile.exists())
+      {
+        InputStream inWebXML = new FileInputStream(webXmlFile);
+        Document webXMLDoc = parseStreamToXML(inWebXML);
+        inWebXML.close();
+        webXMLParentNode = webXMLDoc.getDocumentElement();
+      }
+    }
+    
     // Get options
     String dirLists = (String) args.get("directoryListings");
     String useJasper = (String) args.get("jasper");
@@ -109,7 +111,7 @@ public class Listener implements Runnable, EntityResolver
                                                 (String) args.get("prefix"),
                                                 (dirLists == null) || dirLists.equalsIgnoreCase("true") || dirLists.equalsIgnoreCase("yes"),
                                                 (useJasper != null) && (useJasper.equalsIgnoreCase("true") || useJasper.equalsIgnoreCase("yes")),
-                                                webXMLDoc.getDocumentElement());
+                                                webXMLParentNode);
 
     this.unusedRequestHandlerThreads = new Vector();
     this.usedRequestHandlerThreads = new Vector();
