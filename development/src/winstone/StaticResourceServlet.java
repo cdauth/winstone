@@ -80,7 +80,10 @@ public class StaticResourceServlet extends HttpServlet
     else if (request.getPathInfo() != null)
       path = request.getPathInfo();
     else
-    	path = "";
+      path = "";
+    
+    // URL decode path
+    path = WinstoneRequest.decodeURLToken(path);
     
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
     Logger.log(Logger.DEBUG, this.resources, "StaticResourceServlet.PathRequested",

@@ -277,7 +277,7 @@ public class WinstoneRequest implements HttpServletRequest
   /**
    * For decoding the URL encoding used on query strings
    */
-  private static String decodeURLToken(String in)
+  public static String decodeURLToken(String in)
   {
     StringBuffer workspace = new StringBuffer();
     for (int n = 0; n < in.length(); n++)
