@@ -206,8 +206,12 @@ public class WinstoneRequest implements HttpServletRequest
         Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.IgnoringBadParameter") + token);
       else try
       {
-        String decodedName = decodeURLToken(token.substring(0, equalPos));
-        String decodedValue = decodeURLToken(token.substring(equalPos + 1));
+        String decodedNameDefault = decodeURLToken(token.substring(0, equalPos));
+        String decodedValueDefault = decodeURLToken(token.substring(equalPos + 1));
+        String decodedName = (this.encoding == null ? decodedNameDefault 
+            : new String(decodedNameDefault.getBytes("8859_1"), this.encoding));
+        String decodedValue = (this.encoding == null ? decodedValueDefault 
+            : new String(decodedValueDefault.getBytes("8859_1"), this.encoding));
         Object already = params.get(decodedName);
         if (already == null)
           params.put(decodedName, decodedValue);
@@ -288,7 +292,9 @@ public class WinstoneRequest implements HttpServletRequest
         if (readCount != contentLength)
           Logger.log(Logger.WARNING, resources.getString("WinstoneRequest.IncorrectContentLength",
             "[#contentLength]", contentLength + "", "[#readCount]", readCount + ""));
-        String paramLine = new String(paramBuffer);
+        String paramLine = (this.encoding == null 
+                              ? new String(paramBuffer)
+                              : new String(paramBuffer, this.encoding));
         Map postParams = extractParameters(paramLine.trim());
         Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParamLine") + postParams);
         params.putAll(postParams);
