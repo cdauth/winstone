@@ -33,6 +33,8 @@ import winstone.*;
 public class WinstoneDataSource implements DataSource, Runnable
 {
   final static int SLEEP_PERIOD = 2000;
+
+  private static final String LOCAL_RESOURCE_FILE = "winstone.jndi.resourceFactories.LocalStrings";
   
   private Thread thread;
   private String name;
@@ -61,7 +63,7 @@ public class WinstoneDataSource implements DataSource, Runnable
     WinstoneResourceBundle resources) throws SQLException, ClassNotFoundException
   {
     this.name = name;
-    this.resources = resources;
+    this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
     this.interrupted = false;
     this.loginTimeout = 0;
     this.usedWrappers = new ArrayList();

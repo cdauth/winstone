@@ -1,12 +1,22 @@
 <html>
 <head>
   <title>Winstone Servlet Container</title>
+  <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 150kb jar file"/>
+  <meta name="keywords" content="servlets, servlet, jsp, java, jdk, jre, winstone, small, fast, reliable, open source, gpl, gcj, jndi, xml"/>
+  <meta name="author" content="Rick Knowles"/>
+  <meta name="language" content="English"/>
+  <meta name="charset" content="ISO-8859-1"/>
+  <meta name="MSSmartTagsPreventParsing" content="TRUE"/>
+  <meta name="distribution" content="Global"/>
+  <meta name="rating" content="General"/>
+  <meta name="robots" content="Index, Follow"/>
+  <meta name="revisit-after" content="7 Days"/>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.6</h1></center>
+<center><h1>Winstone Servlet Container v0.6.1</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
-  <hr width="90%" size="1" noshade="true"/>
+  <hr width="90%" size="1" noshade="noshade"/>
 
 <br/>
 <center>
@@ -111,7 +121,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.6.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone_src_v0.6.1.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -120,11 +130,11 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.1.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar ../dist/winstone_v0.6.1.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p>The winstone.jar file will be in the winstone/dist directory after the build is complete.</p>
 
@@ -132,7 +142,7 @@
 
   <pre>
 Syntax:
-  java -jar winstone_v0.6.jar [--option=value] [--option=value] etc
+  java -jar winstone_v0.6.1.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile
    --webroot                = set document root folder.
@@ -318,9 +328,9 @@ Security options:
     because they must be in the system classpath to override the JDK internal XML parser.</p>
 
   <p>Alternatively you can add these two files to your startup classpath, but you will have to 
-    manually specify the Winstone startup class:
+    manually specify the Winstone startup class:</p>
     <pre>&nbsp;&nbsp;java -cp winstone.jar;xercesImpl.jar;xml-apis.jar winstone.Launcher --webroot=...</pre>
-  </p>
+  
 
 <h2><a name="jasper">JSPs (aka using with Jasper)</a></h2>
 
@@ -351,21 +361,21 @@ Security options:
     <li>
       <p>You'll also need <b>tools.jar</b>, and this is handled a little differently. 
       The ant javac compile task needs this to turn the generated .java files into 
-      .class files at runtime. You should already have this in the <java_home>/lib folder 
+      .class files at runtime. You should already have this in the &lt;java_home&gt;/lib folder 
       of your jdk.</p>
 
       <p>There are two new startup arguments for Winstone --javaHome and --toolsJar. You 
       should only need to set --javaHome to make Jasper work properly. Your startup might
-      look like this:
+      look like this:</p>
+      
       <pre>&nbsp;&nbsp;java -jar winstone.jar --useJasper \
                          --javaHome=c:\java\jdk1.4.2 \
                          --webroot=...</pre>
-      Additionally, you can specify the exact location of the toolsJar file like this:
+      <p>Additionally, you can specify the exact location of the toolsJar file like this:</p>
       <pre>&nbsp;&nbsp;java -jar winstone.jar --useJasper \
                          --javaHome=c:\java\jdk1.4.2 \
                          --toolsJar=c:\tools.jar \
                          --webroot=...</pre>
-      </p>
     </li>
   </ol>
 
@@ -377,15 +387,15 @@ Security options:
 
   <ol>
     <li>Download mod_jk2.dll/so into the apache modules directory</li>
-    <li>Add the following to the apache conf file (httpd.conf): </li>
+    <li>Add the following to the apache conf file (httpd.conf): 
 <pre>
 LoadModule jk2_module modules/mod_jk2.dll
 
 &lt;Location "/&lt;Winstone Prefix&gt;/*"&gt;
   JkUriSet worker ajp13:localhost:8009 
 &lt;/Location&gt;
-</pre>
-    <li>Create a new file called workers2.properties in the apache conf directory, with the following contents</li>
+</pre></li>
+    <li>Create a new file called workers2.properties in the apache conf directory, with the following contents
 <pre>
 # only in the beginning. In production comment out
 [logger.apache2]
@@ -399,7 +409,7 @@ host=127.0.0.1
 # define the worker
 [ajp13:localhost:8009]
 channel=channel.socket:localhost:8009
-</pre>
+</pre></li>
     <li>Start up Winstone and Apache and try connecting to the your webapp on the apache port, with the winstone 
       prefix. If it doesn't work, try looking at the apache error.log file for hints. If you get hex dumps, mail
       them to the winstone-devel list, together with any stack traces winstone generated.</li>
@@ -408,7 +418,7 @@ channel=channel.socket:localhost:8009
   <p>Please note this is not an optimal configuration for production uses. This is provided purely for those
     who need some help to get started. Read the mod_jk documentation with Tomcat for more detailed info.</p>
 
-<h2><a name="authRealms">Using Authentication Realms</h2>
+<h2><a name="authRealms">Using Authentication Realms</a></h2>
 
   <p>The process here is almost identical to that of Tomcat (I know this because I used the Tomcat examples
     webapp to develop against). There are two components - the web.xml component and selecting/configuring
@@ -476,14 +486,14 @@ channel=channel.socket:localhost:8009
 
   <p>That said, the configuration is fairly simple. The only information you need is the IP address and control
     port of at least one other active node in the cluster. Once you have that, add the following options to
-    the command line startup:
+    the command line startup:</p>
 <pre>
 java -jar winstone.jar ...&lt; other options &gt; ... \
                        --controlPort=&lt;myControlPort&gt; \
                        --useCluster \
                        --clusterNodes=&lt;IP1:controlPort1&gt;
 </pre>
-    where IP1 is the IP address of the other node in the cluster, and myControlPort and controlPort1 are the port
+    <p>where IP1 is the IP address of the other node in the cluster, and myControlPort and controlPort1 are the port
     numbers to use for the control ports of this instance and the other node respectively. Note that it is necessary
     to actively set the controlPort on this instance, since it is disabled by default.</p>
 
@@ -491,7 +501,7 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
     appropriately.</p>
 
   <p>NOTE: There are some additional requirements on your web application for Clustering of sessions to be 
-    successful.
+    successful.</p>
     <ol>
       <li>You need to include the <b>&lt;distributable/&gt;</b> element in your web.xml file. This tells Winstone that
         your webapp is programmed correctly to support clustering. If this is missing, clustering will be disabled.</li>
@@ -499,7 +509,7 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
         Winstone serializes the objects in the session over the controlPort to other nodes, and reconstructs the
         serialized session at the destination. If you try to put a non-serializable object into the session, 
         Winstone will throw an exception reminding you to make all session objects serializable.</li>
-    </ol></p>
+    </ol>
 
 <h2><a name="controlPort">Control port functions/protocol</a></h2>
 
@@ -508,20 +518,20 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
 
   <p>The protocol is very simple. The first byte sent to the server is a flag indicating what type of request
     is being issued. Beyond that the protocol varies for each request type, but the request type flag options
-    are listed below:
+    are listed below:</p>
     <ul>
       <li><b>0 (ASCII 48)</b> = shutdown</li>
       <li><b>1 (ASCII 49)</b> = request search for a session</li>
       <li><b>2 (ASCII 50)</b> = request list of currently connected cluster nodes</li>
       <li><b>3 (ASCII 51)</b> = cluster node heartbeat</li>
       <li><b>4 (ASCII 52)</b> = request reload of web application context</li>
-    </ul></p>
+    </ul>
 
   <p>Obviously, unless you're planning to write your own cluster extensions, the only two you will be interested
    in are the shutdown and reload options. Luckily there is a wrapper class for accessing these functions, named
-   <code>winstone.tools.WinstoneControl</code>. Try the following to get a usage statement:
+   <code>winstone.tools.WinstoneControl</code>. Try the following to get a usage statement:</p>
      <pre>&nbsp;&nbsp;java -cp winstone.jar winstone.tools.WinstoneControl</pre>
-  </p>
+  
 
 <h2><a name="jndi">JNDI support</a></h2>
 
@@ -537,7 +547,7 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
 
   <p>NOTE: JNDI support is disabled by default. It must be enabled using <code>--useJNDI=true</code></p>
 
-  <p>Configuration can be done in two ways:
+  <p>Configuration can be done in two ways:</p>
     <ul>
       <li><b>&lt;env-entry&gt; elements</b> - This is the standard way to add simple objects, such as
         sql strings or configuration integers/strings. For example:
@@ -560,11 +570,11 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
                         --jndi.param.test.value=45.56
 </pre></li>
     </ul>
-  </p>
+  
  
   <p>Additionally, it includes a JDBC DataSource object which can be used as a wrapper around normal JDBC 
     drivers. This is fairly simple for now, but it meets the requirements I mentioned above. Options are as
-    follows:
+    follows:</p>
     <ol>
       <li><b>url (REQUIRED)</b> - JDBC URL (<code>jdbc:mysql://db.widgets.com/db</code>)</li>
       <li><b>driverClassName (REQUIRED)</b> - JDBC Driver name (eg <code>com.mysql.jdbc.Driver</code>)</li>
@@ -573,10 +583,10 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
       <li><b>maxConnections</b> - Maximum number of connections allowed in the pool. Default is 20</li>
       <li><b>maxIdle</b> - Maximum number of idle connections allowed in the pool. Default is 10</li>
       <li><b>startConnections</b> - The number of connections to open the pool with. Deafault is 2</li>
-    </ol></p>
+    </ol>
 
   <p>For example to create a DataSource object at the JNDI location java:/comp/env/jdbc/connPool, use the 
-    following command line (or config file) options:
+    following command line (or config file) options:</p>
 <pre>
 java -jar winstone.jar ...&lt; other options &gt; ... \
                         --useJNDI=true \
@@ -585,7 +595,7 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
                         --jndi.param.jdbc/connPool.driverClassName=com.mysql.jdbc.Driver \
                         --jndi.param.jdbc/connPool.username=foo \
                         --jndi.param.jdbc/connPool.password=bar
-</pre></p>
+</pre>
 
 <h2><a name="gcj">Compiling with GCJ</a></h2>
 
@@ -621,11 +631,11 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
     </tr>
   </table>
   </center>
-  <hr width="90%" size="1" noshade="true"/>
+  <hr width="90%" size="1" noshade="noshade"/>
   <center>
     <a href="http://sourceforge.net"><img src="http://sourceforge.net/sflogo.php?group_id=98922&amp;type=5" width="210" height="62" border="0" alt="SourceForge.net Logo" /></a>
     &nbsp;&nbsp;
-    <a href="http://www.jars.com"><img src="http://www.jars.com/images/java_registered.gif" border="0"></a>
+    <a href="http://www.jars.com"><img src="http://www.jars.com/images/java_registered.gif" border="0" alt="Jars Registered"/></a>
   </center>
 </body>
 </html>

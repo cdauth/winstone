@@ -18,6 +18,10 @@ Long-term
      - Publish apidocs
      - Add a JSP compiler ?
 
+v0.6.1
+DONE - Fix VariableInfo and BodyContent api errors for jsps
+DONE - Fix WinstoneDataSource lockup problem
+
 v0.6
 DONE - Create winstone local jsp 2.0 api classes
 DONE - Update to v2.4 servlet api classes
