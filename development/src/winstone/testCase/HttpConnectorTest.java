@@ -52,7 +52,7 @@ public class HttpConnectorTest extends TestCase
   {
     // Initialise container
     Map args = new HashMap();
-    args.put("webroot", "c:/java/tomcat/webapps/examples");
+    args.put("webroot", "../build/testWebApp");
     args.put("prefix", "/examples");
     args.put("httpPort", "10003");
     args.put("ajp13Port", "-1");
@@ -65,9 +65,11 @@ public class HttpConnectorTest extends TestCase
 
     // Check for a simple connection
     WebConversation wc = new WebConversation();
-    WebRequest wreq = new GetMethodWebRequest("http://localhost:10003/examples/images/execute.gif");
+    WebRequest wreq = new GetMethodWebRequest("http://localhost:10003/examples/CountRequestsServlet");
     WebResponse wresp = wc.getResponse(wreq);
-    assertTrue("Loading execute.gif", wresp.getContentLength() > 0);
+    InputStream content = wresp.getInputStream();
+    assertTrue("Loading CountRequestsServlet", content.available() > 0);
+    content.close();
     winstone.shutdown();
     Thread.sleep(500);
   }
@@ -79,7 +81,7 @@ public class HttpConnectorTest extends TestCase
   {
     // Initialise container
     Map args = new HashMap();
-    args.put("webroot", "c:/java/tomcat/webapps/examples");
+    args.put("webroot", "../build/testWebApp");
     args.put("prefix", "/examples");
     args.put("httpPort", "10004");
     args.put("ajp13Port", "-1");
@@ -92,7 +94,7 @@ public class HttpConnectorTest extends TestCase
 
     // Check for a simple connection
     WebConversation wc = new WebConversation();
-    WebRequest wreq = new GetMethodWebRequest("http://localhost:10004/examples/servlets/index.html");
+    WebRequest wreq = new GetMethodWebRequest("http://localhost:10004/examples/CountRequestsServlet");
     WebResponse wresp1 = wc.getResponse(wreq);
     WebImage img[] = wresp1.getImages();
     for (int n = 0; n < img.length; n++)
@@ -101,7 +103,9 @@ public class HttpConnectorTest extends TestCase
     //WebResponse wresp2 = wc.getResponse(wreq);
     //Thread.sleep(2000);
     //WebResponse wresp3 = wc.getResponse(wreq);
-    assertTrue("Loading login page", wresp1.getContentLength() > 0);
+    InputStream content = wresp1.getInputStream();
+    assertTrue("Loading CountRequestsServlet + child images", content.available() > 0);
+    content.close();
     winstone.shutdown();
     Thread.sleep(500);
   }

@@ -27,7 +27,7 @@ Authors:
   <property name="xerces.jar" value="c:/java/junit/xercesImpl.jar"/>
   <property name="nekohtml.jar" value="c:/java/junit/nekohtml.jar"/>
   <property name="junit.runner" value="junit.textui.TestRunner"/>
-  <property name="packages" value="com.rickknowles.winstone.*,com.rickknowles.winstone.**,javax.servlet.*,javax.servlet.**"/>
+  <property name="packages" value="winstone.*,winstone.**,javax.servlet.*,javax.servlet.**"/>
 
   <target name="timestamp">
     <tstamp/>
@@ -45,8 +45,8 @@ Authors:
   <target name="compile" depends="prepare">
   <!-- Compile the standard server components -->
     <javac srcdir="src"
-           includes="com/rickknowles/winstone/**,javax/servlet/**"
-           excludes="com/rickknowles/winstone/test/*"
+           includes="winstone/**,javax/servlet/**"
+           excludes="winstone/testCase/**,winstone/testApplication/**"
            destdir="${winstone.build}/classes"
            debug="${debug}" 
            optimize="${optimize}"
@@ -64,12 +64,12 @@ Authors:
     </copy>   
   </target>
 
-  <target name="compile-tests" depends="prepare">
+  <target name="compile-tests" depends="compile">
     <mkdir dir="${winstone.build}/test"/>
 
     <!-- Compile the junit tests -->
     <javac srcdir="src"
-           includes="com/rickknowles/winstone/test/*"
+           includes="winstone/testCase/**"
            destdir="${winstone.build}/test"
            debug="${debug}" 
            optimize="${optimize}"
@@ -80,6 +80,30 @@ Authors:
         <pathelement location="${java.home}/jre/lib/rt.jar"/>
         <pathelement location="${httpunit.jar}"/>
         <pathelement location="${junit.jar}"/>
+        <pathelement location="${winstone.build}/classes"/>
+        <fileset dir="lib" includes="**/*.jar,**/*.zip"/>
+     </classpath>
+    </javac>
+  </target>
+
+  <target name="build-testApplication" depends="compile">
+    <mkdir dir="${winstone.build}/testWebApp/WEB-INF/classes"/>
+
+    <copy todir="${winstone.build}/testWebApp">
+	  <fileset dir="testWebApp"/>
+    </copy>
+
+    <!-- Compile the test application -->
+    <javac srcdir="src"
+           includes="winstone/testApplication/**"
+           destdir="${winstone.build}/testWebApp/WEB-INF/classes"
+           debug="${debug}" 
+           optimize="${optimize}"
+           deprecation="off" >
+      <classpath>
+        <pathelement location="${java.home}/lib/tools.jar"/>
+        <pathelement location="${java.home}/lib/dt.jar"/>
+        <pathelement location="${java.home}/jre/lib/rt.jar"/>
         <pathelement location="${winstone.build}/classes"/>
         <fileset dir="lib" includes="**/*.jar,**/*.zip"/>
      </classpath>
@@ -191,16 +215,16 @@ Authors:
     <pathelement location="${winstone.build}/classes" />
   </path>
 
-  <target name="run-tests" depends="compile-tests">
+  <target name="run-tests" depends="compile-tests,build-testApplication">
     <echo message="Running HttpConnectorTest"/>
     <java classname="${junit.runner}" fork="yes" failonerror="false">
-      <arg value="com.rickknowles.winstone.test.HttpConnectorTest"/>
+      <arg value="winstone.testCase.HttpConnectorTest"/>
       <classpath refid="test.classpath"/>
     </java>
 
     <echo message="Running NamingTest"/>
     <java classname="${junit.runner}" fork="yes" failonerror="true">
-      <arg value="com.rickknowles.winstone.test.NamingTest"/>
+      <arg value="winstone.testCase.NamingTest"/>
       <classpath refid="test.classpath"/>
     </java>
   </target>

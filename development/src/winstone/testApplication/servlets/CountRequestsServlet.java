@@ -44,8 +44,8 @@ public class CountRequestsServlet extends HttpServlet
   protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
   {
     numberOfGets++;
-    Writer out = response.getWriter();
-    out.write("<html><body>This servlet has been accessed via GET " + numberOfGets + " times</body></html>");
+    ServletOutputStream out = response.getOutputStream();
+    out.println("<html><body>This servlet has been accessed via GET " + numberOfGets + " times</body></html>");
     out.close();
   }
 }
