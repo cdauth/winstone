@@ -214,7 +214,7 @@ public class WinstoneResponse implements HttpServletResponse
     StringBuffer out = new StringBuffer();
     
     // Set-Cookie or Set-Cookie2
-    if (cookie.getVersion() == 2)
+    if (cookie.getVersion() >= 1 )
       out.append(OUT_COOKIE_HEADER2).append(": ");
     else
       out.append(OUT_COOKIE_HEADER1).append(": ");
