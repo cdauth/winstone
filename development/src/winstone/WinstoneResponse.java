@@ -38,7 +38,6 @@ public class WinstoneResponse implements HttpServletResponse
   protected static DateFormat df = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
   static  {df.setTimeZone(TimeZone.getTimeZone("GMT"));}
 
-  static final String SESSION_COOKIE_NAME    = "WinstoneHttpSessionId";
   static final String CONTENT_LENGTH_HEADER  = "Content-Length";
   static final String CONTENT_TYPE_HEADER    = "Content-Type";
 
@@ -78,17 +77,7 @@ public class WinstoneResponse implements HttpServletResponse
 
     this.statusCode = SC_OK;
     this.locale = Locale.getDefault();
-    String encodingMapSet = this.resources.getString("WinstoneResponse.EncodingMap");
-    StringTokenizer st = new StringTokenizer(encodingMapSet, ";");
-    for (; st.hasMoreTokens(); )
-    {
-      String token = st.nextToken();
-      int delimPos = token.indexOf("=");
-      if (delimPos == -1)
-        continue;
-      this.encodingMap.put(token.substring(0, delimPos), token.substring(delimPos + 1));
-    }
-    this.encoding = getEncodingFromLocale(this.locale);
+    this.encoding = null;
   }
 
   /**
@@ -105,16 +94,17 @@ public class WinstoneResponse implements HttpServletResponse
 
     this.statusCode = SC_OK;
     this.locale = Locale.getDefault();
-    this.encoding = getEncodingFromLocale(this.locale);
+    this.encoding = null;
   }
 
   private String getEncodingFromLocale(Locale loc)
   {
-    String fullMatch = (String) this.encodingMap.get(loc.getLanguage() + "_" + loc.getCountry());
+  	Map encMap = this.webAppConfig.getLocaleEncodingMap();
+    String fullMatch = (String) encMap.get(loc.getLanguage() + "_" + loc.getCountry());
     if (fullMatch != null)
       return fullMatch;
     else
-      return (String) this.encodingMap.get(loc.getLanguage());
+      return (String) encMap.get(loc.getLanguage());
   }
   public void setOutputStream(WinstoneOutputStream outData) {this.outputStream = outData;}
   public void setWebAppConfig(WebAppConfiguration webAppConfig) {this.webAppConfig = webAppConfig;}
@@ -164,7 +154,7 @@ public class WinstoneResponse implements HttpServletResponse
       }
     }
   }
-
+/*
   public void updateSessionCookie() throws IOException
   {
     // Write out the new session cookie if it's present
@@ -175,14 +165,14 @@ public class WinstoneResponse implements HttpServletResponse
       if ((session != null) && session.isNew())
       {
         session.setIsNew(false);
-        Cookie cookie = new Cookie(SESSION_COOKIE_NAME, sessionCookie);
+        Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, sessionCookie);
         cookie.setMaxAge(-1);
         cookie.setPath(req.getWebAppConfig().getPrefix() + "/");
         addCookie(cookie);
       }
     }
   }
-  
+  */
   /**
    * This ensures the bare minimum correct http headers are present
    */
@@ -209,7 +199,7 @@ public class WinstoneResponse implements HttpServletResponse
       if ((session != null) && session.isNew())
       {
         session.setIsNew(false);
-        Cookie cookie = new Cookie(SESSION_COOKIE_NAME, sessionCookie);
+        Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, sessionCookie);
         cookie.setMaxAge(-1);
         cookie.setSecure(req.isSecure());
         cookie.setVersion(req.isSecure() ? 1 : 0);

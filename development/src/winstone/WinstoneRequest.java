@@ -40,7 +40,6 @@ public class WinstoneRequest implements HttpServletRequest
   static  {headerDF.setTimeZone(TimeZone.getTimeZone("GMT"));}
 
   // Request header constants
-  static final String SESSION_COOKIE_NAME    = "JSESSIONID";
   static final String CONTENT_LENGTH_HEADER  = "Content-Length";
   static final String CONTENT_TYPE_HEADER    = "Content-Type";
   static final String AUTHORIZATION_HEADER   = "Authorization";
@@ -306,7 +305,8 @@ public class WinstoneRequest implements HttpServletRequest
     {
       Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParsingBodyParameters"));
       if (method.equals(METHOD_POST) &&
-          (contentType != null) && contentType.equals(POST_PARAMETERS))
+          (contentType != null) && 
+					contentType.equals(POST_PARAMETERS))
       {
         // Parse params
         byte paramBuffer[] = new byte[contentLength];
@@ -390,7 +390,7 @@ public class WinstoneRequest implements HttpServletRequest
             cookieList.add(thisCookie);
             Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.CookieFound",
                   "[#cookieName]", thisCookie.getName(), "[#cookieValue]", thisCookie.getValue()));
-            if (thisCookie.getName().equals(SESSION_COOKIE_NAME))
+            if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME))
             {
               this.sessionCookie = thisCookie.getValue();
               Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.SessionCookieFound", "[#cookieValue]", thisCookie.getValue()));

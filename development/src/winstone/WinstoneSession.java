@@ -36,6 +36,8 @@ import javax.servlet.ServletContext;
  */
 public class WinstoneSession implements HttpSession, Serializable
 {
+  public static final String SESSION_COOKIE_NAME = "JSESSIONID";
+
   private String sessionId;
   private WebAppConfiguration webAppConfig;
   private Map sessionData;
@@ -106,7 +108,7 @@ public class WinstoneSession implements HttpSession, Serializable
     if (this.distributable &&
         (value != null) &&
         !(value instanceof java.io.Serializable))
-      throw new WinstoneException(this.resources.getString("WinstoneSession.AttributeNotSerializable",
+      Logger.log(Logger.WARNING, this.resources.getString("WinstoneSession.AttributeNotSerializable",
           "[#name]", name, "[#class]", value.getClass().getName()));
 
     Object oldValue = null;
@@ -231,8 +233,16 @@ public class WinstoneSession implements HttpSession, Serializable
     out.writeBoolean(distributable);
     out.writeObject(authenticatedUser);
     
-    // Write the map
+    // Write the map, but first remove non-serializables
     Map copy = new HashMap(sessionData);
+    for (Iterator i = copy.keySet().iterator(); i.hasNext(); )
+    {
+    	String key = (String) i.next();
+    	if (!(copy.get(key) instanceof Serializable))
+    		Logger.log(Logger.WARNING, resources.getString("WinstoneSession.SkippingNonSerializable",
+    					"[#name]", key, "[#class]", copy.get(key).getClass().getName()));
+    		copy.remove(key);
+    }
     out.writeInt(copy.size());
     for (Iterator i = copy.keySet().iterator(); i.hasNext(); )
     {

@@ -77,6 +77,10 @@ public class WebAppConfiguration implements ServletContext
   static final String ELEM_SECURITY_ROLE       = "security-role";
   static final String ELEM_ROLE_NAME           = "role-name";
   static final String ELEM_ENV_ENTRY           = "env-entry";
+  static final String ELEM_LOCALE_ENC_MAP_LIST = "locale-encoding-mapping-list";
+  static final String ELEM_LOCALE_ENC_MAPPING  = "locale-encoding-mapping";
+  static final String ELEM_LOCALE              = "locale";
+  static final String ELEM_ENCODING            = "encoding";
 
   static final String DISPATCHER_REQUEST = "REQUEST";
   static final String DISPATCHER_FORWARD = "FORWARD";
@@ -144,7 +148,8 @@ public class WebAppConfiguration implements ServletContext
 
   private Map errorPagesByException;
   private Map errorPagesByCode;
-
+  private Map localeEncodingMap;
+  
   //private ServletConfiguration staticResourceProcessor;
   private String defaultServletName;
   private JNDIManager jndiManager;
@@ -180,8 +185,8 @@ public class WebAppConfiguration implements ServletContext
 
     // Build switch values
     boolean useDirLists  = booleanArg(startupArgs, "directoryListings", true);
-    boolean useJasper  	 = booleanArg(startupArgs, "useJasper", false);
-    boolean useWCL  	 	 = booleanArg(startupArgs, "useWinstoneClassLoader", true);
+    boolean useJasper  	  = booleanArg(startupArgs, "useJasper", false);
+    boolean useWCL  	 	  = booleanArg(startupArgs, "useWinstoneClassLoader", true);
     boolean useReloading = booleanArg(startupArgs, "useServletReloading", false);
     boolean useInvoker   = booleanArg(startupArgs, "useInvoker", false);
     boolean useJNDI      = booleanArg(startupArgs, "useJNDI", false);
@@ -252,6 +257,18 @@ public class WebAppConfiguration implements ServletContext
       String extension = mapping.substring(0, delimPos);
       String mimeType = mapping.substring(delimPos + 1);
       this.mimeTypes.put(mapping.substring(0, delimPos).toLowerCase(), mapping.substring(delimPos + 1));
+    }
+
+    this.localeEncodingMap = new HashMap();
+    String encodingMapSet = this.resources.getString("WinstoneResponse.EncodingMap");
+    StringTokenizer st = new StringTokenizer(encodingMapSet, ";");
+    for (; st.hasMoreTokens(); )
+    {
+      String token = st.nextToken();
+      int delimPos = token.indexOf("=");
+      if (delimPos == -1)
+        continue;
+      this.localeEncodingMap.put(token.substring(0, delimPos), token.substring(delimPos + 1));
     }
 
     // Add required context atttributes
@@ -513,6 +530,34 @@ public class WebAppConfiguration implements ServletContext
             Logger.log(Logger.WARNING, this.resources.getString("WebAppConfig.InvalidInitParam",
                 "[#name]", name, "[#value]", value));
         }
+        
+        // Process locale encoding mapping elements
+        else if (nodeName.equals(ELEM_LOCALE_ENC_MAP_LIST))
+        {
+          for (int m = 0; m < child.getChildNodes().getLength(); m++)
+          {
+            Node mappingNode = (Node) child.getChildNodes().item(m);
+            if (mappingNode.getNodeType() != Node.ELEMENT_NODE)
+              continue;
+            else if (mappingNode.getNodeName().equals(ELEM_LOCALE_ENC_MAPPING))
+            {
+            	String localeName = null;
+            	String encoding = null;
+              for (int l = 0; l < child.getChildNodes().getLength(); l++)
+              {
+                Node mappingChildNode = (Node) child.getChildNodes().item(l);
+                if (mappingChildNode.getNodeType() != Node.ELEMENT_NODE)
+                  continue;
+                else if (mappingChildNode.getNodeName().equals(ELEM_LOCALE))
+                	localeName = mappingChildNode.getFirstChild().getNodeValue();
+                else if (mappingChildNode.getNodeName().equals(ELEM_ENCODING))
+                	encoding = mappingChildNode.getFirstChild().getNodeValue();
+              }
+              if ((encoding != null) && (localeName != null))
+              	this.localeEncodingMap.put(localeName, encoding);
+            }
+          }
+        }
       }
 
     // Build the login/security role instance
@@ -674,8 +719,9 @@ public class WebAppConfiguration implements ServletContext
   public String getWebroot()            {return this.webRoot;}
   public Map getErrorPagesByException() {return this.errorPagesByException;}
   public Map getErrorPagesByCode()      {return this.errorPagesByCode;}
+  public Map getLocaleEncodingMap()     {return this.localeEncodingMap;}
   public String[] getWelcomeFiles()     {return this.welcomeFiles;}
-  public boolean isDistributable()      {return this.distributable;}
+  public boolean isDistributable()     {return this.distributable;}
 
   public static void addJspServletParams(Map jspParams)
   {
@@ -964,7 +1010,7 @@ public class WebAppConfiguration implements ServletContext
     {
       RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
       rd.setForURLDispatcher(servletPath.toString(), 
-          pathInfo.equals("") ? null : pathInfo.toString(), queryString, uriInsideWebapp,
+          pathInfo.toString().equals("") ? null : pathInfo.toString(), queryString, uriInsideWebapp,
           this.filterPatternsForward, this.filterPatternsInclude);
       return rd;
     }
@@ -1000,8 +1046,10 @@ public class WebAppConfiguration implements ServletContext
     if (servlet != null)
     {
       request.setQueryString(queryString);
+      // parse params here ? yes for now
+      request.getParameters().putAll(request.extractParameters(queryString));
       request.setServletPath(servletPath.toString());
-      request.setPathInfo(pathInfo.equals("") ? null : pathInfo.toString());
+      request.setPathInfo(pathInfo.toString().equals("") ? null : pathInfo.toString());
       request.setRequestURI(this.prefix + uriInsideWebapp);
       RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
       rd.setForInitialDispatcher(request.getServletPath(), request.getPathInfo(), 
@@ -1014,7 +1062,6 @@ public class WebAppConfiguration implements ServletContext
   // Getting resources via the classloader
   public URL getResource(String path)
   {
-    // Trim the prefix
     if (path == null)
       return null;
     else if (!path.startsWith("/"))

@@ -33,8 +33,9 @@ import java.util.*;
  */
 public class InvokerServlet extends HttpServlet
 {
-  final String RESOURCE_FILE    = "winstone.LocalStrings";
-  //final String JSP_FILE         = "org.apache.catalina.jsp_file";
+  final String RESOURCE_FILE     = "winstone.LocalStrings";
+  final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
+  final String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
 
   private WinstoneResourceBundle resources;
   private Map mountedInstances;
@@ -146,8 +147,18 @@ public class InvokerServlet extends HttpServlet
   protected void doGet(HttpServletRequest req, HttpServletResponse rsp)
     throws ServletException, IOException
   {
-    // Get the servlet instance if possible
-    String servletName = req.getPathInfo();
+    boolean isInclude = (req.getAttribute(INCLUDE_PATH_INFO) != null);
+    boolean isForward = (req.getAttribute(FORWARD_PATH_INFO) != null);
+    String servletName = null;
+    
+    if (isInclude)
+    	servletName = (String) req.getAttribute(INCLUDE_PATH_INFO);
+    else if (isForward)
+    	servletName = (String) req.getAttribute(FORWARD_PATH_INFO);
+    else if (req.getPathInfo() != null)
+    	servletName = req.getPathInfo();
+    else
+    	servletName = "";
     if (servletName.startsWith("/"))
       servletName = servletName.substring(1);
     ServletConfiguration invokedServlet = getInvokableInstance(servletName);

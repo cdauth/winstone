@@ -80,8 +80,10 @@ public class StaticResourceServlet extends HttpServlet
       path = (String) request.getAttribute(INCLUDE_PATH_INFO);
     else if (isForward)
       path = (String) request.getAttribute(FORWARD_PATH_INFO);
-    else
+    else if (request.getPathInfo() != null)
       path = request.getPathInfo();
+    else
+    	path = "";
     
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
     Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",
