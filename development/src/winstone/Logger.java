@@ -82,7 +82,7 @@ public class Logger
    */
   public static void setStream(String name, PrintWriter stream)
   {
-    synchronized (semaphore)
+    //synchronized (semaphore)
     {
       if (!initialised) init(INFO);
       if (stream == null)
@@ -97,7 +97,7 @@ public class Logger
    */
   public static void flush(String name)
   {
-    synchronized (semaphore)
+    //synchronized (semaphore)
     {
       if (!initialised) init(INFO);
       PrintWriter p = (PrintWriter) streams.get(name);
@@ -146,7 +146,7 @@ public class Logger
   {
     if (currentDebugLevel < level)
       return;
-    else synchronized (semaphore)
+    else //synchronized (semaphore)
     {
       if (!initialised) init(INFO);
       PrintWriter stream = (PrintWriter) streams.get(streamName);
