@@ -1,17 +1,17 @@
 @echo off
 
 set JAVA_HOME=c:\java\jdk1.4.2
-set WINSTONE_HOME=c:\rick\winstone
-set CATALINA_HOME=c:\tomcat4.1
+set WINSTONE_HOME=c:\eclipse\workspace\winstone
+set CATALINA_HOME=c:\java\tomcat
 set JAVA_OPTS=-Djava.endorsed.dirs=%JAVA_HOME%\jre\lib\ext
 
 set CP=%WINSTONE_HOME%\dist\winstone.jar
 @rem set WINSTONE_OPTS=--prefix=/examples --debug=7 --httpPort=9080 --controlPort=9081 --webroot=c:\java\tomcat\webapps\examples --argumentsRealm.passwd.rickk=rickk --argumentsRealm.roles.rickk=test,tomcat --useJNDI --jndi.resource.mail/Session=javax.mail.Session --jndi.param.mail/Session.mail.smtp.host=smtp.ponbiki.org --jndi.param.mail/Session.mail.smtp.user=rickk@ponbiki.org
-@rem set WINSTONE_OPTS=--prefix=/examples --controlPort=8081 --webroot=c:\java\tomcat\webapps\examples
-@rem set WINSTONE_OPTS=--prefix=/examples --debug=7 --webroot=c:\java\tomcat\webapps\examples
+@rem set WINSTONE_OPTS=--prefix=/examples --controlPort=8081 --webroot=%CATALINA_HOME%\webapps\examples
+@rem set WINSTONE_OPTS=--prefix=/examples --debug=7 --webroot=%CATALINA_HOME%\webapps\examples
 @rem set WINSTONE_OPTS=--prefix=/training --debug=8 --httpPort=9080 --controlPort=8081 --webroot=d:\rick\training\build
 @rem set WINSTONE_OPTS=--prefix=/tristero --debug=7 --webroot=d:\download\neurogrid
-set WINSTONE_OPTS=--prefix=/m3career --webroot=c:\tomcat4.1\webapps\m3career --httpPort=9080 --controlPort=8081 --debug=7
+set WINSTONE_OPTS=--prefix=/m3career --webroot=%CATALINA_HOME%\webapps\m3career --httpPort=9080 --controlPort=8081 --debug=7
 
 @rem ********************************************************************
 @rem            Uncomment for non-1.4 jdks
@@ -38,5 +38,4 @@ set CP=%CP%;c:\java\mail\mail.jar
 
 echo Options: %WINSTONE_OPTS%
 
-%JAVA_HOME%\bin\java -server -cp %CP% %JAVA_OPTS% com.rickknowles.winstone.Launcher %WINSTONE_OPTS%
-pause
+%JAVA_HOME%\bin\java -server -cp %CP% %JAVA_OPTS% winstone.Launcher %WINSTONE_OPTS%

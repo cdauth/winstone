@@ -107,9 +107,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     else
     {
     	// Small hack to get around jasper include bug
-      ServletRequest inclRequest = request;
-      if (request instanceof ServletRequestWrapper)
-        inclRequest = ((ServletRequestWrapper) request).getRequest();
+      //ServletRequest inclRequest = request;
+      //if (request instanceof ServletRequestWrapper)
+      //  inclRequest = ((ServletRequestWrapper) request).getRequest();
 
     	ServletResponse inclResponse = response;
       if (response instanceof ServletResponseWrapper)
@@ -122,9 +122,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         request.setAttribute(JSP_FILE, this.requestedPath);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
-          {this.instance.service(inclRequest, includer);}
+          {this.instance.service(request, includer);}
       else
-        this.instance.service(inclRequest, includer);
+        this.instance.service(request, includer);
       Thread.currentThread().setContextClassLoader(cl);
       includer.finish();
     }
@@ -166,13 +166,13 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       doFilter(request, response);
     else
     {
-      ServletRequest fwdRequest = request;
-      if (request instanceof ServletRequestWrapper)
-        fwdRequest = ((ServletRequestWrapper) request).getRequest();
+      //ServletRequest fwdRequest = request;
+      //if (request instanceof ServletRequestWrapper)
+      //  fwdRequest = ((ServletRequestWrapper) request).getRequest();
 
-      ServletResponse fwdResponse = response;
-      if (response instanceof ServletResponseWrapper)
-        fwdResponse = ((ServletResponseWrapper) response).getResponse();
+      //ServletResponse fwdResponse = response;
+      //if (response instanceof ServletResponseWrapper)
+      //  fwdResponse = ((ServletResponseWrapper) response).getResponse();
 
       // Execute
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
@@ -181,9 +181,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         request.setAttribute(JSP_FILE, this.requestedPath);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
-          {this.instance.service(fwdRequest, fwdResponse);}
+          {this.instance.service(request, fwdResponse);}
       else
-        this.instance.service(fwdRequest, fwdResponse);
+        this.instance.service(request, fwdResponse);
       Thread.currentThread().setContextClassLoader(cl);
     }
   }

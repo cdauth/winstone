@@ -220,6 +220,7 @@ public class Launcher implements EntityResolver, Runnable
       }
 
       Map params = new HashMap();
+      params.put("[#serverName]", resources.getString("ServerVersion"));
       params.put("[#controlPort]", (this.controlPort > 0 ? "" + this.controlPort : resources.getString("Launcher.ControlDisabled")));
       params.put("[#prefix]", this.webAppConfig.getPrefix());
       params.put("[#webroot]", this.webAppConfig.getWebroot());
