@@ -52,13 +52,18 @@ public class Logger
   /**
    * Initialises default streams
    */
-  public static void init(int level)
+  public static void init(int level) {init(level, System.out);}
+  
+  /**
+   * Initialises default streams
+   */
+  public static void init(int level, OutputStream defaultStream)
   {
     currentDebugLevel = level;
     streams = new Hashtable();
     nullStreams = new ArrayList();
     initialised = true;
-    setStream(DEFAULT_STREAM, System.out);
+    setStream(DEFAULT_STREAM, defaultStream);
   }
 
   /**

@@ -425,17 +425,27 @@ public class Launcher implements EntityResolver, Runnable
       args = props;
 
       // Reset the log level
-      Logger.setCurrentDebugLevel(args.get("debug") == null ?
-                                  Logger.INFO :
-                                  Integer.parseInt((String) args.get("debug")));
+      int logLevel = args.get("debug") == null 
+                          ? Logger.INFO 
+                          : Integer.parseInt((String) args.get("debug"));
+      OutputStream logStream = args.get("logfile") == null 
+                          ? (OutputStream) System.out 
+                          : new FileOutputStream((String) args.get("logfile"));
+      Logger.init(logLevel, logStream);
       Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingPropertyFile",
                 "[#filename]", configFilename));
 
     }
     else
-      Logger.setCurrentDebugLevel(args.get("debug") == null ?
-                                  Logger.INFO :
-                                  Integer.parseInt((String) args.get("debug")));
+    {
+      int logLevel = args.get("debug") == null 
+                          ? Logger.INFO 
+                          : Integer.parseInt((String) args.get("debug"));
+      OutputStream logStream = args.get("logfile") == null 
+                          ? (OutputStream) System.out 
+                          : new FileOutputStream((String) args.get("logfile"));
+      Logger.init(logLevel, logStream);
+    }
 
     if (!args.containsKey("webroot") && !args.containsKey("warfile"))
       printUsage(resources);

@@ -139,7 +139,7 @@ public class WinstoneRequest implements HttpServletRequest
   private String extractFirstHeader(String name)
   {
     for (int n = 0; n < this.headers.length; n++)
-      if (this.headers[n].startsWith(name))
+      if (this.headers[n].toUpperCase().startsWith(name.toUpperCase() + ':'))
         return this.headers[n].substring(name.length() + 1).trim(); // 1 for colon
     return null;
   }
