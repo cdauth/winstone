@@ -60,9 +60,9 @@ public class Launcher implements EntityResolver, Runnable
   private int DEFAULT_CONTROL_PORT = -1;
   private String DEFAULT_INVOKER_PREFIX = "/servlet/";
 
-  private int STARTUP_REQUEST_HANDLERS_IN_POOL = 2;
-  private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 5;
-  private int MAX_REQUEST_HANDLERS_IN_POOL = 100;
+  private int STARTUP_REQUEST_HANDLERS_IN_POOL = 5;
+  private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 50;
+  private int MAX_REQUEST_HANDLERS_IN_POOL = 300;
 
   private WinstoneResourceBundle resources;
   private int controlPort;
@@ -114,6 +114,14 @@ public class Launcher implements EntityResolver, Runnable
     String invokerPrefix = (String) (args.get("invokerPrefix") == null
                                                 ? DEFAULT_INVOKER_PREFIX
                                                 : args.get("invokerPrefix"));
+
+    // Get handler pool options
+    if (args.get("handlerCountStartup") != null)
+      STARTUP_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args.get("handlerCountStartup"));
+    if (args.get("handlerCountMax") != null)
+      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args.get("handlerCountMax"));
+    if (args.get("handlerCountMaxIdle") != null)
+      MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args.get("handlerCountMaxIdle"));
 
     // Build switch values
     boolean switchOnDirLists = (dirLists == null)   || (dirLists.equalsIgnoreCase("true")   || dirLists.equalsIgnoreCase("yes"));
@@ -453,7 +461,7 @@ public class Launcher implements EntityResolver, Runnable
 
       // Reset the log level
       Logger.setCurrentDebugLevel(args.get("debug") == null ?
-                                  Logger.DEBUG :
+                                  Logger.INFO :
                                   Integer.parseInt((String) args.get("debug")));
       Logger.log(Logger.DEBUG, resources.getString("Launcher.UsingPropertyFile",
                 "[#filename]", configFilename));
@@ -462,7 +470,7 @@ public class Launcher implements EntityResolver, Runnable
     else
     {
       Logger.setCurrentDebugLevel(args.get("debug") == null ?
-                                  Logger.DEBUG :
+                                  Logger.INFO :
                                   Integer.parseInt((String) args.get("debug")));
       Logger.log(Logger.DEBUG, resources.getString("Launcher.NoPropertyFile",
                 "[#filename]", configFilename));

@@ -87,6 +87,10 @@ Other options:
    --ajp13Port              = set the ajp13 listening port. -1 to disable, Default is 8009
    --controlPort            = set the shutdown/control port. -1 to disable, Default disabled
 
+   --handlerCountStartup    = set the no of worker threads to spawn at startup. Default is 5
+   --handlerCountMax        = set the max no of worker threads to allow. Default is 300
+   --handlerCountMaxIdle    = set the max no of idle worker threads to allow. Default is 50
+
    --directoryListings      = enable directory lists (true/false). Default is true
    --useJasper              = enable jasper JSP handling (true/false). Default is false
    --useWinstoneClassLoader = enable WebApp classLoader (true/false). Default is true
@@ -166,7 +170,7 @@ Other options:
 
 <h2>License</h2>
 
-  <p>The Web-App DTD files (web-app_2_2.dtd & web-app_2_3.dtd in the src/javax/servlet/resources 
+  <p>The Web-App DTD files (web-app_2_2.dtd &amp; web-app_2_3.dtd in the src/javax/servlet/resources 
     folder) and the lib/jsp-servlet.jar files are covered by the Apache software license, as 
     described at the top of each file, and at http://www.apache.org/licenses/LICENSE</p>
 
@@ -275,7 +279,7 @@ channel=channel.socket:localhost:8009
     This works except that if the servlet container tries to use another class loader anyway, you
     still have problems with which loader loaded which classes.</p>
 
-  <p>To get around this, I have included an option "-useWinstonClassLoader true/false". This allows
+  <p>To get around this, I have included an option "--useWinstoneClassLoader=false". This allows
     you to disable the webapp class loader, and operate entirely with a single class loader. This
     works ok for servlet-only environments, but it seems Jasper uses it's own classloader, so 
     you may still have problems in jsp + GCJ-compiled-Winstone environments.</p>
