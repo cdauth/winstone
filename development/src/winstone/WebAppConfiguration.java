@@ -154,7 +154,7 @@ public class WebAppConfiguration implements ServletContext
   private String defaultServletName;
   private JNDIManager jndiManager;
 
-  private static boolean booleanArg(Map args, String name, boolean defaultTrue) 
+  public static boolean booleanArg(Map args, String name, boolean defaultTrue) 
   {
     String value = (String) args.get(name);
     if (defaultTrue)
@@ -163,7 +163,7 @@ public class WebAppConfiguration implements ServletContext
       return (value != null) && (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes"));
   }
 
-  private static String stringArg(Map args, String name, String defaultValue)
+  public static String stringArg(Map args, String name, String defaultValue)
   	{return (String) (args.get(name) == null ? defaultValue : args.get(name));}
   
   /**
@@ -175,7 +175,8 @@ public class WebAppConfiguration implements ServletContext
                              ObjectPool objectPool,
                              Map startupArgs,
                              Node elm,
-                             WinstoneResourceBundle resources)
+                             WinstoneResourceBundle resources,
+                             ClassLoader parentClassLoader)
   {
     this.launcher = launcher;
     this.resources = resources;
@@ -185,8 +186,8 @@ public class WebAppConfiguration implements ServletContext
 
     // Build switch values
     boolean useDirLists  = booleanArg(startupArgs, "directoryListings", true);
-    boolean useJasper  	  = booleanArg(startupArgs, "useJasper", false);
-    boolean useWCL  	 	  = booleanArg(startupArgs, "useWinstoneClassLoader", true);
+    boolean useJasper  	 = booleanArg(startupArgs, "useJasper", false);
+    boolean useWCL  	 	 = booleanArg(startupArgs, "useWinstoneClassLoader", true);
     boolean useReloading = booleanArg(startupArgs, "useServletReloading", false);
     boolean useInvoker   = booleanArg(startupArgs, "useInvoker", false);
     boolean useJNDI      = booleanArg(startupArgs, "useJNDI", false);
@@ -199,15 +200,15 @@ public class WebAppConfiguration implements ServletContext
       Constructor reloadConstr = reloaderClass.getConstructor(new Class[] 
         {this.getClass(), ClassLoader.class, WinstoneResourceBundle.class});
       this.loader = (ClassLoader) reloadConstr.newInstance(new Object[] 
-        {this, this.getClass().getClassLoader(), this.resources});
+        {this, parentClassLoader, this.resources});
     }
     catch (Throwable err)
       {Logger.log(Logger.ERROR, "Erroring setting class loader", err);}
 
     if (this.loader == null)
       this.loader = (useWCL
-        ? new WinstoneClassLoader(this, this.getClass().getClassLoader(), this.resources)
-        : this.getClass().getClassLoader());
+        ? new WinstoneClassLoader(this, parentClassLoader, this.resources)
+        : parentClassLoader);
 
     this.attributes = new Hashtable();
     this.initParameters = new HashMap();

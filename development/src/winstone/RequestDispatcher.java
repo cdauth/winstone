@@ -201,7 +201,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       while (workingResponse instanceof ServletResponseWrapper)
         workingResponse = ((ServletResponseWrapper) workingResponse).getResponse();
       
-      if (workingRequest instanceof WinstoneRequest)
+      if ((workingRequest instanceof WinstoneRequest) && useRequestAttributes)
       {
         WinstoneRequest req = (WinstoneRequest) workingRequest;
         req.setServletPath(this.servletPath);

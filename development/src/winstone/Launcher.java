@@ -73,6 +73,7 @@ public class Launcher implements EntityResolver, Runnable
   private boolean interrupted;
   private Map args;
   private File webRoot;
+  private ClassLoader commonLibCL;
   
   private Cluster cluster;
 
@@ -97,7 +98,21 @@ public class Launcher implements EntityResolver, Runnable
       initWebApp((String) args.get("prefix"), webRoot);
 
     this.objectPool = new ObjectPool(args, resources, this.webAppConfig);
-
+    
+    // Set up common lib class loader
+    String commonLibCLFolder = WebAppConfiguration.stringArg(args, "commonLibFolder", "lib");
+    File libFolder = new File(commonLibCLFolder);
+    if (libFolder.exists() && libFolder.isDirectory())
+    {
+      File children[] = libFolder.listFiles();
+      List jars = new ArrayList();
+      for (int n = 0; n < children.length; n++)
+        if (children[n].getName().endsWith(".jar") ||
+            children[n].getName().endsWith(".zip"))
+          jars.add(children[n].toURL());
+      this.commonLibCL = new URLClassLoader((URL []) jars.toArray(new URL[jars.size()]));
+    }
+    
     String useCluster = (String) args.get("useCluster");
     boolean switchOnCluster  = (useCluster != null) && (useCluster.equalsIgnoreCase("true") || useCluster.equalsIgnoreCase("yes"));
     if (switchOnCluster)
@@ -315,13 +330,9 @@ public class Launcher implements EntityResolver, Runnable
     }
 
     // Instantiate the webAppConfig
-    this.webAppConfig = new WebAppConfiguration(this,
-                                                webRoot.getCanonicalPath(),
-                                                prefix,
-                                                this.objectPool,
-                                                args,
-                                                webXMLParentNode,
-                                                this.resources);
+    this.webAppConfig = new WebAppConfiguration(this, webRoot.getCanonicalPath(),
+        prefix, this.objectPool, args, webXMLParentNode, this.resources,
+        this.commonLibCL == null ? this.getClass().getClassLoader() : this.commonLibCL);
   }
 
   public void shutdown() {this.interrupted = true;}
