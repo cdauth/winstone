@@ -59,8 +59,6 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
   static final String AJP_LISTENER_CLASS   = "winstone.ajp13.Ajp13Listener";
   static final String CLUSTER_CLASS        = "winstone.cluster.SimpleCluster";
   
-  final String CRIMSON_PREFIX = "org.apache.crimson.";
-
   static final String RESOURCE_FILE    = "winstone.LocalStrings";
   static final String WEB_ROOT = "webroot";
   static final String WEB_INF  = "WEB-INF";
@@ -480,6 +478,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
 
     // Get command line args
     String configFilename = resources.getString("Launcher.DefaultPropertyFile");
+    String firstNonSwitchArgument = null;
     Map args = new HashMap();
     for (int n = 0; n < argv.length;  n++)
     {
@@ -493,6 +492,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
         if (paramName.equals("config"))
           configFilename = paramValue;
       }
+      else
+        firstNonSwitchArgument = option;
     }
 
     // Load default props if available
@@ -528,6 +529,19 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       Logger.init(logLevel, logStream);
     }
 
+    // Check if the non-switch arg is a file or folder, and overwrite the config
+    if (firstNonSwitchArgument != null)
+    {
+      File webapp = new File(firstNonSwitchArgument);
+      if (webapp.exists())
+      {
+        if (webapp.isDirectory())
+          args.put("webroot", firstNonSwitchArgument);
+        else if (webapp.isFile())
+          args.put("warfile", firstNonSwitchArgument);
+      }
+    }
+    
     if (!args.containsKey("webroot") && !args.containsKey("warfile"))
       printUsage(resources);
     else
