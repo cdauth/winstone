@@ -168,25 +168,7 @@ public class WinstoneResponse implements HttpServletResponse
       }
     }
   }
-/*
-  public void updateSessionCookie() throws IOException
-  {
-    // Write out the new session cookie if it's present
-    String sessionCookie = req.getSessionCookie();
-    if (sessionCookie != null)
-    {
-      WinstoneSession session = req.getWebAppConfig().getSessionById(sessionCookie, false);
-      if ((session != null) && session.isNew())
-      {
-        session.setIsNew(false);
-        Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, sessionCookie);
-        cookie.setMaxAge(-1);
-        cookie.setPath(req.getWebAppConfig().getPrefix() + "/");
-        addCookie(cookie);
-      }
-    }
-  }
-  */
+  
   /**
    * This ensures the bare minimum correct http headers are present
    */
@@ -371,8 +353,20 @@ public class WinstoneResponse implements HttpServletResponse
   }
 
   public boolean isCommitted() {return this.outputStream.isCommitted();}
-  public void reset() {this.outWriter = null; this.outputStream.reset();}
-  public void resetBuffer() {reset();}
+  public void reset() 
+  {
+    resetBuffer();
+    this.statusCode = SC_OK;
+    this.headers.clear();
+    this.cookies.clear();
+  }
+  public void resetBuffer() 
+  {
+    if (isCommitted())
+      throw new IllegalStateException(resources.getString("WinstoneResponse.ResponseCommitted"));
+    this.outWriter = null; 
+    this.outputStream.reset();
+  }
   public void setContentLength(int len) {setIntHeader(CONTENT_LENGTH_HEADER, len);}
 
   // HttpServletResponse interface methods
