@@ -50,9 +50,13 @@ public class ServletResponseWrapper implements ServletResponse
   public void flushBuffer() throws IOException
     {this.response.flushBuffer();}
 
-  public String getCharacterEncoding()    {return this.response.getCharacterEncoding();}
   public void setContentLength(int len)   {this.response.setContentLength(len);}
   public void setContentType(String type) {this.response.setContentType(type);}
+  public String getContentType()          {return this.response.getContentType();}
+
+  public String getCharacterEncoding()    {return this.response.getCharacterEncoding();}
+  public void setCharacterEncoding(String charset) 
+    {this.response.setCharacterEncoding(charset);}
 }
 
  

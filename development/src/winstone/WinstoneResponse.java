@@ -318,6 +318,8 @@ public class WinstoneResponse implements HttpServletResponse
   public int getBufferSize()  {return this.outputStream.getBufferSize();}
 
   public String getCharacterEncoding() {return this.encoding;}
+  public void setCharacterEncoding(String encoding) {this.encoding = encoding;}
+  public String getContentType() {return getHeader(CONTENT_TYPE_HEADER);}
   public void setContentType(String type) {updateContentTypeHeader(type);}
   public Locale getLocale() {return this.locale;}
   public void setLocale(Locale loc) 

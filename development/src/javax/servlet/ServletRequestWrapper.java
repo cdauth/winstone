@@ -66,6 +66,10 @@ public class ServletRequestWrapper implements ServletRequest
   public String getScheme()     {return this.request.getScheme();}
   public String getServerName() {return this.request.getServerName();}
   public int getServerPort()    {return this.request.getServerPort();}
+  public String getLocalAddr()  {return this.request.getLocalAddr();}
+  public String getLocalName()  {return this.request.getLocalName();}
+  public int getLocalPort()     {return this.request.getLocalPort();}
+  public int getRemotePort()    {return this.request.getRemotePort();}
   public boolean isSecure()     {return this.request.isSecure();}
 
   /**

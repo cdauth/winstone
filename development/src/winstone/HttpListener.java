@@ -211,16 +211,21 @@ public class HttpListener implements Listener, Runnable
   {
     req.setScheme("http");
     req.setServerPort(socket.getLocalPort());
+    req.setLocalPort(socket.getLocalPort());
+    req.setLocalAddr(socket.getLocalAddress().getHostAddress());
     req.setRemoteIP(socket.getInetAddress().getHostAddress());
+    req.setRemotePort(socket.getPort());
     if (this.doHostnameLookups)
     {
       req.setServerName(socket.getLocalAddress().getHostName());
       req.setRemoteName(socket.getInetAddress().getHostName());
+      req.setLocalName(socket.getLocalAddress().getHostName());
     }
     else
     {
       req.setServerName(socket.getLocalAddress().getHostAddress());
       req.setRemoteName(socket.getInetAddress().getHostAddress());
+      req.setLocalName(socket.getLocalAddress().getHostAddress());
     }
   }
 

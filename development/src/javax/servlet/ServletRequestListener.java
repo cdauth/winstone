@@ -17,10 +17,16 @@
  */
 package javax.servlet;
 
+import java.util.EventListener;
+
 /**
- * This is just to ensure that a servlet can flag itself as a non-multithreaded
- * instance.
- * @deprecated
+ * Listener for requests going in and out of scope
+ * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
+ * @version $Id$
  */
-public interface SingleThreadModel {}
+public interface ServletRequestListener extends EventListener
+{
+  public void requestDestroyed(ServletRequestEvent sre);
+  public void requestInitialized(ServletRequestEvent sre);
+}

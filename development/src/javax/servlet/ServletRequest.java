@@ -36,8 +36,11 @@ public interface ServletRequest
   public int getContentLength();
   public String getContentType();
   public ServletInputStream getInputStream() throws IOException;
+  public String getLocalAddr();
   public Locale getLocale();
   public Enumeration getLocales();
+  public String getLocalName();
+  public int getLocalPort();
   public String getParameter(String name);
   public Map getParameterMap();
   public Enumeration getParameterNames();
@@ -46,6 +49,7 @@ public interface ServletRequest
   public BufferedReader getReader() throws IOException;
   public String getRemoteAddr();
   public String getRemoteHost();
+  public int getRemotePort();
   public RequestDispatcher getRequestDispatcher(String path);
   public String getScheme();
   public String getServerName();

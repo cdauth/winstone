@@ -18,9 +18,24 @@
 package javax.servlet;
 
 /**
- * This is just to ensure that a servlet can flag itself as a non-multithreaded
- * instance.
- * @deprecated
+ * The event thrown to request attribute listeners
+ * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
+ * @version $Id$
  */
-public interface SingleThreadModel {}
+public class ServletRequestAttributeEvent extends ServletRequestEvent
+{
+  private String name;
+  private Object value;
+  
+  public ServletRequestAttributeEvent(ServletContext sc, ServletRequest request,
+      String name, Object value)
+  {
+    super(sc, request);
+    this.name = name;
+    this.value = value;
+  }
+
+  public String getName()  {return this.name;}
+  public Object getValue() {return this.value;}
+}

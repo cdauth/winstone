@@ -36,14 +36,17 @@ public interface ServletResponse
   public boolean isCommitted();
 
   public String getCharacterEncoding();
+  public void setCharacterEncoding(String charset);
+
+  public String getContentType();
+  public void setContentType(String type);
+  public void setContentLength(int len);
+
   public Locale getLocale();
   public void setLocale(Locale loc);
 
   public ServletOutputStream getOutputStream() throws IOException;
   public PrintWriter getWriter() throws IOException;
-
-  public void setContentLength(int len);
-  public void setContentType(String type);
 }
 
  

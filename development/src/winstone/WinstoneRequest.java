@@ -72,6 +72,10 @@ public class WinstoneRequest implements HttpServletRequest
   protected int serverPort;
   protected String remoteIP;
   protected String remoteName;
+  protected int remotePort;
+  protected String localAddr;
+  protected String localName;
+  protected int localPort;
   protected Boolean parsedParameters;
   protected String sessionCookie;
   protected List locales;
@@ -125,6 +129,10 @@ public class WinstoneRequest implements HttpServletRequest
     this.serverPort = -1;
     this.remoteIP = null;
     this.remoteName = null;
+    this.remotePort = -1;
+    this.localAddr = null;
+    this.localName = null;
+    this.localPort = -1;
     this.parsedParameters = null;
     this.sessionCookie = null;
     this.locales.clear();
@@ -171,6 +179,10 @@ public class WinstoneRequest implements HttpServletRequest
   public void setServerPort(int port)       {this.serverPort = port;}
   public void setRemoteIP(String remoteIP)  {this.remoteIP = remoteIP;}
   public void setRemoteName(String name)    {this.remoteName = name;}
+  public void setRemotePort(int port)       {this.remotePort = port;}
+  public void setLocalAddr(String ip)       {this.localName = ip;}
+  public void setLocalName(String name)     {this.localName = name;}
+  public void setLocalPort(int port)        {this.localPort = port;}
 
   public void setMethod(String method)            {this.method = method;}
   public void setIsSecure(boolean isSecure)       {this.isSecure = isSecure;}
@@ -556,7 +568,11 @@ public class WinstoneRequest implements HttpServletRequest
   public int getServerPort()    {return this.serverPort;}
   public String getRemoteAddr() {return this.remoteIP;}
   public String getRemoteHost() {return this.remoteName;}
-
+  public int getRemotePort()    {return this.remotePort;}
+  public String getLocalAddr()  {return this.localAddr;}
+  public String getLocalName()  {return this.localName;}
+  public int getLocalPort()     {return this.localPort;}
+  
   public javax.servlet.RequestDispatcher getRequestDispatcher(String path)
     {return this.webappConfig.getRequestDispatcher(path);}
 

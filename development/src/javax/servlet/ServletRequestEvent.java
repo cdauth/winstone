@@ -17,10 +17,26 @@
  */
 package javax.servlet;
 
+import java.util.EventObject;
+
 /**
- * This is just to ensure that a servlet can flag itself as a non-multithreaded
- * instance.
- * @deprecated
+ * Request coming into scope or out of scope event 
+ * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
+ * @version $Id$
  */
-public interface SingleThreadModel {}
+public class ServletRequestEvent extends EventObject
+{
+  private ServletRequest request;
+  private ServletContext context;
+
+  public ServletRequestEvent(ServletContext sc, ServletRequest request)
+  {
+    super(sc);
+    this.request = request;
+    this.context = sc;
+  }
+  
+  public ServletRequest getServletRequest() {return this.request;}
+  public ServletContext getServletContext() {return this.context;}
+}

@@ -235,6 +235,9 @@ public class Ajp13Listener implements Listener, Runnable
     req.setServerPort(headers.getServerPort());
     req.setRemoteIP(headers.getRemoteAddress());
     req.setServerName(headers.getServerName());
+    req.setLocalPort(headers.getServerPort());
+    req.setLocalAddr(headers.getServerName());
+    req.setRemoteIP(headers.getRemoteAddress());
     if ((headers.getRemoteHost() != null) && !headers.getRemoteHost().equals(""))
       req.setRemoteName(headers.getRemoteHost());
     else
