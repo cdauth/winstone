@@ -35,6 +35,7 @@ public class LoadTestThread implements Runnable
   private LoadTest loadTest;
   private WebConversation webConv;
   private Thread thread;
+  private boolean interrupted;
   private LoadTestThread next;
   
   public LoadTestThread(String url, LoadTest loadTest,
@@ -45,6 +46,7 @@ public class LoadTestThread implements Runnable
     this.loadTest = loadTest;
     this.webConv = webConv;
     this.delayBeforeStarting = 1000 * delayedThreads;
+    this.interrupted = true;
     this.thread = new Thread(this);
     this.thread.setDaemon(true);
     this.thread.start();
@@ -89,6 +91,8 @@ public class LoadTestThread implements Runnable
       // Confirm the result is the same size the content-length said it was
       if ((position == contentLength) || (contentLength == -1)) 
       {
+        if (this.interrupted)
+          return;
         this.loadTest.incTimeTotal(System.currentTimeMillis() - startTime);
         this.loadTest.incSuccessCount();
       }
@@ -101,6 +105,7 @@ public class LoadTestThread implements Runnable
   
   public void destroy() 
   {
+    this.interrupted = false;
     this.thread.interrupt();
     if (this.next != null)
       this.next.destroy();
