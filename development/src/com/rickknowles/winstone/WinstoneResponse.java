@@ -232,7 +232,7 @@ public class WinstoneResponse implements HttpServletResponse
     }
     return null;
   }
- 
+
   public String encodeRedirectUrl(String url) {return encodeRedirectURL(url);}
   public String encodeRedirectURL(String url) {return url;}
   public String encodeUrl(String url)         {return encodeURL(url);}
@@ -269,7 +269,7 @@ public class WinstoneResponse implements HttpServletResponse
       this.statusCode = sc;
       Map params = new HashMap();
       params.put("[#statusCode]", sc + "");
-      params.put("[#msg]", msg);
+      params.put("[#msg]", (msg == null ? "" : msg));
       params.put("[#serverVersion]", resources.getString("ServerVersion"));
       params.put("[#date]", "" + new Date());
 
@@ -329,7 +329,9 @@ public class WinstoneResponse implements HttpServletResponse
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw, true);
       err.printStackTrace(pw);
-      sendError(SC_INTERNAL_SERVER_ERROR, resources.getString("WinstoneResponse.ServletExceptionPage", "[#stackTrace]", sw.toString()));
+      sendError(SC_INTERNAL_SERVER_ERROR,
+        resources.getString("WinstoneResponse.ServletExceptionPage",
+        "[#stackTrace]", sw.toString()));
     }
   }
 

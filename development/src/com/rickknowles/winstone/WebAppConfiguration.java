@@ -42,33 +42,36 @@ import java.io.IOException;
  */
 public class WebAppConfiguration implements ServletContext
 {
-  final String ELEM_DESCRIPTION     = "description";
-  final String ELEM_DISPLAY_NAME    = "display-name";
-  final String ELEM_SERVLET         = "servlet";
-  final String ELEM_SERVLET_MAPPING = "servlet-mapping";
-  final String ELEM_SERVLET_NAME    = "servlet-name";
-  final String ELEM_FILTER          = "filter";
-  final String ELEM_FILTER_MAPPING  = "filter-mapping";
-  final String ELEM_FILTER_NAME     = "filter-name";
-
-  final String ELEM_URL_PATTERN     = "url-pattern";
-  final String ELEM_WELCOME_FILES   = "welcome-file-list";
-  final String ELEM_WELCOME_FILE    = "welcome-file";
-  final String ELEM_SESSION_TIMEOUT = "session-config";
-  final String ELEM_SESSION_CONFIG  = "session-timeout";
-  final String ELEM_MIME_MAPPING    = "mime-mapping";
-  final String ELEM_MIME_EXTENSION  = "extension";
-  final String ELEM_MIME_TYPE       = "mime-type";
-  final String ELEM_CONTEXT_PARAM   = "context-param";
-  final String ELEM_PARAM_NAME      = "param-name";
-  final String ELEM_PARAM_VALUE     = "param-value";
-  final String ELEM_LISTENER        = "listener";
-  final String ELEM_LISTENER_CLASS  = "listener-class";
-  final String ELEM_DISTRIBUTABLE   = "distributable";
-  final String ELEM_ERROR_PAGE      = "error-page";
-  final String ELEM_EXCEPTION_TYPE  = "exception-type";
-  final String ELEM_ERROR_CODE      = "error-code";
-  final String ELEM_ERROR_LOCATION  = "location";
+  final String ELEM_DESCRIPTION         = "description";
+  final String ELEM_DISPLAY_NAME        = "display-name";
+  final String ELEM_SERVLET             = "servlet";
+  final String ELEM_SERVLET_MAPPING     = "servlet-mapping";
+  final String ELEM_SERVLET_NAME        = "servlet-name";
+  final String ELEM_FILTER              = "filter";
+  final String ELEM_FILTER_MAPPING      = "filter-mapping";
+  final String ELEM_FILTER_NAME         = "filter-name";
+  final String ELEM_URL_PATTERN         = "url-pattern";
+  final String ELEM_WELCOME_FILES       = "welcome-file-list";
+  final String ELEM_WELCOME_FILE        = "welcome-file";
+  final String ELEM_SESSION_CONFIG      = "session-config";
+  final String ELEM_SESSION_TIMEOUT     = "session-timeout";
+  final String ELEM_MIME_MAPPING        = "mime-mapping";
+  final String ELEM_MIME_EXTENSION      = "extension";
+  final String ELEM_MIME_TYPE           = "mime-type";
+  final String ELEM_CONTEXT_PARAM       = "context-param";
+  final String ELEM_PARAM_NAME          = "param-name";
+  final String ELEM_PARAM_VALUE         = "param-value";
+  final String ELEM_LISTENER            = "listener";
+  final String ELEM_LISTENER_CLASS      = "listener-class";
+  final String ELEM_DISTRIBUTABLE       = "distributable";
+  final String ELEM_ERROR_PAGE          = "error-page";
+  final String ELEM_EXCEPTION_TYPE      = "exception-type";
+  final String ELEM_ERROR_CODE          = "error-code";
+  final String ELEM_ERROR_LOCATION      = "location";
+  final String ELEM_SECURITY_CONSTRAINT = "security-constraint";
+  final String ELEM_LOGIN_CONFIG        = "login-config";
+  final String ELEM_SECURITY_ROLE       = "security-role";
+  final String ELEM_ROLE_NAME           = "role-name";
 
   static final String STAR = "*";
   final String WEBAPP_LOGSTREAM = "WebApp";
@@ -93,13 +96,13 @@ public class WebAppConfiguration implements ServletContext
 
   private String displayName;
 
-  private Map   attributes;
-  private Map   initParameters;
-  private Map   sessions;
-  private Map   mimeTypes;
+  private Map attributes;
+  private Map initParameters;
+  private Map sessions;
+  private Map mimeTypes;
 
-  private Map   servletInstances;
-  private Map   filterInstances;
+  private Map servletInstances;
+  private Map filterInstances;
 
   private List contextAttributeListeners;
   private List contextListeners;
@@ -107,13 +110,15 @@ public class WebAppConfiguration implements ServletContext
   private List sessionAttributeListeners;
   private List sessionListeners;
 
-  private Map     exactServletMatchMounts;
-  private String  servletPatterns[];
-  private String  servletPatternMounts[];
+  private Map exactServletMatchMounts;
+  private String servletPatterns[];
+  private String servletPatternMounts[];
+  private String filterPatterns[];
 
-  private String  filterPatterns[];
+  private AuthenticationHandler authenticationHandler;
+  private AuthenticationRealm authenticationRealm;
 
-  private String  welcomeFiles[];
+  private String welcomeFiles[];
   private Integer sessionTimeout;
   private boolean distributable;
 
@@ -134,6 +139,7 @@ public class WebAppConfiguration implements ServletContext
                              boolean servletReloading,
                              String invokerPrefix,
                              Node elm,
+                             Map argsForSecurity,
                              WinstoneResourceBundle resources)
   {
     this.launcher = launcher;
@@ -169,6 +175,9 @@ public class WebAppConfiguration implements ServletContext
 
     List localWelcomeFiles = new ArrayList();
     List startupServlets = new ArrayList();
+
+    List rolesAllowed = new ArrayList();
+    List loginSecurityNodes = new ArrayList();
 
     // Initialise jasper servlet if requested
     if (useJasper)
@@ -232,6 +241,10 @@ public class WebAppConfiguration implements ServletContext
         else if (nodeName.equals(ELEM_DISTRIBUTABLE))
           this.distributable = true;
 
+        else if (nodeName.equals(ELEM_SECURITY_CONSTRAINT) ||
+                 nodeName.equals(ELEM_LOGIN_CONFIG))
+          loginSecurityNodes.add(child);
+
         // Session config elements
         else if (nodeName.equals(ELEM_SESSION_CONFIG))
         {
@@ -241,6 +254,18 @@ public class WebAppConfiguration implements ServletContext
             if ((timeoutElm.getNodeType() == Node.ELEMENT_NODE) &&
                 (timeoutElm.getNodeName().equals(ELEM_SESSION_TIMEOUT)))
               this.sessionTimeout = new Integer(timeoutElm.getFirstChild().getNodeValue().trim());
+          }
+        }
+
+        // Construct the security roles
+        else if (child.getNodeName().equals(ELEM_SECURITY_ROLE))
+        {
+          for (int m = 0; m < child.getChildNodes().getLength(); m++)
+          {
+            Node roleElm = (Node) child.getChildNodes().item(m);
+            if ((roleElm.getNodeType() == Node.ELEMENT_NODE) &&
+                (roleElm.getNodeName().equals(ELEM_ROLE_NAME)))
+              rolesAllowed.add(roleElm.getFirstChild().getNodeValue().trim());
           }
         }
 
@@ -313,7 +338,7 @@ public class WebAppConfiguration implements ServletContext
           processMapping(name, pattern, this.exactServletMatchMounts, localServletPatterns, localServletPatternMounts);
         }
 
-        // Process the servlet mappings
+        // Process the filter mappings
         else if (nodeName.equals(ELEM_FILTER_MAPPING))
         {
           String filterName  = null;
@@ -419,7 +444,15 @@ public class WebAppConfiguration implements ServletContext
                 "[#name]", name, "[#value]", value));
         }
       }
-
+    // Build the login/security role instance
+    if (!loginSecurityNodes.isEmpty())
+    {
+      // Build the realm
+      this.authenticationRealm = AuthenticationRealm.getInstance(resources, argsForSecurity);
+      this.authenticationHandler = AuthenticationHandler.getInstance(loginSecurityNodes,
+                                                              resources, authenticationRealm);
+    }
+    
     // Add the default index.html welcomeFile if none are supplied
     if (localWelcomeFiles.isEmpty())
       localWelcomeFiles.add("index.html");
@@ -442,15 +475,17 @@ public class WebAppConfiguration implements ServletContext
     staticParams.put("welcomeFileCount", "" + this.welcomeFiles.length);
     for (int n = 0; n < this.welcomeFiles.length; n++)
       staticParams.put("welcomeFile_" + n, this.welcomeFiles[n]);
-    this.staticResourceProcessor = new ServletConfiguration(this, this.loader, this.resources,
-      STATIC_SERVLET_NAME, STATIC_SERVLET_CLASS, staticParams, 0);
-    this.staticResourceProcessor.getRequestDispatcher(null, this.filterInstances, this.filterPatterns);
+    this.staticResourceProcessor = new ServletConfiguration(this, this.loader,
+      this.resources, STATIC_SERVLET_NAME, STATIC_SERVLET_CLASS, staticParams, 0);
+    this.staticResourceProcessor.getRequestDispatcher(null, this.filterInstances,
+      this.filterPatterns, this.authenticationHandler);
 
     // Initialise load on startup servlets
     Object autoStarters[] = startupServlets.toArray();
     Arrays.sort(autoStarters);
     for (int n = 0; n < autoStarters.length; n++)
-      ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null, this.filterInstances, this.filterPatterns);
+      ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(null,
+                  this.filterInstances, this.filterPatterns, this.authenticationHandler);
 
     // Send init notifies
     for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
@@ -465,7 +500,7 @@ public class WebAppConfiguration implements ServletContext
   public String[] getWelcomeFiles()     {return this.welcomeFiles;}
 
   /**
-   * Iterates through each of the servlets and calls destroy on them
+   * Iterates through each of the servlets/filters and calls destroy on them
    */
   public void destroy()
   {
@@ -491,7 +526,7 @@ public class WebAppConfiguration implements ServletContext
   /**
    * Triggered by the admin thread on the reloading class loader. This
    * will cause a full shutdown and reinstantiation of the web app - not real
-   * graceful, but you shouldn't have reloading turned on high load environments.
+   * graceful, but you shouldn't have reloading turned on in high load environments.
    */
   public void resetClassLoader() throws IOException
   {
@@ -671,16 +706,21 @@ public class WebAppConfiguration implements ServletContext
   public javax.servlet.RequestDispatcher getNamedDispatcher(String name)
   {
     ServletConfiguration servlet = (ServletConfiguration) this.servletInstances.get(name);
-    return (servlet != null ? servlet.getRequestDispatcher(null, this.filterInstances, this.filterPatterns) : null);
+    return (servlet != null
+      ? servlet.getRequestDispatcher(null, this.filterInstances,
+                                    this.filterPatterns, this.authenticationHandler)
+      : null);
   }
 
   public javax.servlet.RequestDispatcher getRequestDispatcher(String path)
   {
     ServletConfiguration servlet = urlMatch(path);
     if (servlet != null)
-      return servlet.getRequestDispatcher(path, this.filterInstances, this.filterPatterns);
+      return servlet.getRequestDispatcher(path, this.filterInstances,
+                        this.filterPatterns, this.authenticationHandler);
     else
-      return this.staticResourceProcessor.getRequestDispatcher(path, this.filterInstances, this.filterPatterns);
+      return this.staticResourceProcessor.getRequestDispatcher(path,
+            this.filterInstances, this.filterPatterns, this.authenticationHandler);
   }
 
   // Getting resources via the classloader

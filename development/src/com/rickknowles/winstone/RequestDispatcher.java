@@ -22,6 +22,8 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.SingleThreadModel;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 
@@ -47,10 +49,17 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   private int filterPatternsEvaluated;
   private int filterPatternCount;
   private boolean doInclude;
+  private boolean securityChecked;
+  private AuthenticationHandler authHandler;
 
+  /**
+   * Constructor. This initializes the filter chain and sets up the details
+   * needed to handle a servlet excecution, such as security constraints,
+   * filters, etc.
+   */
   public RequestDispatcher(Servlet instance, String name, ClassLoader loader,
     Object semaphore, String requestedPath, WinstoneResourceBundle resources,
-    Map filters, String filterPatterns[])
+    Map filters, String filterPatterns[], AuthenticationHandler authHandler)
   {
     this.resources = resources;
     this.instance = instance;
@@ -58,8 +67,10 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.loader = loader;
     this.semaphore = semaphore;
     this.requestedPath = requestedPath;
+    this.authHandler = authHandler;
     this.filters = filters;
     this.filterPatterns = filterPatterns;
+
     this.filterPatternsEvaluated = 0;
     this.filterPatternCount = (filterPatterns == null ? 0: filterPatterns.length);
   }
@@ -75,9 +86,24 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   {
     Logger.log(Logger.FULL_DEBUG, "INCLUDE: " + this.name);
 
+    // Have we eval'd security constraints yet ?
+    boolean continueAfterSecurityCheck = true;
+    if (!this.securityChecked)
+    {
+      this.securityChecked = true;
+      if (this.authHandler != null)
+        continueAfterSecurityCheck =
+              this.authHandler.processAuthentication((WinstoneRequest) request,
+                                                     (WinstoneResponse) response,
+                                                     this.requestedPath);
+    }
+
+    // Make sure that failed attempts get routed through to login page
+    if (!continueAfterSecurityCheck)
+      return;
 
     // Make sure the filter chain is exhausted first
-    if ((this.filterPatternCount > 0) &&
+    else if ((this.filterPatternCount > 0) &&
         (this.filterPatternsEvaluated < this.filterPatternCount))
     {
       this.doInclude = true;
@@ -87,6 +113,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     {
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
+      if (this.requestedPath != null)
+        request.setAttribute(JSP_FILE, this.requestedPath);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
           {this.instance.service(request, response);}
@@ -110,8 +138,24 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       throw new IllegalStateException(resources.getString("RequestDispatcher.ForwardCommitted"));
     response.resetBuffer();
 
+    // Have we eval'd security constraints yet ?
+    boolean continueAfterSecurityCheck = true;
+    if (!this.securityChecked)
+    {
+      this.securityChecked = true;
+      if (this.authHandler != null)
+        continueAfterSecurityCheck =
+              this.authHandler.processAuthentication((WinstoneRequest) request,
+                                                     (WinstoneResponse) response,
+                                                     this.requestedPath);
+    }
+
+    // Make sure that failed attempts get routed through to login page
+    if (!continueAfterSecurityCheck)
+      return;
+
     // Make sure the filter chain is exhausted first
-    if ((this.filterPatternCount > 0) &&
+    else if ((this.filterPatternCount > 0) &&
         (this.filterPatternsEvaluated < this.filterPatternCount))
       doFilter(request, response);
     else

@@ -127,7 +127,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
    */
   public RequestDispatcher getRequestDispatcher(String requestedPath,
                                                 Map filters,
-                                                String filterPatterns[])
+                                                String filterPatterns[],
+                                                AuthenticationHandler authHandler)
   {
     synchronized (this.servletSemaphore)
     {
@@ -161,7 +162,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
 
     // Build filter chain
     return new RequestDispatcher(this.instance, this.servletName, this.loader,
-        this.servletSemaphore, requestedPath, this.resources, filters, filterPatterns);
+        this.servletSemaphore, requestedPath, this.resources, filters, filterPatterns, authHandler);
   }
 
   public int getLoadOnStartup()               {return this.loadOnStartup;}

@@ -344,6 +344,7 @@ public class Launcher implements EntityResolver, Runnable
                                                 switchOnReloading,
                                                 switchOnInvoker ? invokerPrefix : null,
                                                 webXMLParentNode,
+                                                args,
                                                 this.resources);
   }
 

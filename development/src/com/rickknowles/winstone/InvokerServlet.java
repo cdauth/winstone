@@ -1,5 +1,20 @@
-
-// Copyright (c) 2003 
+/*
+ * Winstone Servlet Container
+ * Copyright (C) 2003 Rick Knowles
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * Version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License Version 2 for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * Version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
 package com.rickknowles.winstone;
 
 import javax.servlet.http.*;
@@ -93,7 +108,7 @@ public class InvokerServlet extends HttpServlet
   }
 
   /**
-   * Take the local path
+   * Get an instance of the servlet configuration object
    */
   protected ServletConfiguration getInvokableInstance(String pathName)
     throws ServletException, IOException
@@ -123,7 +138,7 @@ public class InvokerServlet extends HttpServlet
           this.mountedInstances.put(pathName, sc);
           Logger.log(Logger.DEBUG, this.resources.getString("InvokerServlet.MountingServlet",
               "[#className]", className, "[#invokerName]", getServletConfig().getServletName()));
-          sc.getRequestDispatcher(pathName, null, null);
+          sc.getRequestDispatcher(pathName, null, null, null);
         }
         catch (Throwable err) {/* Ignore, just return a null instance */}
       }
@@ -146,7 +161,7 @@ public class InvokerServlet extends HttpServlet
       rsp.sendError(rsp.SC_NOT_FOUND, errMsg);
     }
     else
-      invokedServlet.getRequestDispatcher(localPath, null, null).forward(req, rsp);
+      invokedServlet.getRequestDispatcher(localPath, null, null, null).forward(req, rsp);
   }
 
   protected void doPost(HttpServletRequest req, HttpServletResponse rsp)
@@ -161,7 +176,7 @@ public class InvokerServlet extends HttpServlet
         this.resources.getString("InvokerServlet.NoMatchingServletFound",
                                  "[#requestURI]", req.getRequestURI()));
     else
-      invokedServlet.getRequestDispatcher(localPath, null, null).forward(req, rsp);
+      invokedServlet.getRequestDispatcher(localPath, null, null, null).forward(req, rsp);
   }
 
 }

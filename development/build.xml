@@ -27,7 +27,7 @@ Authors:
   <property name="xerces.jar" value="c:/java/junit/xercesImpl.jar"/>
   <property name="nekohtml.jar" value="c:/java/junit/nekohtml.jar"/>
   <property name="junit.runner" value="junit.textui.TestRunner"/>
-  <property name="packages" value="com.rickknowles.winstone.*,com.rickknowles.winstone.ajp13.*,java.servlet.**"/>
+  <property name="packages" value="com.rickknowles.winstone.*,com.rickknowles.winstone.ajp13.*,com.rickknowles.winstone.auth.*,com.rickknowles.winstone.realm.*,java.servlet.**"/>
 
   <target name="timestamp">
     <tstamp/>
@@ -45,7 +45,7 @@ Authors:
   <target name="compile" depends="prepare">
   <!-- Compile the standard server components -->
     <javac srcdir="src"
-           includes="com/rickknowles/winstone/*,com/rickknowles/winstone/ajp13/*,javax/servlet/**"
+           includes="com/rickknowles/winstone/*,com/rickknowles/winstone/ajp13/*,com/rickknowles/winstone/auth/*,com/rickknowles/winstone/realm/*,javax/servlet/**"
            destdir="${winstone.build}/classes"
            debug="${debug}" 
            optimize="${optimize}"

@@ -26,6 +26,7 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpUtils;
+import java.security.Principal;
 
 /**
  * Implements the request interface required by the servlet spec.
@@ -65,6 +66,7 @@ public class WinstoneRequest implements HttpServletRequest
   private List locales;
   private String authorization;
   private boolean isSecure;
+  private AuthenticationPrincipal authenticatedUser;
 
   private WinstoneResourceBundle resources;
 
@@ -167,6 +169,7 @@ public class WinstoneRequest implements HttpServletRequest
   public void setAuthorization(String auth) {this.authorization = authorization;}
   public void setLocales(List locales)      {this.locales = locales;}
   public void setSessionCookie(String sc)   {this.sessionCookie = sc;}
+  public void setRemoteUser(AuthenticationPrincipal user) {this.authenticatedUser = user;}
 
   // Implementation methods for the servlet request stuff
   public Object getAttribute(String name)         {return this.attributes.get(name);}
@@ -286,7 +289,6 @@ public class WinstoneRequest implements HttpServletRequest
     {return this.webappConfig.getRealPath(path);}
 
   // Now the stuff for HttpServletRequest
-  public String getAuthType() {return null;}
   public String getContextPath()  {return this.webappConfig.getPrefix();}
   public Cookie[] getCookies() {return this.cookies;}
   public long getDateHeader(String name)
@@ -307,10 +309,14 @@ public class WinstoneRequest implements HttpServletRequest
   public String getPathInfo()                   {return null;}
   public String getPathTranslated()             {return null;}
   public String getQueryString()                {return this.queryString;}
-  public String getRemoteUser()                 {return null;}
-  public String getRequestedSessionId()         {return null;}
   public String getRequestURI()                 {return this.requestURI;}
   public String getServletPath()                {return this.servletPath;}
+  public String getRequestedSessionId()
+  {
+    HttpSession session = getSession(false);
+    return (session == null ? null : session.getId());
+  }
+
   public StringBuffer getRequestURL()
   {
     StringBuffer url = new StringBuffer();
@@ -323,8 +329,13 @@ public class WinstoneRequest implements HttpServletRequest
     return url;
   }
 
-  public java.security.Principal getUserPrincipal() {return null;}
-  public boolean isUserInRole(String role)          {return true;}
+  public Principal getUserPrincipal()       {return this.authenticatedUser;}
+  public boolean isUserInRole(String role)
+    {return this.authenticatedUser == null ? false : this.authenticatedUser.isUserIsInRole(role);}
+  public String getAuthType()
+    {return this.authenticatedUser == null ? null : this.authenticatedUser.getAuthType();}
+  public String getRemoteUser()
+    {return this.authenticatedUser == null ? null : this.authenticatedUser.getName();}
 
   public boolean isRequestedSessionIdFromCookie()   {return true;}
   public boolean isRequestedSessionIdFromUrl()      {return isRequestedSessionIdFromURL();}
