@@ -169,7 +169,6 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
   {
     if (this.dispatchParameters != null)
       return;
-    initialiseDispatchParams();
     this.dispatchParameters = new Hashtable();
     this.dispatchParameters.putAll(WinstoneRequest.extractParameters(
             this.dispatchQueryString, getCharacterEncoding(), resources));
