@@ -63,36 +63,6 @@ public class StaticResourceServlet extends HttpServlet
       this.welcomeFiles[n] = config.getInitParameter("welcomeFile_" + n);
   }
 
-  private String trimHostName(String input)
-  {
-    if (input == null)
-      return null;
-    else if (input.startsWith("/"))
-      return input;
-
-    int hostStart = input.indexOf("://");
-    if (hostStart == -1)
-      return input;
-    String hostName = input.substring(hostStart + 3);
-    int pathStart = hostName.indexOf('/');
-    if (pathStart == -1)
-      return "/";
-    else
-      return hostName.substring(pathStart);
-  }
-
-  private String trimQueryString(String input)
-  {
-    if (input == null)
-      return null;
-
-    int questionPos = input.indexOf('?');
-    if (questionPos == -1)
-      return input;
-    else
-      return input.substring(0, questionPos);
-  }
-
   public void doPost(HttpServletRequest request, HttpServletResponse response)
     throws ServletException, IOException {doGet(request, response);}
   
@@ -101,7 +71,9 @@ public class StaticResourceServlet extends HttpServlet
   {
     // Trim the host name if supplied
     String path = (String) request.getAttribute(JSP_FILE);
-
+    String isIncludeStr = (String) request.getAttribute("winstone.requestDispatcher.include");
+    boolean isInclude = ((isIncludeStr != null) && isIncludeStr.equals("true"));
+    
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
     Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",
               "[#name]", getServletConfig().getServletName(), "[#path]", path));
@@ -121,8 +93,8 @@ public class StaticResourceServlet extends HttpServlet
             this.resources.getString("StaticResourceServlet.PathInvalid",
               "[#path]", path));
 
-    // Check we are below the webroot
-    else if (res.getCanonicalPath().startsWith(this.webRoot + "/WEB-INF"))
+    // Check we are not below the web-inf
+    else if (!isInclude && res.getCanonicalPath().startsWith(new File(this.webRoot, "WEB-INF").getPath()))
       response.sendError(HttpServletResponse.SC_FORBIDDEN,
             this.resources.getString("StaticResourceServlet.PathInvalid",
               "[#path]", path));

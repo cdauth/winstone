@@ -112,7 +112,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     else
     {
       IncludeResponse includer = new IncludeResponse(response, this.resources);
-
+      request.setAttribute("winstone.requestDispatcher.include", "true");
+      
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
       if (this.jspFile != null)
@@ -179,9 +180,11 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     // Make sure the filter chain is exhausted first
     else if ((this.filterPatternCount > 0) &&
         (this.filterPatternsEvaluated < this.filterPatternCount))
-      doFilter(request, response);
+      doFilter(bareRequest, bareResponse);
     else
     {
+      bareRequest.setAttribute("winstone.requestDispatcher.include", "false");
+
       // Execute
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       Thread.currentThread().setContextClassLoader(this.loader);
@@ -189,9 +192,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         request.setAttribute(JSP_FILE, this.jspFile);
       if (this.instance instanceof SingleThreadModel)
         synchronized (this.semaphore)
-          {this.instance.service(request, response);}
+          {this.instance.service(bareRequest, bareResponse);}
       else
-        this.instance.service(request, response);
+        this.instance.service(bareRequest, bareResponse);
       Thread.currentThread().setContextClassLoader(cl);
     }
   }
