@@ -400,8 +400,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
       factory.setIgnoringElementContentWhitespace(true);
 
       // If we have (and can parse) the 2.4 xsd, set to redirect locally to use it
-      if ((getClass().getClassLoader().getResource(XSD_2_4_LOCAL) != null) &&
-          !factory.getClass().getName().startsWith(CRIMSON_PREFIX))
+      if (getClass().getClassLoader().getResource(XSD_2_4_LOCAL) != null)
+      try        
       {
         factory.setAttribute(
             "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
@@ -410,6 +410,8 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
             "http://java.sun.com/xml/jaxp/properties/schemaSource",
             getClass().getClassLoader().getResource(XSD_2_4_LOCAL).toString());
       }
+      catch (Throwable err) 
+        {Logger.log(Logger.WARNING, resources, "Launcher.NonXSDParser");}
 
       DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setEntityResolver(this);
