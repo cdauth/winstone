@@ -156,10 +156,11 @@ public class StaticResourceServlet extends HttpServlet
       response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
       OutputStream out = response.getOutputStream();
       byte buffer[] = new byte[4096];
-      while (resStream.available() > 0)
+      int read = resStream.read(buffer);
+      while (read > 0)
       {
-        int read = resStream.read(buffer);
         out.write(buffer, 0, read);
+        read = resStream.read(buffer);
       }
       out.close();
       resStream.close();

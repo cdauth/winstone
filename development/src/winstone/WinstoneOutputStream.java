@@ -70,6 +70,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream
 
   public void write(int oneChar) throws IOException
   {
+    //System.out.println("Out: " + this.bufferPosition + " char=" + (char)oneChar);
     this.buffer.write(oneChar);
     this.bufferPosition++;
     //if (this.headersWritten)

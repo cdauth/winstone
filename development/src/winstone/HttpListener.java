@@ -188,6 +188,8 @@ public class HttpListener implements Listener, Runnable
 
     // Get header data (eg protocol, method, uri, headers, etc)
     String uriLine = new String(uriBuffer);
+    if (uriLine.trim().equals(""))
+      throw new SocketException("Empty URI Line");
     String servletURI = parseURILine(uriLine, req, rsp);
     parseHeaders(req, inData);
     rsp.extractRequestKeepAliveHeader(req);

@@ -162,11 +162,8 @@ public class WinstoneResponse implements HttpServletResponse
       catch (Throwable err) {return;}
       int bodyBytes = this.outputStream.getBytesWritten();
       if (contentLength != bodyBytes)
-      {
         Logger.log(Logger.DEBUG, resources, "WinstoneResponse.ShortOutput",
           new String[] {contentLength + "", bodyBytes + ""});
-        //this.setContentLength(bodyBytes);
-      }
     }
   }
   
