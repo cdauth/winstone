@@ -578,15 +578,6 @@ public class WebAppConfiguration implements ServletContext
         localWelcomeFiles.add("index.jsp");
       localWelcomeFiles.add("index.html");
     }
-
-    // Sort the folder patterns so the longest paths are first
-    localFolderPatterns.addAll(localExtensionPatterns);
-    this.patternMatches = (Mapping []) localFolderPatterns.toArray(
-				new Mapping[localFolderPatterns.size()]);
-    this.welcomeFiles 	= (String []) localWelcomeFiles.toArray(
-        new String[localWelcomeFiles.size()]);
-    if (this.patternMatches.length > 0)
-      Arrays.sort(this.patternMatches, (Comparator) this.patternMatches[0]);
     
     // Put the name filters after the url filters, then convert to string arrays
     this.filterPatternsRequest = (Mapping []) lfpRequest.toArray(new Mapping[lfpRequest.size()]);
@@ -603,6 +594,9 @@ public class WebAppConfiguration implements ServletContext
     if (this.filterPatternsError.length > 0)
       Arrays.sort(this.filterPatternsError, (Comparator) this.filterPatternsError[0]);
     
+    this.welcomeFiles 	= (String []) localWelcomeFiles.toArray(
+        new String[localWelcomeFiles.size()]);
+
     // If we haven't explicitly mapped the default servlet, map it here
     if (this.defaultServletName == null)
       this.defaultServletName = DEFAULT_SERVLET_NAME;
@@ -657,6 +651,13 @@ public class WebAppConfiguration implements ServletContext
       processMapping(INVOKER_SERVLET_NAME, invokerPrefix + Mapping.STAR, this.exactServletMatchMounts, 
           localFolderPatterns, localExtensionPatterns);
     }
+
+    // Sort the folder patterns so the longest paths are first
+    localFolderPatterns.addAll(localExtensionPatterns);
+    this.patternMatches = (Mapping []) localFolderPatterns.toArray(
+				new Mapping[localFolderPatterns.size()]);
+    if (this.patternMatches.length > 0)
+      Arrays.sort(this.patternMatches, (Comparator) this.patternMatches[0]);
     
     // Send init notifies
     for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
@@ -809,6 +810,7 @@ public class WebAppConfiguration implements ServletContext
       ws.setMaxInactiveInterval(this.sessionTimeout.intValue() * 60);
     else
       ws.setMaxInactiveInterval(-1);
+    ws.setLastAccessedDate(System.currentTimeMillis());
     ws.sendCreatedNotifies();
     this.sessions.put(sessionId, ws);
     return ws;
@@ -978,7 +980,7 @@ public class WebAppConfiguration implements ServletContext
   public javax.servlet.RequestDispatcher getInitialDispatcher(String uriInsideWebapp,
       WinstoneRequest request)
   {
-    if (!uriInsideWebapp.startsWith("/"))
+    if (!uriInsideWebapp.equals("") && !uriInsideWebapp.startsWith("/"))
       return null;
   	
     // Parse the url for query string, etc 
@@ -1000,9 +1002,10 @@ public class WebAppConfiguration implements ServletContext
       request.setQueryString(queryString);
       request.setServletPath(servletPath.toString());
       request.setPathInfo(pathInfo.equals("") ? null : pathInfo.toString());
+      request.setRequestURI(this.prefix + uriInsideWebapp);
       RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
-      rd.setForInitialDispatcher(servletPath.toString(), this.filterPatternsRequest, 
-          this.authenticationHandler);
+      rd.setForInitialDispatcher(request.getServletPath(), request.getPathInfo(), 
+          this.filterPatternsRequest, this.authenticationHandler);
       return rd;
     }
     else return null;
@@ -1057,14 +1060,21 @@ public class WebAppConfiguration implements ServletContext
       throw new WinstoneException(resources.getString("WebAppConfig.BadResourcePath", "[#path]", path));      
     else
     {
-      String workingPath = path.substring(1, path.length() - 
-          									(path.charAt(path.length() - 1) == '/' ? 2 : 1));
-      File inPath = new File(this.webRoot, workingPath);
-      // Find all the files in this folder
+      String workingPath = null;
+      if (path.equals("/"))
+        workingPath = "";
+      else
+      {
+        boolean lastCharIsSlash = path.charAt(path.length() - 1) == '/';
+        workingPath = path.substring(1, path.length() - (lastCharIsSlash ? 1 : 0));
+      }
+      File inPath = new File(this.webRoot, workingPath.equals("") ? "." : workingPath);
       if (!inPath.exists())
         return null;
       else if (!inPath.isDirectory())
         return null;
+      
+      // Find all the files in this folder
       File children[] = inPath.listFiles();
       Set out = new HashSet();
       for (int n = 0; n < children.length; n++)

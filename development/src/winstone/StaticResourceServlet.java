@@ -73,8 +73,15 @@ public class StaticResourceServlet extends HttpServlet
     throws ServletException, IOException
   {
     boolean isInclude = (request.getAttribute(INCLUDE_PATH_INFO) != null);
-    String path = isInclude ? (String) request.getAttribute(INCLUDE_PATH_INFO)
-        										: (String) request.getAttribute(FORWARD_PATH_INFO);
+    boolean isForward = (request.getAttribute(FORWARD_PATH_INFO) != null);
+    String path = null;
+    
+    if (isInclude)
+      path = (String) request.getAttribute(INCLUDE_PATH_INFO);
+    else if (isForward)
+      path = (String) request.getAttribute(FORWARD_PATH_INFO);
+    else
+      path = request.getPathInfo();
     
     long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
     Logger.log(Logger.DEBUG, this.resources.getString("StaticResourceServlet.PathRequested",
@@ -168,8 +175,8 @@ public class StaticResourceServlet extends HttpServlet
       Set subfiles = getServletConfig().getServletContext().getResourcePaths(path);
       Logger.log(Logger.DEBUG,
             this.resources.getString("StaticResourceServlet.TestingWelcomeFile",
-              "[#welcomeFile]", this.prefix + path + welcomeFile));
-      if (subfiles.contains(this.prefix + path + welcomeFile))
+              "[#welcomeFile]", path + welcomeFile));
+      if (subfiles.contains(path + welcomeFile))
         return welcomeFile;
     }
     return null;

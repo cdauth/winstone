@@ -136,12 +136,12 @@ public class RequestHandlerThread implements Runnable
             }
 
             // Lookup a dispatcher, then process with it
-            //this.webAppConfig.setRequestResponse(req, rsp);
+            this.webAppConfig.setRequestResponse(req, rsp);
             processRequest(req, rsp, path);
-            //this.outData.finishResponse();
-            //this.inData.finishRequest();
-            //req.setWebAppConfig(null);
-            //rsp.setWebAppConfig(null);
+            this.outData.finishResponse();
+            this.inData.finishRequest();
+            req.setWebAppConfig(null);
+            rsp.setWebAppConfig(null);
 
             Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.FinishRequest",
               "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
@@ -217,10 +217,6 @@ public class RequestHandlerThread implements Runnable
     }
     rsp.flushBuffer();
     rsp.verifyContentLength();
-    this.outData.finishResponse();
-    this.inData.finishRequest();
-    req.setWebAppConfig(null);
-    rsp.setWebAppConfig(null);
   }
 
   /**

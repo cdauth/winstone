@@ -111,18 +111,16 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.forwardFilterPatterns = forwardFilterPatterns;
     this.includeFilterPatterns = includeFilterPatterns;
     this.filterPatterns = null; // set after the call to forward or include
-    this.filterPatternsEvaluated = 0;
     this.useRequestAttributes = true;
   }
   
-  public void setForInitialDispatcher(String requestedPath,
+  public void setForInitialDispatcher(String servletPath, String pathInfo, 
       Mapping requestFilterPatterns[], AuthenticationHandler authHandler)
   {
-    this.servletPath = requestedPath;
+    this.servletPath = servletPath;
+    this.pathInfo = pathInfo;
     this.authHandler = authHandler;
     this.filterPatterns = requestFilterPatterns;
-
-    this.filterPatternsEvaluated = 0;
     this.useRequestAttributes = false;
   }
 
@@ -266,7 +264,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     {
       // Get the pattern and eval it, bumping up the eval'd count
       Mapping filterPattern = this.filterPatterns[this.filterPatternsEvaluated++];
-
+      String fullPath = this.servletPath + (this.pathInfo == null ? "" : this.pathInfo);
+      
       // If the servlet name matches this name, execute it
       if ((filterPattern.getLinkName() != null) &&
           filterPattern.getLinkName().equals(this.name))
@@ -279,7 +278,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       }
       else if ((filterPattern.getLinkName() == null) &&
           		 (this.servletPath != null) &&
-          		 filterPattern.match(this.servletPath, null, null))
+          		 filterPattern.match(fullPath, null, null))
       {
         FilterConfiguration filter = (FilterConfiguration) this.filters.get(filterPattern.getMappedTo());
         Logger.log(Logger.DEBUG, this.resources.getString(
@@ -293,7 +292,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       else
         Logger.log(Logger.FULL_DEBUG, this.resources.getString(
           "RequestDispatcher.BypassingFilter",
-            "[#filterPattern]", filterPattern.toString(), "[#path]", this.servletPath));
+            "[#filterPattern]", filterPattern.toString(), "[#path]", fullPath));
     }
 
     // Forward / include as requested in the beginning

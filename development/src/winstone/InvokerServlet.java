@@ -34,7 +34,7 @@ import java.util.*;
 public class InvokerServlet extends HttpServlet
 {
   final String RESOURCE_FILE    = "winstone.LocalStrings";
-  final String JSP_FILE         = "org.apache.catalina.jsp_file";
+  //final String JSP_FILE         = "org.apache.catalina.jsp_file";
 
   private WinstoneResourceBundle resources;
   private Map mountedInstances;
@@ -52,7 +52,7 @@ public class InvokerServlet extends HttpServlet
     this.prefix = config.getInitParameter("prefix");
     this.invokerPrefix = config.getInitParameter("invokerPrefix");
   }
-
+/*
   private String trimHostName(String input)
   {
     if (input == null)
@@ -82,7 +82,7 @@ public class InvokerServlet extends HttpServlet
     else
       return input.substring(0, questionPos);
   }
-
+*/
   /**
    * Destroy any mounted instances we might be holding, then destroy myself
    */
@@ -100,7 +100,7 @@ public class InvokerServlet extends HttpServlet
   /**
    * Take the URI, and retrieve the part that is relevant to this servlet
    */
-  protected String extractLocalPath(String fullURI)
+/*  protected String extractLocalPath(String fullURI)
   {
     String pathOnly = trimHostName(trimQueryString(fullURI));
     if (!pathOnly.startsWith(this.prefix))
@@ -109,42 +109,36 @@ public class InvokerServlet extends HttpServlet
     else
       return pathOnly.substring(this.prefix.length());
   }
-
+*/
   /**
    * Get an instance of the servlet configuration object
    */
-  protected ServletConfiguration getInvokableInstance(String pathName)
+  protected ServletConfiguration getInvokableInstance(String servletName)
     throws ServletException, IOException
   {
     ServletConfiguration sc = null;
     synchronized (this.mountedInstances)
     {
-      if (this.mountedInstances.containsKey(pathName))
-        sc = (ServletConfiguration) this.mountedInstances.get(pathName);
+      if (this.mountedInstances.containsKey(servletName))
+        sc = (ServletConfiguration) this.mountedInstances.get(servletName);
     }
 
     if (sc == null)
     {
-      // Search for a class
-      if (pathName.startsWith(this.invokerPrefix))
+      // If found, mount an instance
+      try
       {
-        String className = pathName.substring(this.invokerPrefix.length());
-
-        // If found, mount an instance
-        try
-        {
-          Class servletClass = Class.forName(className, true, Thread.currentThread().getContextClassLoader());
-          sc = new ServletConfiguration(this.getServletContext(),
-              Thread.currentThread().getContextClassLoader(), this.resources, this.prefix,
-              getServletConfig().getServletName() + ":" + pathName, 
-              className, new Hashtable(), -1);
-          this.mountedInstances.put(pathName, sc);
-          Logger.log(Logger.DEBUG, this.resources.getString("InvokerServlet.MountingServlet",
-              "[#className]", className, "[#invokerName]", getServletConfig().getServletName()));
-          sc.getRequestDispatcher(new HashMap()); // just to trigger the servlet.init()
-        }
-        catch (Throwable err) {sc = null;}
+        Class servletClass = Class.forName(servletName, true, Thread.currentThread().getContextClassLoader());
+        sc = new ServletConfiguration(this.getServletContext(),
+            Thread.currentThread().getContextClassLoader(), this.resources, this.prefix,
+            getServletConfig().getServletName() + ":" + servletName, 
+            servletName, new Hashtable(), -1);
+        this.mountedInstances.put(servletName, sc);
+        Logger.log(Logger.DEBUG, this.resources.getString("InvokerServlet.MountingServlet",
+            "[#className]", servletName, "[#invokerName]", getServletConfig().getServletName()));
+        sc.getRequestDispatcher(new HashMap()); // just to trigger the servlet.init()
       }
+      catch (Throwable err)  {sc = null;}
     }
     return sc;
   }
@@ -153,13 +147,15 @@ public class InvokerServlet extends HttpServlet
     throws ServletException, IOException
   {
     // Get the servlet instance if possible
-    String localPath = (String) req.getAttribute(JSP_FILE);
-    ServletConfiguration invokedServlet = getInvokableInstance(localPath);
+    String servletName = req.getPathInfo();
+    if (servletName.startsWith("/"))
+      servletName = servletName.substring(1);
+    ServletConfiguration invokedServlet = getInvokableInstance(servletName);
 
     if (invokedServlet == null)
     {
       String errMsg = this.resources.getString("InvokerServlet.NoMatchingServletFound",
-                                 "[#requestURI]", localPath);
+                                 "[#requestURI]", servletName);
       Logger.log(Logger.WARNING, errMsg);
       rsp.sendError(HttpServletResponse.SC_NOT_FOUND, errMsg);
     }
@@ -173,22 +169,6 @@ public class InvokerServlet extends HttpServlet
 
   protected void doPost(HttpServletRequest req, HttpServletResponse rsp)
     throws ServletException, IOException
-  {
-    // Get the servlet instance if possible
-    String localPath = (String) req.getAttribute(JSP_FILE);
-    ServletConfiguration invokedServlet = getInvokableInstance(localPath);
-
-    if (invokedServlet == null)
-      rsp.sendError(HttpServletResponse.SC_NOT_FOUND,
-        this.resources.getString("InvokerServlet.NoMatchingServletFound",
-                                 "[#requestURI]", localPath));
-    else
-    {
-      RequestDispatcher rd = invokedServlet.getRequestDispatcher(new HashMap());
-      rd.setForNamedDispatcher(new Mapping[0], new Mapping[0]);
-      rd.forward(req, rsp);
-    }
-  }
-
+    {doGet(req, rsp);}
 }
 
