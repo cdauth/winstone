@@ -22,12 +22,11 @@ set WINSTONE_OPTS=--prefix=/examples --debug=8 --httpPort=9080 --controlPort=908
 @rem ********************************************************************
 @rem            Uncomment for jsp support
 @rem ********************************************************************
-set CP=%CP%;%CATALINA_HOME%\common\lib\jasper-runtime.jar
-set CP=%CP%;%CATALINA_HOME%\common\lib\jasper-compiler.jar
-@rem set CP=%CP%;%CATALINA_HOME%\common\lib\commons-logging-api.jar
-@rem set CP=%CP%;%CATALINA_HOME%-5\common\lib\commons-el.jar
+set CP=%CP%;%CATALINA_HOME%-5\common\lib\jasper-runtime.jar
+set CP=%CP%;%CATALINA_HOME%-5\common\lib\jasper-compiler.jar
+set CP=%CP%;%CATALINA_HOME%\common\lib\commons-logging-api.jar
+set CP=%CP%;%CATALINA_HOME%-5\common\lib\commons-el.jar
 set CP=%CP%;%CATALINA_HOME%\common\lib\ant.jar
-@rem set CP=%CP%;%WINSTONE_HOME%\development\lib\jsp-servlet.jar
 set CP=%CP%;%JAVA_HOME%\lib\tools.jar
 set WINSTONE_OPTS=%WINSTONE_OPTS% --useJasper
 

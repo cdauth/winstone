@@ -214,7 +214,8 @@ public class WinstoneRequest implements HttpServletRequest
   /**
    * Gets parameters from the url encoded parameter string
    */
-  public Map extractParameters(String urlEncodedParams)
+  public static Map extractParameters(String urlEncodedParams, String encoding,
+      WinstoneResourceBundle resources)
   {
     Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParsingParameters") + urlEncodedParams);
     Map params = new Hashtable();
@@ -229,10 +230,10 @@ public class WinstoneRequest implements HttpServletRequest
       {
         String decodedNameDefault = decodeURLToken(token.substring(0, equalPos));
         String decodedValueDefault = decodeURLToken(token.substring(equalPos + 1));
-        String decodedName = (this.encoding == null ? decodedNameDefault 
-            : new String(decodedNameDefault.getBytes("8859_1"), this.encoding));
-        String decodedValue = (this.encoding == null ? decodedValueDefault 
-            : new String(decodedValueDefault.getBytes("8859_1"), this.encoding));
+        String decodedName = (encoding == null ? decodedNameDefault 
+            : new String(decodedNameDefault.getBytes("8859_1"), encoding));
+        String decodedValue = (encoding == null ? decodedValueDefault 
+            : new String(decodedValueDefault.getBytes("8859_1"), encoding));
         Object already = params.get(decodedName);
         if (already == null)
           params.put(decodedName, decodedValue);
@@ -317,7 +318,7 @@ public class WinstoneRequest implements HttpServletRequest
         String paramLine = (this.encoding == null 
                               ? new String(paramBuffer)
                               : new String(paramBuffer, this.encoding));
-        Map postParams = extractParameters(paramLine.trim());
+        Map postParams = extractParameters(paramLine.trim(), this.encoding, resources);
         Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneRequest.ParamLine") + postParams);
         params.putAll(postParams);
       }
@@ -484,13 +485,15 @@ public class WinstoneRequest implements HttpServletRequest
   }
 
   // Implementation methods for the servlet request stuff
-  public Object getAttribute(String name)         {return this.attributes.get(name);}
+  public Object getAttribute(String name)  				{return this.attributes.get(name);}
   public Enumeration getAttributeNames()          {return Collections.enumeration(this.attributes.keySet());}
   public void removeAttribute(String name)        {this.attributes.remove(name);}
   public void setAttribute(String name, Object o) 
   {
     if ((name != null) && (o != null))
     	this.attributes.put(name, o);
+    else if (name != null)
+      removeAttribute(name);
   }
 
   public String getCharacterEncoding()  {return this.encoding;}

@@ -34,6 +34,7 @@ public class HttpListener implements Listener, Runnable
   private int LISTENER_TIMEOUT = 5000; // every 5s reset the listener socket
   private int DEFAULT_PORT = 8080;
   private int CONNECTION_TIMEOUT = 60000;
+  private int BACKLOG_COUNT = 1000;
   private boolean DEFAULT_HNL = true;
 
   private int KEEP_ALIVE_TIMEOUT   = 10000;
@@ -44,6 +45,7 @@ public class HttpListener implements Listener, Runnable
   private ObjectPool objectPool;
   private boolean doHostnameLookups;
   private int listenPort;
+  private String listenAddress;
   private boolean interrupted;
 
   protected HttpListener() {}
@@ -59,6 +61,8 @@ public class HttpListener implements Listener, Runnable
     this.objectPool = objectPool;
     this.listenPort = (args.get("httpPort") == null ? DEFAULT_PORT
                           : Integer.parseInt((String) args.get("httpPort")));
+    if (args.get("httpListenAddress") != null)
+    	this.listenAddress = (String) args.get("httpListenAddress");
 
     if (this.listenPort < 0)
       throw new WinstoneException("disabling http connector");
@@ -81,7 +85,10 @@ public class HttpListener implements Listener, Runnable
   {
     try
     {
-      ServerSocket ss = new ServerSocket(this.listenPort);
+      ServerSocket ss = this.listenAddress == null 
+      			? new ServerSocket(this.listenPort, BACKLOG_COUNT)
+      			: new ServerSocket(this.listenPort, BACKLOG_COUNT, 
+      			    					InetAddress.getByName(this.listenAddress));
       ss.setSoTimeout(LISTENER_TIMEOUT);
       Logger.log(Logger.INFO, resources.getString("HttpListener.StartupOK",
                               "[#port]", this.listenPort + ""));

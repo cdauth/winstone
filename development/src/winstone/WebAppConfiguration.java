@@ -1010,8 +1010,9 @@ public class WebAppConfiguration implements ServletContext
     {
       RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
       rd.setForURLDispatcher(servletPath.toString(), 
-          pathInfo.toString().equals("") ? null : pathInfo.toString(), queryString, uriInsideWebapp,
-          this.filterPatternsForward, this.filterPatternsInclude);
+          pathInfo.toString().equals("") ? null : pathInfo.toString(), 
+          queryString, uriInsideWebapp, this.filterPatternsForward, 
+          this.filterPatternsInclude);
       return rd;
     }
     else return null;
@@ -1047,13 +1048,13 @@ public class WebAppConfiguration implements ServletContext
     {
       request.setQueryString(queryString);
       // parse params here ? yes for now
-      request.getParameters().putAll(request.extractParameters(queryString));
+      request.getParameters().putAll(WinstoneRequest.extractParameters(queryString, request.getEncoding(), resources));
       request.setServletPath(servletPath.toString());
       request.setPathInfo(pathInfo.toString().equals("") ? null : pathInfo.toString());
       request.setRequestURI(this.prefix + uriInsideWebapp);
       RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
       rd.setForInitialDispatcher(request.getServletPath(), request.getPathInfo(), 
-          this.filterPatternsRequest, this.authenticationHandler);
+          uriInsideWebapp, this.filterPatternsRequest, this.authenticationHandler);
       return rd;
     }
     else return null;

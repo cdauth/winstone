@@ -39,7 +39,8 @@ public class IncludeResponse extends HttpServletResponseWrapper
   
   public IncludeResponse(ServletResponse response, WinstoneResourceBundle resources)
   {
-    super((HttpServletResponse) response);
+    super(null);
+    super.setResponse(response);
     this.resources = resources;
     this.includedBody = new ByteArrayOutputStream();
     this.servletOutputStream = new WinstoneOutputStream(this.includedBody, true, resources);
@@ -54,7 +55,7 @@ public class IncludeResponse extends HttpServletResponseWrapper
     this.servletOutputStream.close();
     this.includedBody.flush();
     String underlyingEncoding = getResponse().getCharacterEncoding();
-    String bodyBlock = (underlyingEncoding == null
+    String bodyBlock = (underlyingEncoding != null
             ? new String(this.includedBody.toByteArray(), underlyingEncoding)
             : new String(this.includedBody.toByteArray()));
     getResponse().getWriter().write(bodyBlock);
