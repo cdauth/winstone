@@ -53,7 +53,11 @@ public class IncludeResponse extends HttpServletResponseWrapper
     this.servletOutputStream.commit();
     this.servletOutputStream.close();
     this.includedBody.flush();
-    getResponse().getOutputStream().write(this.includedBody.toByteArray());
+    String underlyingEncoding = getResponse().getCharacterEncoding();
+    String bodyBlock = (underlyingEncoding == null
+            ? new String(this.includedBody.toByteArray(), underlyingEncoding)
+            : new String(this.includedBody.toByteArray()));
+    getResponse().getWriter().write(bodyBlock);
   }
   
   public void addCookie(Cookie cookie)  {}
