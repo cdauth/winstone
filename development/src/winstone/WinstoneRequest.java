@@ -677,7 +677,15 @@ public class WinstoneRequest implements HttpServletRequest
   }
   public String getHeader(String name)          {return extractFirstHeader(name);}
   public Enumeration getHeaderNames()           {return Collections.enumeration(extractHeaderNameList());}
-  public Enumeration getHeaders(String name)    {return null;}
+  public Enumeration getHeaders(String name)    
+  {
+    List headers = new ArrayList();
+    for (int n = 0; n < this.headers.length; n++)
+      if (this.headers[n].toUpperCase().startsWith(name.toUpperCase() + ':'))
+        headers.add(this.headers[n].substring(name.length() + 1).trim()); // 1 for colon
+    return Collections.enumeration(headers);
+  }
+  
   public String getMethod()                     {return this.method;}
   public String getPathInfo()                   {return this.pathInfo;}
   public String getPathTranslated()             {return this.webappConfig.getRealPath(this.pathInfo);}
