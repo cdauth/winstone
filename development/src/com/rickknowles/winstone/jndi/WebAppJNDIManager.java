@@ -23,7 +23,6 @@ import java.util.*;
 import javax.naming.*;
 import java.lang.reflect.*;
 import org.w3c.dom.Node;
-import javax.mail.Session;
 
 /**
  * Implements a simple web.xml + command line arguments style jndi manager
@@ -203,7 +202,12 @@ public class WebAppJNDIManager implements JNDIManager
     else if (className.equals("javax.mail.Session"))
     {
       try
-        {return Session.getInstance(extractRelevantArgs(args, name), null);}
+      {
+        Class smtpClass = Class.forName(className, true, this.loader);
+        Method smtpMethod = smtpClass.getMethod("getInstance", new Class[] {Properties.class, Class.forName("javax.mail.Authenticator")});
+        return smtpMethod.invoke(null, new Object[] {extractRelevantArgs(args, name), null});
+        //return Session.getInstance(extractRelevantArgs(args, name), null);
+      }
       catch (Throwable err)
         {Logger.log(Logger.ERROR, this.resources.getString(
           "WebAppJNDIManager.ErrorBuildingMailSession", "[#name]", name), err);}
