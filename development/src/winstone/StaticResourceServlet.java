@@ -34,13 +34,16 @@ import java.text.*;
 public class StaticResourceServlet extends HttpServlet
 {
   //final String JSP_FILE = "org.apache.catalina.jsp_file";
-  final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
-  final String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
+  final static String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
+  final static String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
   
-  final String CACHED_RESOURCE_DATE_HEADER = "If-Modified-Since";
-  final String LAST_MODIFIED_DATE_HEADER   = "Last-Modified";
+  final static String CACHED_RESOURCE_DATE_HEADER = "If-Modified-Since";
+  final static String LAST_MODIFIED_DATE_HEADER   = "Last-Modified";
+  final static String RANGE_HEADER   							= "Range";
+  final static String ACCEPT_RANGES_HEADER 				= "Accept-Ranges";
+  final static String CONTENT_RANGE_HEADER 				= "Content-Range";
 
-  final String RESOURCE_FILE    = "winstone.LocalStrings";
+  final static String RESOURCE_FILE    = "winstone.LocalStrings";
 
   private DateFormat sdfFileDate = new SimpleDateFormat("dd-MMM-yyyy HH:mm");
 
@@ -155,8 +158,27 @@ public class StaticResourceServlet extends HttpServlet
       if (mimeType != null)
         response.setContentType(mimeType);
       InputStream resStream = new FileInputStream(res);
-      response.setStatus(HttpServletResponse.SC_OK);
-      response.setContentLength((int)res.length());
+      
+      // Check for the range header, so we can do restartable downloads
+      int start = 0;
+      int end = (int) res.length();
+      String range = request.getHeader(RANGE_HEADER);
+      if ((range != null) && range.startsWith("bytes="))
+      {
+        String remainder = range.substring(6).trim();
+        int delim = remainder.indexOf('-');
+        if (delim != 0)
+          start = Integer.parseInt(remainder.substring(0, delim));
+        if (delim != remainder.length() - 1)
+          end = Integer.parseInt(remainder.substring(delim + 1));
+        response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+        response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
+        response.addHeader(CONTENT_RANGE_HEADER, "bytes " + start + "-" + end + "/" + res.length());
+      }
+      else
+        response.setStatus(HttpServletResponse.SC_OK);
+
+      response.setContentLength(end - start);
       response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
       OutputStream out = response.getOutputStream();
       byte buffer[] = new byte[1024];

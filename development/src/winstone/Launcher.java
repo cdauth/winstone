@@ -25,6 +25,7 @@ import java.lang.reflect.*;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.EntityResolver;
@@ -46,8 +47,8 @@ public class Launcher implements EntityResolver, Runnable
   final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
   final String DTD_2_3_URL    = "javax/servlet/resources/web-app_2_3.dtd";
 
-  //final String XSD_2_4_PUBLIC = "-//Sun Microsystems, Inc.//XSD Web Application 2.4//EN";
-  //final String XSD_2_4_URL    = "javax/servlet/resources/web-app_2_4.xsd";
+  final String XSD_2_4_PUBLIC = "-//Sun Microsystems, Inc.//XSD Web Application 2.4//EN";
+  final String XSD_2_4_URL    = "javax/servlet/resources/web-app_2_4.xsd";
 
   final String HTTP_LISTENER_CLASS = "winstone.HttpListener";
   final String AJP_LISTENER_CLASS  = "winstone.ajp13.Ajp13Listener";
@@ -373,11 +374,12 @@ public class Launcher implements EntityResolver, Runnable
     if (publicName == null)
       return null;
     else if (publicName.equals(DTD_2_2_PUBLIC))
-      return new InputSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(DTD_2_2_URL));
+      return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_2_URL));
     else if (publicName.equals(DTD_2_3_PUBLIC))
-      return new InputSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(DTD_2_3_URL));
-    //else if (publicName.equals(XSD_2_4_PUBLIC))
-    //  return new InputSource(Thread.currentThread().getContextClassLoader().getResourceAsStream(XSD_2_4_URL));
+      return new InputSource(getClass().getClassLoader().getResourceAsStream(DTD_2_3_URL));
+    else if (publicName.equals(XSD_2_4_PUBLIC) &&
+        (getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL) != null))
+      return new InputSource(getClass().getClassLoader().getResourceAsStream(XSD_2_4_URL));
     else
       return new InputSource(url);
   }

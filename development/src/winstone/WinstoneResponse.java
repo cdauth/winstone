@@ -51,7 +51,10 @@ public class WinstoneResponse implements HttpServletResponse
   static final String LOCATION_HEADER        = "Location";
   static final String OUT_COOKIE_HEADER1     = "Set-Cookie";
   static final String OUT_COOKIE_HEADER2     = "Set-Cookie2";
+  static final String X_POWERED_BY_HEADER		 = "X-Powered-By";
 
+  static final String POWERED_BY_WINSTONE = "Servlet/2.4 (Winstone/0.6)";
+  
   private int statusCode;
   private WinstoneRequest req;
   private WebAppConfiguration webAppConfig;
@@ -62,6 +65,8 @@ public class WinstoneResponse implements HttpServletResponse
   private Writer outWriter;
   private Locale locale;
   private Map encodingMap;
+  private String protocol;
+  private String reqKeepAliveHeader;
 
   private WinstoneResourceBundle resources;
 
@@ -78,6 +83,8 @@ public class WinstoneResponse implements HttpServletResponse
     this.statusCode = SC_OK;
     this.locale = Locale.getDefault();
     this.encoding = null;
+    this.protocol = null;
+    this.reqKeepAliveHeader = null;
   }
 
   /**
@@ -91,6 +98,8 @@ public class WinstoneResponse implements HttpServletResponse
     this.headers.clear();
     this.cookies.clear();
     this.outWriter = null;
+    this.protocol = null;
+    this.reqKeepAliveHeader = null;
 
     this.statusCode = SC_OK;
     this.locale = Locale.getDefault();
@@ -108,13 +117,18 @@ public class WinstoneResponse implements HttpServletResponse
   }
   public void setOutputStream(WinstoneOutputStream outData) {this.outputStream = outData;}
   public void setWebAppConfig(WebAppConfiguration webAppConfig) {this.webAppConfig = webAppConfig;}
-  public void setRequest(WinstoneRequest req) {this.req = req;}
 
-  public String getProtocol()   {return this.req.getProtocol();}
+  public String getProtocol()   {return this.protocol;}
+  public void setProtocol(String protocol) {this.protocol = protocol;}
+  
+  public void extractRequestKeepAliveHeader(WinstoneRequest req) 
+  	{this.reqKeepAliveHeader = req.getHeader(KEEP_ALIVE_HEADER);}
+  
   public List   getHeaders()    {return this.headers;}
   public List   getCookies()    {return this.cookies;}
 
   public WinstoneRequest getRequest() {return this.req;}
+  public void setRequest(WinstoneRequest req) {this.req = req;}
   
   public void updateContentTypeHeader(String type)
   {
@@ -185,6 +199,8 @@ public class WinstoneResponse implements HttpServletResponse
                             ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
     if (this.getHeader(DATE_HEADER) == null)
       this.setDateHeader(DATE_HEADER, System.currentTimeMillis());
+    if (this.getHeader(X_POWERED_BY_HEADER) == null)
+      this.setHeader(X_POWERED_BY_HEADER, POWERED_BY_WINSTONE);
 
     // If we don't have a webappConfig, exit here, cause we definitely don't have a session
     WinstoneRequest req = this.getRequest();
@@ -284,12 +300,12 @@ public class WinstoneResponse implements HttpServletResponse
    */
   public boolean closeAfterRequest()
   {
-    String inKeepAliveHeader = req.getHeader(KEEP_ALIVE_HEADER);
+    String inKeepAliveHeader = this.reqKeepAliveHeader;
     String outKeepAliveHeader = this.getHeader(KEEP_ALIVE_HEADER);
-    if (req.getProtocol().startsWith("HTTP/0"))
+    if (this.protocol.startsWith("HTTP/0"))
       return true;
     else if ((inKeepAliveHeader == null) && (outKeepAliveHeader == null))
-      return req.getProtocol().equals("HTTP/1.0") ? true : false;
+      return this.protocol.equals("HTTP/1.0") ? true : false;
     else if (outKeepAliveHeader != null)
       return outKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE);
     else if (inKeepAliveHeader != null)
@@ -418,7 +434,8 @@ public class WinstoneResponse implements HttpServletResponse
         (this.webAppConfig.getErrorPagesByCode().get("" + sc) != null))
     {
       String errorPage = (String) this.webAppConfig.getErrorPagesByCode().get("" + sc);
-      javax.servlet.RequestDispatcher rd = this.webAppConfig.getRequestDispatcher(errorPage);
+      javax.servlet.RequestDispatcher rd = this.webAppConfig.getErrorDispatcher(
+          errorPage, new Integer(sc), null, null, getRequest().getRequestURI());
       try
       {
         rd.forward(this.req, this);
@@ -466,23 +483,26 @@ public class WinstoneResponse implements HttpServletResponse
    * default error page if there are none.
    */
   public void sendUntrappedError(Throwable err,
-      WinstoneRequest req) throws IOException
+      WinstoneRequest req, String throwingServletName) throws IOException
   {
     boolean found = false;
     if ((this.webAppConfig != null) &&
         !this.webAppConfig.getErrorPagesByException().isEmpty())
     {
+      Class exceptionClasses[] = this.webAppConfig.getErrorPageExceptions();
       Map errorPages = this.webAppConfig.getErrorPagesByException();
-      for (Iterator i = errorPages.keySet().iterator(); i.hasNext(); )
+      for (int n = 0; n < exceptionClasses.length  && !found; n++)
       {
-        String testErrorClassName = (String) i.next();
+        Logger.log(Logger.FULL_DEBUG, resources.getString("WinstoneResponse.TestingException", 
+            "[#exception]", exceptionClasses[n] + ""));
         try
         {
-          Class testErrorClass = Class.forName(testErrorClassName);
-          if (testErrorClass.isInstance(err))
+          if (exceptionClasses[n].isInstance(err))
           {
             javax.servlet.RequestDispatcher rd = this.webAppConfig
-              .getRequestDispatcher((String) errorPages.get(testErrorClassName));
+              .getErrorDispatcher((String) errorPages.get(exceptionClasses[n]),
+                  new Integer(SC_INTERNAL_SERVER_ERROR), err, throwingServletName,
+                  req.getRequestURI());
             found = true;
             rd.forward(req, this);
           }

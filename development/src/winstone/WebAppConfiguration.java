@@ -31,6 +31,7 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.ServletRequestListener;
+import javax.servlet.ServletRequestEvent;
 import javax.servlet.http.HttpSessionActivationListener;
 import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionListener;
@@ -43,7 +44,7 @@ import java.io.IOException;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class WebAppConfiguration implements ServletContext
+public class WebAppConfiguration implements ServletContext, Comparator
 {
   static final String ELEM_DESCRIPTION         = "description";
   static final String ELEM_DISPLAY_NAME        = "display-name";
@@ -91,7 +92,7 @@ public class WebAppConfiguration implements ServletContext
   
   static final String JSP_SERVLET_NAME       = "JspServlet";
   static final String JSP_SERVLET_MAPPING    = "*.jsp";
-  public static final String JSP_SERVLET_CLASS = "org.apache.jasper.servlet.JspServlet";
+  static final String JSP_SERVLET_CLASS 		 = "org.apache.jasper.servlet.JspServlet";
   static final String JSP_SERVLET_LOG_LEVEL  = "WARNING";
 
   static final String INVOKER_SERVLET_NAME   = "invoker";
@@ -123,13 +124,13 @@ public class WebAppConfiguration implements ServletContext
   private Map servletInstances;
   private Map filterInstances;
 
-  private List contextAttributeListeners;
-  private List contextListeners;
-  private List requestListeners;
-  private List requestAttributeListeners;
-  private List sessionActivationListeners;
-  private List sessionAttributeListeners;
-  private List sessionListeners;
+  private ServletContextAttributeListener contextAttributeListeners[];
+  private ServletContextListener contextListeners[];
+  private ServletRequestListener requestListeners[];
+  private ServletRequestAttributeListener requestAttributeListeners[];
+  private HttpSessionActivationListener sessionActivationListeners[];
+  private HttpSessionAttributeListener sessionAttributeListeners[];
+  private HttpSessionListener sessionListeners[];
 
   private Map exactServletMatchMounts;
   private Mapping patternMatches[];
@@ -146,6 +147,7 @@ public class WebAppConfiguration implements ServletContext
   private Integer sessionTimeout;
   private boolean distributable;
 
+  private Class[] errorPagesByExceptionKeysSorted;
   private Map errorPagesByException;
   private Map errorPagesByCode;
   private Map localeEncodingMap;
@@ -217,13 +219,13 @@ public class WebAppConfiguration implements ServletContext
     this.servletInstances = new HashMap();
     this.filterInstances = new HashMap();
 
-    this.contextAttributeListeners = new ArrayList();
-    this.contextListeners = new ArrayList();
-    this.requestListeners = new ArrayList();
-    this.requestAttributeListeners = new ArrayList();
-    this.sessionActivationListeners = new ArrayList();
-    this.sessionAttributeListeners = new ArrayList();
-    this.sessionListeners = new ArrayList();
+    List contextAttributeListeners = new ArrayList();
+    List contextListeners = new ArrayList();
+    List requestListeners = new ArrayList();
+    List requestAttributeListeners = new ArrayList();
+    List sessionActivationListeners = new ArrayList();
+    List sessionAttributeListeners = new ArrayList();
+    List sessionListeners = new ArrayList();
 
     this.errorPagesByException = new HashMap();
     this.errorPagesByCode = new HashMap();
@@ -244,6 +246,8 @@ public class WebAppConfiguration implements ServletContext
     List rolesAllowed = new ArrayList();
     List constraintNodes = new ArrayList();
     List envEntryNodes = new ArrayList();
+    List localErrorPagesByExceptionList = new ArrayList();
+    
     Node loginConfigNode = null;
 
     // init mimeTypes set
@@ -356,19 +360,19 @@ public class WebAppConfiguration implements ServletContext
             Class listener = Class.forName(listenerClass, true, this.loader);
             Object listenerInstance = listener.newInstance();
             if (listenerInstance instanceof ServletContextAttributeListener)
-              this.contextAttributeListeners.add(listenerInstance);
+              contextAttributeListeners.add(listenerInstance);
             if (listenerInstance instanceof ServletContextListener)
-              this.contextListeners.add(listenerInstance);
+              contextListeners.add(listenerInstance);
             if (listenerInstance instanceof ServletRequestAttributeListener)
-              this.requestAttributeListeners.add(listenerInstance);
+              requestAttributeListeners.add(listenerInstance);
             if (listenerInstance instanceof ServletRequestListener)
-              this.requestListeners.add(listenerInstance);
+              requestListeners.add(listenerInstance);
             if (listenerInstance instanceof HttpSessionActivationListener)
-              this.sessionActivationListeners.add(listenerInstance);
+              sessionActivationListeners.add(listenerInstance);
             if (listenerInstance instanceof HttpSessionAttributeListener)
-              this.sessionAttributeListeners.add(listenerInstance);
+              sessionAttributeListeners.add(listenerInstance);
             if (listenerInstance instanceof HttpSessionListener)
-              this.sessionListeners.add(listenerInstance);
+              sessionListeners.add(listenerInstance);
             Logger.log(Logger.DEBUG, this.resources.getString("WebAppConfig.AddListener", "[#class]", listenerClass));
           }
           catch (Throwable err)
@@ -485,7 +489,14 @@ public class WebAppConfiguration implements ServletContext
           if ((code != null) && (location != null))
             this.errorPagesByCode.put(code.trim(), location.trim());
           if ((exception != null) && (location != null))
-            this.errorPagesByException.put(exception.trim(), location.trim());
+          try
+          {
+            Class exceptionClass = Class.forName(exception.trim(), false, this.loader);
+            localErrorPagesByExceptionList.add(exceptionClass);
+            this.errorPagesByException.put(exceptionClass, location.trim());
+          }
+          catch (ClassNotFoundException err) 
+            {Logger.log(Logger.ERROR, resources.getString("WebAppConfig.ExceptionNotFound", "[#name]", exception));}
         }
 
         // Process the list of welcome files
@@ -640,8 +651,31 @@ public class WebAppConfiguration implements ServletContext
     if (this.filterPatternsError.length > 0)
       Arrays.sort(this.filterPatternsError, (Comparator) this.filterPatternsError[0]);
     
-    this.welcomeFiles 	= (String []) localWelcomeFiles.toArray(
+    this.welcomeFiles = (String []) localWelcomeFiles.toArray(
         new String[localWelcomeFiles.size()]);
+    this.errorPagesByExceptionKeysSorted = (Class []) localErrorPagesByExceptionList.toArray(
+        new Class[localErrorPagesByExceptionList.size()]);
+    Arrays.sort(this.errorPagesByExceptionKeysSorted, this);
+    
+    // Put the listeners into their arrays
+    this.contextAttributeListeners = (ServletContextAttributeListener [])
+      contextAttributeListeners.toArray(
+        new ServletContextAttributeListener[contextAttributeListeners.size()]);
+    this.contextListeners = (ServletContextListener []) contextListeners.toArray(
+      new ServletContextListener[contextListeners.size()]);
+    this.requestListeners = (ServletRequestListener []) requestListeners.toArray(
+      new ServletRequestListener[requestListeners.size()]);
+    this.requestAttributeListeners = (ServletRequestAttributeListener []) 
+      requestAttributeListeners.toArray(
+        new ServletRequestAttributeListener[requestAttributeListeners.size()]);
+    this.sessionActivationListeners = (HttpSessionActivationListener []) 
+      sessionActivationListeners.toArray(
+        new HttpSessionActivationListener[sessionActivationListeners.size()]);
+    this.sessionAttributeListeners = (HttpSessionAttributeListener []) 
+      sessionAttributeListeners.toArray(
+        new HttpSessionAttributeListener[sessionAttributeListeners.size()]);
+    this.sessionListeners = (HttpSessionListener []) sessionListeners.toArray(
+        new HttpSessionListener[sessionListeners.size()]);
 
     // If we haven't explicitly mapped the default servlet, map it here
     if (this.defaultServletName == null)
@@ -706,8 +740,8 @@ public class WebAppConfiguration implements ServletContext
       Arrays.sort(this.patternMatches, (Comparator) this.patternMatches[0]);
     
     // Send init notifies
-    for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
-      ((ServletContextListener) i.next()).contextInitialized(new ServletContextEvent(this));
+    for (int n = 0; n < this.contextListeners.length; n++)
+      this.contextListeners[n].contextInitialized(new ServletContextEvent(this));
 
     // Initialise load on startup servlets
     Object autoStarters[] = startupServlets.toArray();
@@ -716,18 +750,38 @@ public class WebAppConfiguration implements ServletContext
       ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(this.filterInstances);
   }
 
-  public String getPrefix()             {return this.prefix;}
-  public String getWebroot()            {return this.webRoot;}
-  public Map getErrorPagesByException() {return this.errorPagesByException;}
-  public Map getErrorPagesByCode()      {return this.errorPagesByCode;}
-  public Map getLocaleEncodingMap()     {return this.localeEncodingMap;}
-  public String[] getWelcomeFiles()     {return this.welcomeFiles;}
-  public boolean isDistributable()     {return this.distributable;}
+  public String getPrefix()                 {return this.prefix;}
+  public String getWebroot()                {return this.webRoot;}
+  public Class[] getErrorPageExceptions()   {return this.errorPagesByExceptionKeysSorted;}
+  public Map getErrorPagesByException()     {return this.errorPagesByException;}
+  public Map getErrorPagesByCode()          {return this.errorPagesByCode;}
+  public Map getLocaleEncodingMap()         {return this.localeEncodingMap;}
+  public String[] getWelcomeFiles()         {return this.welcomeFiles;}
+  public boolean isDistributable()          {return this.distributable;}
+  
+  public ServletRequestListener[] getRequestListeners() 
+    {return this.requestListeners;}
+  public ServletRequestAttributeListener[] getRequestAttributeListeners() 
+    {return this.requestAttributeListeners;}
 
   public static void addJspServletParams(Map jspParams)
   {
     jspParams.put("logVerbosityLevel", JSP_SERVLET_LOG_LEVEL);
     jspParams.put("fork", "false");
+  }
+  
+  public int compare(Object one, Object two)
+  {
+    if (!(one instanceof Class) || !(two instanceof Class))
+      throw new IllegalArgumentException("This comparator is only for sorting classes");
+    Class classOne = (Class) one;
+    Class classTwo = (Class) two;
+    if (classOne.isAssignableFrom(classTwo))
+      return 1;
+    else if (classTwo.isAssignableFrom(classOne))
+      return -1;
+    else
+      return 0;
   }
   
   /**
@@ -741,8 +795,8 @@ public class WebAppConfiguration implements ServletContext
       ((ServletConfiguration) i.next()).destroy();
 
     // Send destroy notifies
-    for (Iterator i = this.contextListeners.iterator(); i.hasNext(); )
-      ((ServletContextListener) i.next()).contextDestroyed(new ServletContextEvent(this));
+    for (int n = 0; n < this.contextListeners.length; n++)
+      this.contextListeners[n].contextDestroyed(new ServletContextEvent(this));
 
     // Terminate class loader reloading thread if running
     if (this.loader instanceof WinstoneClassLoader)
@@ -767,19 +821,6 @@ public class WebAppConfiguration implements ServletContext
   {
     this.launcher.destroyWebApp(this);
     this.launcher.initWebApp(this.prefix, new File(this.webRoot));
-  }
-
-  /**
-   * Marks a request/response as using this context
-   */
-  public void setRequestResponse(WinstoneRequest req, WinstoneResponse rsp)
-  {
-    req.setWebAppConfig(this);
-    rsp.setWebAppConfig(this);
-    
-    // Set listeners on the request
-    req.setRequestListeners(this.requestListeners);
-    req.setRequestAttributeListeners(this.requestAttributeListeners);
   }
 
   /**
@@ -917,8 +958,8 @@ public class WebAppConfiguration implements ServletContext
     Object me = this.attributes.get(name);
     this.attributes.remove(name);
     if (me != null)
-      for (Iterator i = this.contextAttributeListeners.iterator(); i.hasNext(); )
-        ((ServletContextAttributeListener) i.next()).attributeRemoved(new ServletContextAttributeEvent(this, name, me));
+      for (int n = 0; n < this.contextAttributeListeners.length; n++)
+        this.contextAttributeListeners[n].attributeRemoved(new ServletContextAttributeEvent(this, name, me));
   }
   
   public void setAttribute(String name, Object object)
@@ -926,11 +967,11 @@ public class WebAppConfiguration implements ServletContext
     Object me = this.attributes.get(name);
     this.attributes.put(name, object);
     if (me != null)
-      for (Iterator i = this.contextAttributeListeners.iterator(); i.hasNext(); )
-        ((ServletContextAttributeListener) i.next()).attributeReplaced(new ServletContextAttributeEvent(this, name, me));
+      for (int n = 0; n < this.contextAttributeListeners.length; n++)
+        this.contextAttributeListeners[n].attributeReplaced(new ServletContextAttributeEvent(this, name, me));
     else
-      for (Iterator i = this.contextAttributeListeners.iterator(); i.hasNext(); )
-        ((ServletContextAttributeListener) i.next()).attributeAdded(new ServletContextAttributeEvent(this, name, object));
+      for (int n = 0; n < this.contextAttributeListeners.length; n++)
+        this.contextAttributeListeners[n].attributeAdded(new ServletContextAttributeEvent(this, name, object));
   }
 
   // Application level init parameters
@@ -981,7 +1022,8 @@ public class WebAppConfiguration implements ServletContext
       rd.setForNamedDispatcher(this.filterPatternsForward, this.filterPatternsInclude);
       return rd;
     }
-    else return null;
+    else 
+      return null;
   }
 
   /**
@@ -1025,7 +1067,7 @@ public class WebAppConfiguration implements ServletContext
    * that on a forward, it executes the security checks and the request filters, while not
    * setting any of the request attributes for a forward.
    */
-  public javax.servlet.RequestDispatcher getInitialDispatcher(String uriInsideWebapp,
+  public RequestDispatcher getInitialDispatcher(String uriInsideWebapp,
       WinstoneRequest request)
   {
     if (!uriInsideWebapp.equals("") && !uriInsideWebapp.startsWith("/"))
@@ -1056,6 +1098,42 @@ public class WebAppConfiguration implements ServletContext
       RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
       rd.setForInitialDispatcher(request.getServletPath(), request.getPathInfo(), 
           uriInsideWebapp, this.filterPatternsRequest, this.authenticationHandler);
+      return rd;
+    }
+    else return null;
+  }
+
+  /**
+   * Gets a dispatcher, set up for error dispatch.
+   */
+  public javax.servlet.RequestDispatcher getErrorDispatcher(String errorURI,
+      Integer statusCode, Throwable exception, String throwingServletName,
+      String originalURI)
+  {
+    if (!errorURI.startsWith("/"))
+      return null;
+  	
+    // Parse the url for query string, etc 
+    String queryString = "";
+  	int questionPos = errorURI.indexOf('?');
+  	if (questionPos != -1)
+  	{
+  	  if (questionPos != errorURI.length() - 1)
+  	    queryString = errorURI.substring(questionPos + 1);
+      errorURI = errorURI.substring(0, questionPos);
+  	}
+  	
+  	// Return the dispatcher
+  	StringBuffer servletPath = new StringBuffer();
+  	StringBuffer pathInfo = new StringBuffer();
+    ServletConfiguration servlet = urlMatch(errorURI, servletPath, pathInfo);
+    if (servlet != null)
+    {
+      RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances);
+      rd.setForErrorDispatcher(servletPath.toString(), 
+          pathInfo.toString().equals("") ? null : pathInfo.toString(), 
+          queryString, originalURI, statusCode, exception, errorURI, 
+          throwingServletName, this.filterPatternsError);
       return rd;
     }
     else return null;
@@ -1157,5 +1235,6 @@ public class WebAppConfiguration implements ServletContext
    * @deprecated
    */
   public void log(Exception exception, String msg)      {this.log(msg, exception);}
+
 }
 

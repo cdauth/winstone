@@ -60,7 +60,8 @@ public interface Listener
    * sockets, etc).
    */
   public String parseURI(RequestHandlerThread handler, WinstoneRequest req, 
-    WinstoneInputStream inData, Socket socket, boolean iAmFirst) throws IOException;
+      WinstoneResponse rsp, WinstoneInputStream inData, Socket socket, 
+      boolean iAmFirst) throws IOException;
 
   /**
    * Called by the request handler thread, because it needs specific shutdown code

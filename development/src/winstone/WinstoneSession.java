@@ -45,9 +45,9 @@ public class WinstoneSession implements HttpSession, Serializable
   private long lastAccessedTime;
   private int maxInactivePeriod;
   private boolean isNew;
-  private List sessionAttributeListeners;
-  private List sessionListeners;
-  private List sessionActivationListeners;
+  private HttpSessionAttributeListener sessionAttributeListeners[];
+  private HttpSessionListener sessionListeners[];
+  private HttpSessionActivationListener sessionActivationListeners[];
   private boolean distributable;
   private WinstoneResourceBundle resources;
   private AuthenticationPrincipal authenticatedUser;
@@ -73,13 +73,13 @@ public class WinstoneSession implements HttpSession, Serializable
   public void sendCreatedNotifies()
   {
     // Notify session listeners of new session
-    for (Iterator i = this.sessionListeners.iterator(); i.hasNext(); )
-      ((HttpSessionListener) i.next()).sessionCreated(new HttpSessionEvent(this));
+    for (int n = 0; n < this.sessionListeners.length; n++)
+      this.sessionListeners[n].sessionCreated(new HttpSessionEvent(this));
   }
 
-  public void setSessionActivationListeners(List listeners) {this.sessionActivationListeners = listeners;}
-  public void setSessionAttributeListeners(List listeners) {this.sessionAttributeListeners = listeners;}
-  public void setSessionListeners(List listeners) {this.sessionListeners = listeners;}
+  public void setSessionActivationListeners(HttpSessionActivationListener listeners[]) {this.sessionActivationListeners = listeners;}
+  public void setSessionAttributeListeners(HttpSessionAttributeListener listeners[]) {this.sessionAttributeListeners = listeners;}
+  public void setSessionListeners(HttpSessionListener listeners[]) {this.sessionListeners = listeners;}
   public void setResources(WinstoneResourceBundle resources) {this.resources = resources;}
   
   public void setLastAccessedDate(long time) {this.lastAccessedTime = time;}
@@ -130,11 +130,11 @@ public class WinstoneSession implements HttpSession, Serializable
       hsbl.valueBound(new HttpSessionBindingEvent(this, name, value));
     }
     if (oldValue != null)
-      for (Iterator i = this.sessionAttributeListeners.iterator(); i.hasNext(); )
-        ((HttpSessionAttributeListener) i.next()).attributeReplaced(new HttpSessionBindingEvent(this, name, oldValue));
+      for (int n = 0; n < this.sessionAttributeListeners.length; n++)
+        this.sessionAttributeListeners[n].attributeReplaced(new HttpSessionBindingEvent(this, name, oldValue));
     else
-      for (Iterator i = this.sessionAttributeListeners.iterator(); i.hasNext(); )
-        ((HttpSessionAttributeListener) i.next()).attributeAdded(new HttpSessionBindingEvent(this, name, value));
+      for (int n = 0; n < this.sessionAttributeListeners.length; n++)
+        this.sessionAttributeListeners[n].attributeAdded(new HttpSessionBindingEvent(this, name, value));
   }
   
   public void removeAttribute(String name)
@@ -153,8 +153,8 @@ public class WinstoneSession implements HttpSession, Serializable
       hsbl.valueUnbound(new HttpSessionBindingEvent(this, name));
     }
     if (value != null)
-      for (Iterator i = this.sessionAttributeListeners.iterator(); i.hasNext(); )
-        ((HttpSessionAttributeListener) i.next()).attributeRemoved(new HttpSessionBindingEvent(this, name, value));
+      for (int n = 0; n < this.sessionAttributeListeners.length; n++)
+        this.sessionAttributeListeners[n].attributeRemoved(new HttpSessionBindingEvent(this, name, value));
   }
 
   public long getCreationTime()     {return this.createTime;}
@@ -174,8 +174,8 @@ public class WinstoneSession implements HttpSession, Serializable
   public void invalidate()
   {
     // Notify session listeners of invalidated session
-    for (Iterator i = this.sessionListeners.iterator(); i.hasNext(); )
-      ((HttpSessionListener) i.next()).sessionDestroyed(new HttpSessionEvent(this));
+    for (int n = 0; n < this.sessionListeners.length; n++)
+      this.sessionListeners[n].sessionDestroyed(new HttpSessionEvent(this));
 
     List keys = new ArrayList(this.sessionData.keySet());
     for (Iterator i = keys.iterator(); i.hasNext(); )
@@ -191,8 +191,8 @@ public class WinstoneSession implements HttpSession, Serializable
   public void passivate()
   {
     // Notify session listeners of invalidated session
-    for (Iterator i = this.sessionActivationListeners.iterator(); i.hasNext(); )
-      ((HttpSessionActivationListener) i.next()).sessionWillPassivate(new HttpSessionEvent(this));
+    for (int n = 0; n < this.sessionActivationListeners.length; n++)
+      this.sessionActivationListeners[n].sessionWillPassivate(new HttpSessionEvent(this));
 
     // Question: Is passivation equivalent to invalidation ? Should all entries be removed ?
     //List keys = new ArrayList(this.sessionData.keySet());
@@ -213,8 +213,8 @@ public class WinstoneSession implements HttpSession, Serializable
     webAppConfig.setSessionListeners(this);
     
     // Notify session listeners of invalidated session
-    for (Iterator i = this.sessionActivationListeners.iterator(); i.hasNext(); )
-      ((HttpSessionActivationListener) i.next()).sessionDidActivate(new HttpSessionEvent(this));
+    for (int n = 0; n < this.sessionActivationListeners.length; n++)
+      this.sessionActivationListeners[n].sessionDidActivate(new HttpSessionEvent(this));
   }
 
   /**

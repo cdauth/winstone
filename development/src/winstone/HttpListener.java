@@ -176,7 +176,8 @@ public class HttpListener implements Listener, Runnable
   }
 
   public String parseURI(RequestHandlerThread handler, WinstoneRequest req, 
-    WinstoneInputStream inData, Socket socket, boolean iAmFirst) throws IOException
+      WinstoneResponse rsp, WinstoneInputStream inData, Socket socket, 
+      boolean iAmFirst) throws IOException
   {
     parseSocketInfo(socket, req);
 
@@ -190,8 +191,9 @@ public class HttpListener implements Listener, Runnable
 
     // Get header data (eg protocol, method, uri, headers, etc)
     String uriLine = new String(uriBuffer);
-    String servletURI = parseURILine(uriLine, req);
+    String servletURI = parseURILine(uriLine, req, rsp);
     parseHeaders(req, inData);
+    rsp.extractRequestKeepAliveHeader(req);
     int contentLength = req.getContentLength();
     if (contentLength != -1)
       inData.setContentLength(contentLength);
@@ -257,7 +259,7 @@ public class HttpListener implements Listener, Runnable
   /**
    * Processes the uri line into it's component parts, determining protocol, method and uri
    */
-  private String parseURILine(String uriLine, WinstoneRequest req)
+  private String parseURILine(String uriLine, WinstoneRequest req, WinstoneResponse rsp)
   {
     // Method
     int spacePos = uriLine.indexOf(' ');
@@ -273,11 +275,14 @@ public class HttpListener implements Listener, Runnable
     {
       fullURI = trimHostName(remainder.trim());
       req.setProtocol("HTTP/0.9");
+      rsp.setProtocol("HTTP/0.9");
     }
     else
     {
       fullURI = trimHostName(remainder.substring(0, spacePos).trim());
-      req.setProtocol(remainder.substring(spacePos + 1).trim().toUpperCase());
+      String protocol = remainder.substring(spacePos + 1).trim().toUpperCase();
+      req.setProtocol(protocol);
+      rsp.setProtocol(protocol);
     }
 
     req.setMethod(method);

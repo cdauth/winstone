@@ -42,12 +42,19 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
   static final String FORWARD_PATH_INFO    = "javax.servlet.forward.path_info";
   static final String FORWARD_QUERY_STRING = "javax.servlet.forward.query_string";
 
+  static final String ERROR_STATUS_CODE    = "javax.servlet.error.status_code";
+  static final String ERROR_EXCEPTION_TYPE = "javax.servlet.error.exception_type";
+  static final String ERROR_MESSAGE        = "javax.servlet.error.message";
+  static final String ERROR_EXCEPTION      = "javax.servlet.error.exception";
+  static final String ERROR_REQUEST_URI    = "javax.servlet.error.request_uri";
+  static final String ERROR_SERVLET_NAME   = "javax.servlet.error.servlet_name";
+
   private Map dispatchAttributes;
   private Map dispatchParameters;
   private WinstoneResourceBundle resources;
   
   public DispatchRequestWrapper(ServletRequest request, 
-      WinstoneResourceBundle resources, boolean isInclude, 
+      WinstoneResourceBundle resources, boolean isInclude,
       String requestURI, String contextPath, String servletPath, 
       String pathInfo, String queryString) 
   {
@@ -65,6 +72,40 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
     this.dispatchParameters.putAll(WinstoneRequest.extractParameters(
         queryString, getCharacterEncoding(), resources));
   }
+  
+  public DispatchRequestWrapper(ServletRequest request, 
+      WinstoneResourceBundle resources, String errorPageURI, 
+      String contextPath, String servletPath, String pathInfo, 
+      String queryString, Integer statusCode, 
+      Throwable originalException, String originalErrorURI, 
+      String servletName) 
+  {
+    super(null);
+    this.resources = resources;
+    super.setRequest(request);
+    this.dispatchAttributes = new Hashtable();
+    
+    // Forward atts
+    setAtt(FORWARD_REQUEST_URI, errorPageURI);
+    setAtt(FORWARD_CONTEXT_PATH, contextPath);
+    setAtt(FORWARD_SERVLET_PATH, servletPath);
+    setAtt(FORWARD_PATH_INFO, pathInfo);
+    setAtt(FORWARD_QUERY_STRING, queryString);
+
+    setAtt(ERROR_REQUEST_URI, originalErrorURI);
+    setAtt(ERROR_SERVLET_NAME, servletName);
+    setAtt(ERROR_STATUS_CODE, statusCode);
+    if (originalException != null)
+    {
+      setAtt(ERROR_EXCEPTION_TYPE, originalException.getClass());
+      setAtt(ERROR_MESSAGE, originalException.getMessage());
+      setAtt(ERROR_EXCEPTION, originalException);
+    }
+    
+    // Empty param set
+    this.dispatchParameters = new Hashtable();
+  }
+  
   private void setAtt(String name, Object value)
   {
     if (value != null)

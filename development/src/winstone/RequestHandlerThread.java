@@ -20,6 +20,10 @@ package winstone;
 import java.net.*;
 import java.io.*;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequestListener;
+import javax.servlet.ServletRequestAttributeListener;
+import javax.servlet.ServletRequestEvent;
+import javax.servlet.ServletRequestAttributeEvent;
 
 /**
  * The threads to which incoming requests get allocated.
@@ -73,6 +77,10 @@ public class RequestHandlerThread implements Runnable
    */
   public void run()
   {
+    ServletRequestListener requestListeners[] = 
+        this.webAppConfig.getRequestListeners();
+    ServletRequestAttributeListener requestAttributeListeners[] = 
+        this.webAppConfig.getRequestAttributeListeners();
     while (!interrupted)
     {
       // Start request processing
@@ -98,7 +106,7 @@ public class RequestHandlerThread implements Runnable
               this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
               continue;
             }
-            String servletURI = this.listener.parseURI(this, this.req, this.inData, this.socket, iAmFirst);
+            String servletURI = this.listener.parseURI(this, this.req, this.rsp, this.inData, this.socket, iAmFirst);
             long headerParseTime = getRequestProcessTime();
             iAmFirst = false;
 
@@ -135,19 +143,32 @@ public class RequestHandlerThread implements Runnable
               continue;
             }
 
+            // Now we've verified it's in the right webapp, send request in scope notify
+            for (int n = 0; n < requestListeners.length; n++)
+              requestListeners[n].requestInitialized(new ServletRequestEvent(this.webAppConfig, req));
+            
             // Lookup a dispatcher, then process with it
-            this.webAppConfig.setRequestResponse(req, rsp);
+            req.setWebAppConfig(this.webAppConfig);
+            rsp.setWebAppConfig(this.webAppConfig);
+            req.setRequestAttributeListeners(requestAttributeListeners);
             processRequest(req, rsp, path);
             this.outData.finishResponse();
             this.inData.finishRequest();
-            req.setWebAppConfig(null);
-            rsp.setWebAppConfig(null);
 
             Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.FinishRequest",
               "[#requestId]", "" + requestId, "[#name]", Thread.currentThread().getName()));
 
             // Process keep-alive
             continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
+
+            // send request listener notifies
+            for (int n = 0; n < requestListeners.length; n++)
+              requestListeners[n].requestDestroyed(new ServletRequestEvent(this.webAppConfig, req));
+
+            req.setWebAppConfig(null);
+            rsp.setWebAppConfig(null);
+            req.setRequestAttributeListeners(null);
+
             this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
             Logger.log(Logger.SPEED, resources.getString("RequestHandlerThread.RequestTime",
               "[#path]", servletURI, "[#headerTime]", "" + headerParseTime,
@@ -198,9 +219,9 @@ public class RequestHandlerThread implements Runnable
   private void processRequest(WinstoneRequest req, WinstoneResponse rsp, String path)
     throws IOException, ServletException
   {
+    RequestDispatcher rd = this.webAppConfig.getInitialDispatcher(path, req);
     try
     {
-      javax.servlet.RequestDispatcher rd = this.webAppConfig.getInitialDispatcher(path, req);
       if (rd != null)
       {
         Logger.log(Logger.FULL_DEBUG, resources.getString("RequestHandlerThread.HandlingRD") + ((RequestDispatcher) rd).getName());
@@ -213,7 +234,7 @@ public class RequestHandlerThread implements Runnable
     {
       Logger.log(Logger.WARNING, resources.getString("RequestHandlerThread.UntrappedError"), err);
       rsp.resetBuffer();
-      rsp.sendUntrappedError(err, req);
+      rsp.sendUntrappedError(err, req, rd != null ? rd.getName() : null);
     }
     rsp.flushBuffer();
     rsp.verifyContentLength();

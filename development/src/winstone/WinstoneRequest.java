@@ -24,6 +24,9 @@ import javax.servlet.http.Cookie;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.ServletRequestAttributeListener;
+import javax.servlet.ServletRequestListener;
+import javax.servlet.ServletRequestAttributeEvent;
 
 import java.security.Principal;
 import java.security.*;
@@ -82,8 +85,8 @@ public class WinstoneRequest implements HttpServletRequest
   protected String authorization;
   protected boolean isSecure;
   protected AuthenticationPrincipal authenticatedUser;
-  protected List requestAttributeListeners;
-  protected List requestListeners;
+  protected ServletRequestAttributeListener requestAttributeListeners[];
+  protected ServletRequestListener requestListeners[];
 
   private WinstoneResourceBundle resources;
   private MessageDigest md5Digester;
@@ -208,8 +211,10 @@ public class WinstoneRequest implements HttpServletRequest
   public void setEncoding(String encoding)  {this.encoding = encoding;}
   public void setParsedParameters(Boolean parsed) {this.parsedParameters = parsed;}
 
-  public void setRequestListeners(List rl) {this.requestListeners = rl;}
-  public void setRequestAttributeListeners(List ral) {this.requestAttributeListeners = ral;}
+  public void setRequestListeners(ServletRequestListener rl[]) 
+    {this.requestListeners = rl;}
+  public void setRequestAttributeListeners(ServletRequestAttributeListener ral[]) 
+    {this.requestAttributeListeners = ral;}
   
   /**
    * Gets parameters from the url encoded parameter string
@@ -487,11 +492,34 @@ public class WinstoneRequest implements HttpServletRequest
   // Implementation methods for the servlet request stuff
   public Object getAttribute(String name)  				{return this.attributes.get(name);}
   public Enumeration getAttributeNames()          {return Collections.enumeration(this.attributes.keySet());}
-  public void removeAttribute(String name)        {this.attributes.remove(name);}
+  public void removeAttribute(String name)        
+  {
+    Object value = this.attributes.get(name);
+    if (value == null)
+      return;
+
+    // fire event
+    for (int n = 0; n < this.requestAttributeListeners.length; n++)
+      this.requestAttributeListeners[n].attributeRemoved(new ServletRequestAttributeEvent(this.webappConfig, this, name, value));
+    this.attributes.remove(name);
+  }
   public void setAttribute(String name, Object o) 
   {
     if ((name != null) && (o != null))
-    	this.attributes.put(name, o);
+    {
+      Object oldValue = this.attributes.get(name);
+      this.attributes.put(name, o);
+
+      // fire event
+      if (oldValue == null)
+        for (int n = 0; n < this.requestAttributeListeners.length; n++)
+          this.requestAttributeListeners[n].attributeAdded(
+              new ServletRequestAttributeEvent(this.webappConfig, this, name, o));
+      else
+        for (int n = 0; n < this.requestAttributeListeners.length; n++)
+          this.requestAttributeListeners[n].attributeReplaced(
+              new ServletRequestAttributeEvent(this.webappConfig, this, name, oldValue));
+    }
     else if (name != null)
       removeAttribute(name);
   }

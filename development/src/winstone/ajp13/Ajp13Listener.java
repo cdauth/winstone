@@ -144,7 +144,7 @@ public class Ajp13Listener implements Listener, Runnable
     {
       headers.parsePacket("8859_1");
       parseSocketInfo(headers, req);
-      String servletURI = parseURILine(headers, req);
+      String servletURI = parseURILine(headers, req, rsp);
       req.parseHeaders(Arrays.asList(headers.getHeaders()));
 
       // If content-length present and non-zero, download the other packets
@@ -208,7 +208,8 @@ public class Ajp13Listener implements Listener, Runnable
    * input stream. Just pass back the request uri
    */
   public String parseURI(RequestHandlerThread handler, WinstoneRequest req, 
-    WinstoneInputStream inData, Socket socket, boolean iAmFirst) throws IOException
+      WinstoneResponse rsp, WinstoneInputStream inData, Socket socket, 
+      boolean iAmFirst) throws IOException
     {return req.getServletPath();}
 
   /**
@@ -250,11 +251,14 @@ public class Ajp13Listener implements Listener, Runnable
    * Extract the header details relating to protocol, uri, etc from the ajp13
    * header packet
    */
-  private String parseURILine(Ajp13IncomingPacket headers, WinstoneRequest req)
+  private String parseURILine(Ajp13IncomingPacket headers, WinstoneRequest req,
+      WinstoneResponse rsp)
     throws UnsupportedEncodingException
   {
     req.setMethod(headers.getMethod());
     req.setProtocol(headers.getProtocol());
+    rsp.setProtocol(headers.getProtocol());
+    rsp.extractRequestKeepAliveHeader(req);
     //req.setServletPath(headers.getURI());
     //req.setRequestURI(headers.getURI());
 

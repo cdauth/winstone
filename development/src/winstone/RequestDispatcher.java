@@ -46,6 +46,12 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
   private String queryString;
   private String requestURI;
   private String jspFile;
+  
+  private Integer errorStatusCode;
+  private Throwable errorException;
+  private String errorServletName;
+  private String errorURI;
+  
   private AuthenticationHandler authHandler;
 
   private Mapping forwardFilterPatterns[];
@@ -54,6 +60,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
 
   private int filterPatternsEvaluated;
   private Boolean doInclude;
+  private boolean isErrorDispatch;
   private boolean useRequestAttributes;
 
   /**
@@ -85,6 +92,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.includeFilterPatterns = includeFilterPatterns;
     this.filterPatterns = null; // set after the call to forward or include
     this.useRequestAttributes = false;
+    this.isErrorDispatch = false;
   }
   
   public void setForURLDispatcher(String servletPath, 
@@ -100,6 +108,27 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.includeFilterPatterns = includeFilterPatterns;
     this.filterPatterns = null; // set after the call to forward or include
     this.useRequestAttributes = true;
+    this.isErrorDispatch = false;
+  }
+
+  public void setForErrorDispatcher(String servletPath, String pathInfo, 
+      String queryString, String requestURI, Integer statusCode, 
+      Throwable exception, String originalErrorURI, String errorServletName, 
+      Mapping errorFilterPatterns[])
+  {
+    this.servletPath = servletPath;
+    this.pathInfo = pathInfo;
+    this.queryString = queryString;
+    this.requestURI = requestURI;
+
+    this.errorStatusCode = statusCode;
+    this.errorException = exception;
+    this.errorURI = originalErrorURI;
+    this.errorServletName = errorServletName;
+    
+    this.filterPatterns = errorFilterPatterns;
+    this.useRequestAttributes = true;
+    this.isErrorDispatch = true;
   }
   
   public void setForInitialDispatcher(String servletPath, String pathInfo, 
@@ -111,6 +140,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     this.authHandler = authHandler;
     this.filterPatterns = requestFilterPatterns;
     this.useRequestAttributes = false;
+    this.isErrorDispatch = false;
   }
 
   public String getName() {return this.name;}
@@ -133,9 +163,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
 
       // Set request attributes
       if (useRequestAttributes)
-        includedRequest = new DispatchRequestWrapper(request, this.resources, true,
-	          this.prefix + this.requestURI, this.prefix, this.servletPath, this.pathInfo, 
-	          this.queryString);
+        includedRequest = new DispatchRequestWrapper(request, this.resources, 
+            true, this.prefix + this.requestURI, this.prefix, this.servletPath, 
+	          this.pathInfo, this.queryString);
     }
     if (this.filterPatterns == null)
       this.filterPatterns = this.includeFilterPatterns;
@@ -153,13 +183,19 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       if (this.jspFile != null)
         request.setAttribute(JSP_FILE, this.jspFile);
       
-      if (this.instance instanceof SingleThreadModel)
-        synchronized (this.semaphore)
-          {this.instance.service(includedRequest, includedResponse);}
-      else
-        this.instance.service(includedRequest, includedResponse);
-
-      // TODO: insert error handling here, to suppress servletExceptions
+      try
+      {
+        if (this.instance instanceof SingleThreadModel)
+          synchronized (this.semaphore)
+            {this.instance.service(includedRequest, includedResponse);}
+        else
+          this.instance.service(includedRequest, includedResponse);
+      }
+      catch (UnavailableException err)
+      {
+        this.config.setUnavailable();
+        throw new ServletException(resources.getString("RequestDispatcher.IncludeError"), err);
+      }
       
       Thread.currentThread().setContextClassLoader(cl);
       
@@ -209,20 +245,30 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
         req.setRequestURI(this.prefix + this.requestURI);
       }
       
-      // Check security - if we should not continue, return
-      if (!continueAfterSecurityCheck(workingRequest, workingResponse))
+
+      // If we haven't set up the filter pattern set yet
+      if (this.filterPatterns == null)
+        this.filterPatterns = this.forwardFilterPatterns;
+      // Otherwise we are an initial dispatcher, so check security - 
+      // if we should not continue, return
+      else if (!continueAfterSecurityCheck(workingRequest, workingResponse))
         return;
 
       // Set request attributes (because it's the first time)
       if (useRequestAttributes)
-        workingRequest = new DispatchRequestWrapper(workingRequest, this.resources, false,
-            this.prefix + this.requestURI, this.prefix, this.servletPath, this.pathInfo, 
-	          this.queryString);
+      {
+        if (this.isErrorDispatch)
+          workingRequest = new DispatchRequestWrapper(workingRequest, 
+              resources, this.prefix + this.requestURI, this.prefix, 
+              this.servletPath, this.pathInfo, this.queryString, 
+              this.errorStatusCode, this.errorException, this.errorURI, 
+              this.errorServletName);
+        else
+          workingRequest = new DispatchRequestWrapper(workingRequest, this.resources, 
+              false, this.prefix + this.requestURI, this.prefix, this.servletPath, 
+              this.pathInfo, this.queryString);
+      }
     }
-
-    // If we haven't set up the filter pattern set yet
-    if (this.filterPatterns == null)
-      this.filterPatterns = this.forwardFilterPatterns;
     this.doInclude = Boolean.FALSE;
 
     // Make sure the filter chain is exhausted first
@@ -237,13 +283,19 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
       if (this.jspFile != null)
         request.setAttribute(JSP_FILE, this.jspFile);
 
-      if (this.instance instanceof SingleThreadModel)
-        synchronized (this.semaphore)
-        	{this.instance.service(workingRequest, workingResponse);}
-      else
-        this.instance.service(workingRequest, workingResponse);
-      // TODO: insert error handling here, to suppress servletExceptions
-
+      try
+      {
+        if (this.instance instanceof SingleThreadModel)
+          synchronized (this.semaphore)
+        	  {this.instance.service(workingRequest, workingResponse);}
+        else
+          this.instance.service(workingRequest, workingResponse);
+      }
+      catch (UnavailableException err)
+      {
+        this.config.setUnavailable();
+        throw new ServletException(resources.getString("RequestDispatcher.ForwardError"), err);
+      }
       
       Thread.currentThread().setContextClassLoader(cl);
     }
@@ -314,5 +366,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher, javax
     else
       forward(request, response);
   }
+
 }
 
