@@ -61,6 +61,8 @@ public class WinstoneResponse implements HttpServletResponse
   private String encoding;
   private List cookies;
   private Writer outWriter;
+  private Locale locale;
+  private Map encodingMap;
 
   private WinstoneResourceBundle resources;
 
@@ -72,9 +74,21 @@ public class WinstoneResponse implements HttpServletResponse
     this.resources = resources;
     this.headers = new ArrayList();
     this.cookies = new ArrayList();
-    this.encoding = null; // default
+    this.encodingMap = new HashMap();
 
     this.statusCode = SC_OK;
+    this.locale = Locale.getDefault();
+    String encodingMapSet = this.resources.getString("WinstoneResponse.EncodingMap");
+    StringTokenizer st = new StringTokenizer(encodingMapSet, ";");
+    for (; st.hasMoreTokens(); )
+    {
+      String token = st.nextToken();
+      int delimPos = token.indexOf("=");
+      if (delimPos == -1)
+        continue;
+      this.encodingMap.put(token.substring(0, delimPos), token.substring(delimPos + 1));
+    }
+    this.encoding = getEncodingFromLocale(this.locale);
   }
 
   /**
@@ -86,13 +100,22 @@ public class WinstoneResponse implements HttpServletResponse
     this.webAppConfig = null;
     this.outputStream = null;
     this.headers.clear();
-    this.encoding = null;
     this.cookies.clear();
     this.outWriter = null;
 
     this.statusCode = SC_OK;
+    this.locale = Locale.getDefault();
+    this.encoding = getEncodingFromLocale(this.locale);
   }
 
+  private String getEncodingFromLocale(Locale loc)
+  {
+    String fullMatch = (String) this.encodingMap.get(loc.getLanguage() + "_" + loc.getCountry());
+    if (fullMatch != null)
+      return fullMatch;
+    else
+      return (String) this.encodingMap.get(loc.getLanguage());
+  }
   public void setOutputStream(WinstoneOutputStream outData) {this.outputStream = outData;}
   public void setWebAppConfig(WebAppConfiguration webAppConfig) {this.webAppConfig = webAppConfig;}
   public void setRequest(WinstoneRequest req) {this.req = req;}
@@ -296,8 +319,26 @@ public class WinstoneResponse implements HttpServletResponse
 
   public String getCharacterEncoding() {return this.encoding;}
   public void setContentType(String type) {updateContentTypeHeader(type);}
-  public void setLocale(Locale loc) {Logger.log(Logger.WARNING, "Response locales not implemented");}
-  public Locale getLocale() {Logger.log(Logger.WARNING, "Response locales not implemented"); return null;}
+  public Locale getLocale() {return this.locale;}
+  public void setLocale(Locale loc) 
+  {
+    if (this.outWriter == null)
+    {
+      //Logger.log(Logger.DEBUG, "Response.setLocale()");
+      this.locale = loc;
+      String ct = getHeader(CONTENT_TYPE_HEADER);
+      String charset = getEncodingFromLocale(this.locale);
+      if (ct == null)
+        updateContentTypeHeader("text/html;charset=" + charset);
+      else if (ct.indexOf(';') == -1)
+        updateContentTypeHeader(ct + ";charset=" + charset);
+     else
+        updateContentTypeHeader(ct.substring(0, ct.indexOf(';')) + ";charset=" + charset);
+        
+    }
+    else
+      Logger.log(Logger.WARNING, "Response.setLocale() ignored, because getWriter already called");
+  }
 
   public ServletOutputStream getOutputStream() throws IOException
     {return this.outputStream;}
