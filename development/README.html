@@ -93,10 +93,16 @@ Other options:
    --directoryListings      = enable directory lists (true/false). Default is true
    --useJasper              = enable jasper JSP handling (true/false). Default is false
    --useWinstoneClassLoader = enable WebApp classLoader (true/false). Default is true
+   --useServletReloading    = enable servlet reloading (true/false). Default is false
    --useInvoker             = enable the servlet invoker (true/false). Default is false
    --invokerPrefix          = set the invoker prefix. Default is /servlet/
-   --useServletReloading    = enable servlet reloading (true/false). Default is false\n\
-   --usage / --help         = show this message</pre>
+   --usage / --help         = show this message
+
+Security options:
+   --realmClass                   = Set the realm class to use for user authentication. Defaults to ArgumentsRealm class
+   --argumentsRealm.passwd.&lt;user&gt; = Password for user &lt;user&gt;. Only valid for the ArgumentsRealm realm class
+   --argumentsRealm.roles.&lt;user&gt;  = Roles for user &lt;user&gt; (comma separated). Only valid for the ArgumentsRealm realm class
+</pre>
 
 <h2>Configuration file</h2>
 
@@ -128,8 +134,6 @@ Other options:
   <p>As a result of the design goals, there are some things Winstone doesn't do (at least 
     not yet).</p>
   <ul>
-    <li>There is no HTTP authentication/security model at all (yet). This is big goal no 1 for 
-      next release.</li>
     <li>There is no clustering support (yet). This will be implemented eventually by allowing Winstone
       instances to transfer sessions on request over the controlPort. This is a longer term goal 
       though.</li>
@@ -147,7 +151,13 @@ Other options:
     <li>Implemented the <b>&lt;error-page&gt;</b> directive</li>
     <li>Added object pools for request/response objects for performance reasons</li>
     <li>The handler pools are now controllable via startup properties</li>
-    <li><b>Servlet reloading</b> is now supported (optionally - include <code>--useServletReloading=true</code> at startup)</li>
+    <li><b>Servlet reloading</b> is now supported (optionally - include 
+      <code>--useServletReloading=true</code> at startup)</li>
+    <li>The initial <b>Authentication Model</b> is in place. There are two base classes that make 
+      it work: <code>AuthenticationRealm</code> and <code>AuthenticationHandler</code>. Currently
+      only argument realms (ie user/password details supplied via command-line args) and HTTP BASIC
+      authentication are implemented, but the rest will come soon. It's simple enough to add JDBC
+      or xml-file based realm support, for example, and FORM authentication will be coming soon.</li>
   </ul>
 
   <p>New features in v0.3:</p>
@@ -302,6 +312,8 @@ channel=channel.socket:localhost:8009
   <hr width="90%" size="1" noshade="true"/>
   <center>
     <a href="http://sourceforge.net"><img src="http://sourceforge.net/sflogo.php?group_id=98922&amp;type=5" width="210" height="62" border="0" alt="SourceForge.net Logo" /></a>
+    &nbsp;&nbsp;
+    <a href="http://www.jars.com"><img src="http://www.jars.com/images/java_registered.gif" border="0"></a>
   </center>
 </body>
 </html>
