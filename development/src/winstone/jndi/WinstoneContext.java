@@ -213,10 +213,10 @@ public class WinstoneContext implements Context
     // If empty name, return a copy of this Context
     else if (searchName.isEmpty())
     {
-      NamingEnumeration enum = null;
+      NamingEnumeration e = null;
       synchronized (this.contextLock)
-        {enum = new WinstoneNameEnumeration(this.bindings, this.resources);}
-      return enum;
+        {e = new WinstoneNameEnumeration(this.bindings, this.resources);}
+      return e;
     }
     
     // Lookup the object - if it's not a context, throw an error
@@ -248,10 +248,10 @@ public class WinstoneContext implements Context
     // If empty name, return a copy of this Context
     else if (searchName.isEmpty())
     {
-      NamingEnumeration enum = null;
+      NamingEnumeration e = null;
       synchronized (this.contextLock)
-        {enum = new WinstoneBindingEnumeration(this.bindings, this.environment, this, this.resources);}
-      return enum;
+        {e = new WinstoneBindingEnumeration(this.bindings, this.environment, this, this.resources);}
+      return e;
     }
     
     // Lookup the object - if it's not a context, throw an error

@@ -156,9 +156,9 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
   private Long searchJarPath(String classResourceName, File path) throws IOException, InterruptedException
   {
     JarFile jar = new JarFile(path);
-    for (Enumeration enum = jar.entries(); enum.hasMoreElements() && !interrupted; )
+    for (Enumeration e = jar.entries(); e.hasMoreElements() && !interrupted; )
     {
-      JarEntry entry = (JarEntry) enum.nextElement();
+      JarEntry entry = (JarEntry) e.nextElement();
       if (entry.getName().equals(classResourceName))
         return new Long(path.lastModified());
     }

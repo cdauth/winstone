@@ -227,9 +227,9 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable
 
       // Iterate through the files
       JarFile warArchive = new JarFile(warfileRef);
-      for (Enumeration enum = warArchive.entries(); enum.hasMoreElements(); )
+      for (Enumeration e = warArchive.entries(); e.hasMoreElements(); )
       {
-        JarEntry element = (JarEntry) enum.nextElement();
+        JarEntry element = (JarEntry) e.nextElement();
         if (element.isDirectory())
           continue;
         String elemName = element.getName();
