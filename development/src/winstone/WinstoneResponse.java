@@ -307,7 +307,7 @@ public class WinstoneResponse implements HttpServletResponse
   public void setBufferSize(int size)  {this.outputStream.setBufferSize(size);}
   public int getBufferSize()  {return this.outputStream.getBufferSize();}
 
-  public String getCharacterEncoding() {return this.encoding;}
+  public String getCharacterEncoding() {return this.encoding == null ? "ISO-8859-1" : this.encoding;}
   public void setCharacterEncoding(String encoding) {this.encoding = encoding;}
   public String getContentType() {return getHeader(CONTENT_TYPE_HEADER);}
   public void setContentType(String type) {updateContentTypeHeader(type);}
@@ -341,10 +341,8 @@ public class WinstoneResponse implements HttpServletResponse
       return new PrintWriter(this.outWriter, true);
     else try
     {
-      if (this.encoding != null)
-        this.outWriter = new OutputStreamWriter(getOutputStream(), this.encoding);
-      else
-        this.outWriter = new OutputStreamWriter(getOutputStream());
+      String encoding = getCharacterEncoding();
+      this.outWriter = new OutputStreamWriter(getOutputStream(), encoding);
       return new PrintWriter(this.outWriter, true);
     }
     catch (UnsupportedEncodingException err)

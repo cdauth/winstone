@@ -282,7 +282,7 @@ public class Ajp13Listener implements Listener, Runnable
         String qs = (String) headers.getAttributes().get("query_string");
         req.setQueryString(qs);
         //req.getParameters().putAll(WinstoneRequest.extractParameters(qs, req.getEncoding(), mainResources));
-        req.setRequestURI(headers.getURI() + "?" + qs);
+        //req.setRequestURI(headers.getURI() + "?" + qs);
       }
       else if (attName.equals("ssl_cert"))
       {
