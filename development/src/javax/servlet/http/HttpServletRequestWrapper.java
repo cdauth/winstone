@@ -71,9 +71,12 @@ public class HttpServletRequestWrapper extends javax.servlet.ServletRequestWrapp
   public Principal getUserPrincipal()               {return this.httpRequest.getUserPrincipal();}
 
   public boolean isRequestedSessionIdFromCookie()   {return this.httpRequest.isRequestedSessionIdFromCookie();}
-  public boolean isRequestedSessionIdFromUrl()      {return this.httpRequest.isRequestedSessionIdFromUrl();}
   public boolean isRequestedSessionIdFromURL()      {return this.httpRequest.isRequestedSessionIdFromURL();}
   public boolean isRequestedSessionIdValid()        {return this.httpRequest.isRequestedSessionIdValid();}
   public boolean isUserInRole(String role)          {return this.httpRequest.isUserInRole(role);}
+  /**
+   * @deprecated
+   */
+  public boolean isRequestedSessionIdFromUrl()      {return this.httpRequest.isRequestedSessionIdFromUrl();}
 }
 

@@ -43,8 +43,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler
   /**
    * Call this once we know that we need to authenticate
    */
-  protected void requestAuthentication(HttpServletRequest request,
-    HttpServletResponse response, String pathRequested) throws IOException
+  protected void requestAuthentication(WinstoneRequest request,
+    WinstoneResponse response, String pathRequested) throws IOException
   {
     // Return unauthorized, and set the realm name
     response.setHeader("WWW-Authenticate", "Basic Realm=\"" + this.realmName + "\"");
@@ -55,15 +55,11 @@ public class BasicAuthenticationHandler extends AuthenticationHandler
   /**
    * Handling the (possible) response
    */
-  protected void validatePossibleAuthenticationResponse(WinstoneRequest request,
+  protected boolean validatePossibleAuthenticationResponse(WinstoneRequest request,
     WinstoneResponse response, String pathRequested) throws IOException
   {
     String authorization = request.getHeader("Authorization");
-    if (authorization == null)
-      return;
-
-    // Check it's basic
-    if (authorization.toLowerCase().startsWith("basic"))
+    if ((authorization != null) && authorization.toLowerCase().startsWith("basic"))
     {
       String decoded = decodeBase64String(authorization.substring(5).trim());
       int delimPos = decoded.indexOf(':');
@@ -78,6 +74,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler
         }
       }
     }
+    return true;
   }
 }
 

@@ -49,9 +49,7 @@ public class HttpServletResponseWrapper extends javax.servlet.ServletResponseWra
   public void addHeader(String name, String value)  {this.httpResponse.addHeader(name, value);}
   public void addIntHeader(String name, int value)  {this.httpResponse.addIntHeader(name, value);}
   public boolean containsHeader(String name)        {return this.httpResponse.containsHeader(name);}
-  public String encodeRedirectUrl(String url)       {return this.httpResponse.encodeRedirectUrl(url);}
   public String encodeRedirectURL(String url)       {return this.httpResponse.encodeRedirectURL(url);}
-  public String encodeUrl(String url)               {return this.httpResponse.encodeUrl(url);}
   public String encodeURL(String url)               {return this.httpResponse.encodeURL(url);}
   public void sendError(int sc) throws IOException
     {this.httpResponse.sendError(sc);}
@@ -63,6 +61,18 @@ public class HttpServletResponseWrapper extends javax.servlet.ServletResponseWra
   public void setHeader(String name, String value)  {this.httpResponse.setHeader(name, value);}
   public void setIntHeader(String name, int value)  {this.httpResponse.setIntHeader(name, value);}
   public void setStatus(int sc)                     {this.httpResponse.setStatus(sc);}
+
+  /**
+   * @deprecated
+   */
+  public String encodeRedirectUrl(String url)       {return this.httpResponse.encodeRedirectUrl(url);}
+  /**
+   * @deprecated
+   */
+  public String encodeUrl(String url)               {return this.httpResponse.encodeUrl(url);}
+  /**
+   * @deprecated
+   */
   public void setStatus(int sc, String sm)          {this.httpResponse.setStatus(sc, sm);}
 
 }

@@ -58,8 +58,6 @@ public class ServletRequestWrapper implements ServletRequest
   public Enumeration getParameterNames()            {return this.request.getParameterNames();}
   public String[] getParameterValues(String name)   {return this.request.getParameterValues(name);}
 
-  public String getRealPath(String path) {return this.request.getRealPath(path);}
-
   public RequestDispatcher getRequestDispatcher(String path)  {return this.request.getRequestDispatcher(path);}
 
   public String getProtocol()   {return this.request.getProtocol();}
@@ -70,5 +68,9 @@ public class ServletRequestWrapper implements ServletRequest
   public int getServerPort()    {return this.request.getServerPort();}
   public boolean isSecure()     {return this.request.isSecure();}
 
+  /**
+   * @deprecated
+   */
+  public String getRealPath(String path) {return this.request.getRealPath(path);}
 }
 

@@ -74,6 +74,9 @@ public class ArgumentsRealm extends AuthenticationRealm
    */
   public AuthenticationPrincipal authenticateByUsernamePassword(String userName, String password)
   {
+    if ((userName == null) || (password == null))
+      return null;
+      
     String realPassword = (String) this.passwords.get(userName);
     if (realPassword == null)
       return null;
