@@ -149,8 +149,7 @@ public class Ajp13Listener implements Listener, Runnable
       headers.parsePacket("8859_1");
       parseSocketInfo(headers, req);
       String servletURI = parseURILine(headers, req, rsp);
-      req.parseHeaders(Arrays.asList(headers.getHeaders()));
-
+ 
       // If content-length present and non-zero, download the other packets
       WinstoneInputStream inData = null;
       int contentLength = req.getContentLength();
@@ -261,9 +260,10 @@ public class Ajp13Listener implements Listener, Runnable
     req.setMethod(headers.getMethod());
     req.setProtocol(headers.getProtocol());
     rsp.setProtocol(headers.getProtocol());
+    req.parseHeaders(Arrays.asList(headers.getHeaders()));
     rsp.extractRequestKeepAliveHeader(req);
-    //req.setServletPath(headers.getURI());
-    //req.setRequestURI(headers.getURI());
+    req.setServletPath(headers.getURI());
+    req.setRequestURI(headers.getURI());
 
     // Get query string if supplied
     for (Iterator i = headers.getAttributes().keySet().iterator(); i.hasNext(); )
