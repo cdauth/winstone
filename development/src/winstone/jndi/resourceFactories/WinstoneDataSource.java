@@ -104,7 +104,7 @@ public class WinstoneDataSource implements DataSource, Runnable
              (this.usedConnections.size() + this.unusedConnections.size() < MAX_CONNECTIONS))
       {
         this.unusedConnections.add(this.driver.connect(this.url, this.connectProps));
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneDataSource.AddingPooledConnection",
+        Logger.log(Logger.FULL_DEBUG, this.resources, "WinstoneDataSource.AddingPooledConnection",
           new String[] {"" + this.usedConnections.size(),
                         "" + this.unusedConnections.size()});
       }
