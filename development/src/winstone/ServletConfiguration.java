@@ -121,7 +121,11 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       else if (nodeName.equals(ELEM_JSP_FILE))
         this.jspFile = child.getFirstChild().getNodeValue().trim();
       else if (nodeName.equals(ELEM_LOAD_ON_STARTUP))
-        this.loadOnStartup = Integer.parseInt(child.getFirstChild().getNodeValue().trim());
+      {
+        String index = child.getFirstChild() == null 
+                ? "-1" : child.getFirstChild().getNodeValue().trim();
+        this.loadOnStartup = Integer.parseInt(index);
+      }
       else if (nodeName.equals(ELEM_INIT_PARAM))
       {
         String paramName = null;

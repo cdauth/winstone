@@ -17,6 +17,10 @@ Long-term
      - Publish apidocs
      - Add a JSP compiler ?
 
+v0.6.5
+DONE - Fixed load-on-startup optional content bug (thanks to Matthias Wuttke)
+
+v0.6.4
 DONE - Added HTTPS listener class
 DONE - Fixed the path separator bug in the classpath under linux
 DONE - Changed default hostname lookups to off (more stable).
