@@ -17,6 +17,11 @@ Long-term
      - Publish apidocs
      - Add a JSP compiler ?
 
+v0.6.3
+DONE - Fixed the errorPage directive bug
+DONE - Fixed bugs related to requestDispatcher and non-existants urls
+DONE - Fixed querystring parsing error when non-latin1 encoding
+
 v0.6.2
 DONE - Move all debugging message lookups into logger (performance)
 DONE - Made invoker servlet on by default
