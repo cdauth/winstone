@@ -12,10 +12,12 @@ set ANT_HOME=ant
 set _ANT_OPTS=%ANT_OPTS%
 
 set _CLASSPATH=%CLASSPATH%
-set CLASSPATH=%ANT_HOME%\lib\ant.jar;.\lib\jaxp.jar;.\lib\crimson.jar
+set CLASSPATH=%ANT_HOME%\lib\ant.jar
+set CLASSPATH=%CLASSPATH%;.\lib\gnujaxp.jar
 set CLASSPATH=%CLASSPATH%;%ANT_HOME%\lib\commons-net.jar
 set CLASSPATH=%CLASSPATH%;%ANT_HOME%\lib\ant-launcher.jar
-set CLASSPATH=%CLASSPATH%;%ANT_HOME%\lib\ant-commons-net.jar;%JAVA_HOME%\lib\tools.jar
+set CLASSPATH=%CLASSPATH%;%ANT_HOME%\lib\ant-commons-net.jar
+set CLASSPATH=%CLASSPATH%;%JAVA_HOME%\lib\tools.jar
 
 %JAVA_HOME%\bin\java %ANT_OPTS% org.apache.tools.ant.Main %1 %2 %3 %4 %5 %6 %7 %8 %9
 
