@@ -251,7 +251,7 @@ public class RequestHandlerThread implements Runnable
     this.listener = listener;
     this.socket = socket;
     if (this.thread.isAlive())
-      synchronized (this.processingMonitor) {this.processingMonitor.notifyAll();}
+      synchronized (this.processingMonitor) {this.processingMonitor.notify();}
     else
       this.thread.start();
   }

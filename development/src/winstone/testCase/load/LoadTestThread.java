@@ -88,7 +88,7 @@ public class LoadTestThread implements Runnable
       try
       {
         // Make it sleep the rest of the second
-        if (System.currentTimeMillis() - startTime < 1000)
+        if (System.currentTimeMillis() - startTime < 980)
           Thread.sleep(1000 - (System.currentTimeMillis() - startTime));
       }
       catch (InterruptedException err) {this.interrupted = true;}

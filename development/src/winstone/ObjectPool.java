@@ -20,7 +20,6 @@ package winstone;
 import java.util.*;
 import java.io.*;
 import java.net.*;
-import javax.servlet.UnavailableException;
 
 /**
  * Holds the object pooling code for Winstone. Presently this is only responses
@@ -131,7 +130,7 @@ public class ObjectPool
    * the handler is released back into the pool.
    */
   public void handleRequest(Socket socket, Listener listener)
-    throws IOException, UnavailableException, InterruptedException
+    throws IOException, InterruptedException
   {
     synchronized (this.requestHandlerSemaphore)
     {
