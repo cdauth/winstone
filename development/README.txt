@@ -25,6 +25,27 @@ The original goals in writing Winstone were:
    of servlets. This has not happened yet, because of some linking problems in the build.
  - Optionally support JSP compilation using Apache's Jasper. (http://jakarta.apache.org)
 
+Using Winstone
+--------------
+
+To build Winstone, unpack the tree:
+
+  tar zxf winstone_src_v0.1.tar.gz
+
+Then build it:
+
+  cd winstone/development
+
+  build dist (Win32) 
+  -or- 
+  build.sh dist (Unix)
+
+To run it:
+
+  java -jar winstone_v0.1.jar
+
+The Winstone.jar file will be in the winstone/dist directory after the build is complete.
+
 Caveats
 -------
 

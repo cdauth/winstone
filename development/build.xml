@@ -15,6 +15,7 @@ Authors:
   <!-- ==================== Initialization properties ===================== -->
   <property name="debug" value="on"/>
   <property name="optimize" value="true"/>
+  <property name="release.dir" value="../../releases"/>  
   <property name="backup.dir" value="../../backups"/>  
   <property name="winstone.build" value="../build"/>
   <property name="winstone.apidoc" value="../doc"/>
@@ -119,6 +120,25 @@ Authors:
     <echo message="  main                 Build winstone components"/>
     <echo message="  javadoc              Build API documentation"/>
     <echo message="  backup               Backup the source archive"/>
+    <echo message="  dist                 Build the distributable compiled jar"/>
+  </target>
+
+  <target name="release" depends="dist">
+    <mkdir dir="${release.dir}"/>
+    <mkdir dir="${release.dir}/winstone"/>
+    <mkdir dir="${release.dir}/winstone/development"/>
+
+    <delete file="${release.dir}/winstone_src_${release.name}.tar.gz"/>
+    <delete file="${release.dir}/winstone_${release.name}.jar"/>
+
+    <copy toDir="${release.dir}/winstone/development">
+      <fileset dir="."/>
+    </copy>
+    <tar tarfile="${release.dir}/winstone_src_${release.name}.tar" basedir="${release.dir}" includes="winstone/**"/>
+    <gzip src="${release.dir}/winstone_src_${release.name}.tar" zipfile="${release.dir}/winstone_src_${release.name}.tar.gz"/>
+    <delete file="${release.dir}/winstone_src_${release.name}.tar"/>
+    <delete dir="${release.dir}/winstone"/>
+    <copy toFile="${release.dir}/winstone_${release.name}.jar" file="${winstone.dist}/winstone.jar"/>
   </target>
 
 </project>
