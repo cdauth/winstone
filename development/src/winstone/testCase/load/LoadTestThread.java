@@ -69,18 +69,19 @@ public class LoadTestThread implements Runnable
         if (responseCode >= 400)
           throw new IOException("Failed with status " + responseCode);
         InputStream inContent = wresp.getInputStream();
-        byte content[] = new byte[wresp.getContentLength()];
-        int position = content.length;
-        while ((position < content.length) && 
+        int contentLength = wresp.getContentLength() == -1 ? inContent.available() : wresp.getContentLength();
+        byte content[] = new byte[contentLength];
+        int position = 0;
+        while ((position < contentLength) && 
                (System.currentTimeMillis() - startTime < 1000))
-          position += inContent.read(content, position, content.length - position);
+          position += inContent.read(content, position, contentLength - position);
         inContent.close();
   
         // Confirm the result is the same size the content-length said it was
-        if (position == content.length)
+        if (position == contentLength)
           this.successCount++;
         else
-          throw new IOException("Only downloaded " + position + " of " + content.length + " bytes");
+          throw new IOException("Only downloaded " + position + " of " + contentLength + " bytes");
       }
       catch (IOException err) {Logger.log(Logger.DEBUG, resources, "LoadTestThread.Error", err);}
       catch (SAXException err) {Logger.log(Logger.DEBUG, resources, "LoadTestThread.Error", err);}
