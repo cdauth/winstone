@@ -47,7 +47,6 @@ public class HttpsListener extends HttpListener
     throws IOException
   {
     super(args, resources, objectPool);
-    this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
     this.keystore = WebAppConfiguration.stringArg(args, getConnectorName() + "KeyStore", "winstone.ks");
     this.password = WebAppConfiguration.stringArg(args, getConnectorName() + "KeyStorePassword", null);
   }
@@ -70,6 +69,9 @@ public class HttpsListener extends HttpListener
    */
   protected ServerSocket getServerSocket() throws IOException
   {
+    // Just to make sure it's set before we start
+    this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
+
     SSLContext context = getSSLContext(this.keystore, this.password);
     SSLServerSocketFactory factory = context.getServerSocketFactory();
     SSLServerSocket ss = (SSLServerSocket) (this.listenAddress == null 
