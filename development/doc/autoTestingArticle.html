@@ -1,0 +1,176 @@
+<html>
+  <head>
+    <title>Automated Testing That Doesn't Leave A Mess</title>
+  </head>
+  <body>
+    <center>
+	    <table border="0" width="90%">
+	      <tr>
+	        <td align="center">
+			      <h1>Automated Testing That Doesn't Leave A Mess</h1>    
+			      <h3>by Rick Knowles</h3>
+			      <hr width="90%" noshade="noshade" size="1"/>
+			    </td>
+	      </tr>
+	      <tr>
+	        <td align="left">
+				    
+				    <p>As part of a recent project, I attempted my first large-scale use of HttpUnit 
+				      for automated testing. I'm very impressed with the flexibility it gives you to 
+				      test interfaces - especially the ability to test entire screen flows in a single 
+				      test case - but I found there was one nagging problem that HttpUnit, like all 
+				      JUnit style testing, suffers from ... the need for preconditions.</p>
+				
+				    <p>For the non-extreme programmers, preconditions are basically the conditions 
+				      you require to be satisfied before your test case starts if the results are to 
+				      be meaningful. For those of us who fit the description of web-app developers, 
+				      that almost always includes database content.</p>
+				      
+				    <p>Anyone who has tried this before will now be starting to nod their head - 
+				      it's that annoying organisational problem of keeping the static data for 
+				      tests (usually in the form of sql insert scripts) manageable and organised, 
+				      since it's usually separated from the junit java test cases. How do you make 
+				      sure that the data is present and all yours to mangle when your test cases start 
+				      ? What if two people want to run tests in parallel on the same database using 
+				      the same test data ? It basically boils down to the problem of how to create 
+				      individual test data in a shared schema without having your sql scripts starting 
+				      to look like JSP pages. Then there's the problem of making sure that the mess 
+				      you made of the database is removed, and everything is pristine when it comes 
+				      time for release.</p>
+				
+				    <p>The answer I came up with was an interesting one - it involves a little bit 
+				      of extra coding and configuration, but the results are well worth it.</p>
+				
+				    <p>It involves the use of a custom javax.sql.DataSource implementation and a 
+				      java.sql.Connection wrapper class, both of which I'll go through in detail 
+				      below. The premise is to trick the application into thinking it is committing 
+				      it's database changes, when actually it's not. To do this we provide what 
+				      looks like a pooling datasource, which makes sure that every connection the 
+				      application asks for is actually a wrapper around the same connection. When 
+				      the wrapper is closed, we only close the wrapper. When the connection is 
+				      committed, we suppress it. The end result is that every change the application 
+				      makes to the database stays in a single uncommitted transaction.</p>
+				
+				    <p>This does assume that you're dealing with a transaction-capable database, 
+				      and that a rollback being suppressed will not affect the operation of your 
+				      application. If you're okay with these constraints, we're ready to go ...</p>
+				
+				    <p>A short aside: for a Servlet Container in this example, I've used the 
+				      Winstone Servlet Container (available Freely for free under GPL from 
+				      http://winstone.sourceforge.net). The main reason I chose Winstone is 
+				      fairly obvious if you're observant - I wrote it. Aside from that though, it 
+				      does have some desirable features for this kind of situation:</p>
+				      
+				    <ul>
+				      <li>It's small enough to include in your source/lib folder (&lt; 300K)</li>
+				      <li>It's easily embeddable inside a JUnit test, having no static state. 
+				        In other words, we have can hundreds of copies of Winstone in the same VM, 
+				        as long they are listening on separate ports. This is ideal for junit 
+				        testing, which is multithreaded by design.</li>
+				      <li>Its configuration options can be varied per test. This allows us to 
+				        spawn a separate container for each test thread if required </li>
+				      <li>It has JSP and, more importantly, JNDI support, which we will 
+				        need in this example</li>
+				      <li>It's closer to a production quality servlet container than 
+				        HttpUnit's ServletUnit is (IMHO)</li>
+				    </ul>
+				
+				    <p>I should point out that the ideas mentioned here can be implemented using 
+				      ServletUnit (or any servlet container), but for the purposes of this 
+				      discussion, we'll use Winstone.</p>
+				
+				    <p>Now: to the code! There are 3 main parts: the connection wrapper, the 
+				      DataSource implementation, and the httpunit testcase utility functions.</p>
+				
+				    <h2>1. The java.sql.Connection wrapper</h2>
+				
+            <p>The first thing we need is a wrapper around our database connections. 
+              This allows us to override the crucial behaviours (like commits and closes),
+              so that we simulate commits across connections, etc. We'll use a basic
+              Decorator pattern to accomplish this.</p>
+            
+				    <h2>2. The javax.sql.DataSource implementation</h2>
+				    
+				    <p>The code for the DataSource implementation here is slightly more complex</p>
+				    
+				    <pre>
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import org.apache.commons.logging.*;
+import javax.sql.DataSource;
+
+/**
+ * Datasource wrapper for non-committing test connections
+ * 
+ * @author Rick Knowles
+ */
+public class TestDataSource implements DataSource {
+
+  private static Log log = LogFactory.getLog(TestDataSource.class);
+
+  private DataSource sourceDS;
+  private TestConnection connection;
+    
+  public TestDataSource(DataSource sourceDS) {
+    this.sourceDS = sourceDS;
+  }
+
+  public int getLoginTimeout() throws SQLException 
+    {return this.sourceDS.getLoginTimeout();}
+  public void setLoginTimeout(int timeout) throws SQLException 
+    {this.sourceDS.setLoginTimeout(timeout);}
+  public PrintWriter getLogWriter() throws SQLException 
+    {return this.sourceDS.getLogWriter();}
+  public void setLogWriter(PrintWriter writer) throws SQLException 
+    {this.sourceDS.setLogWriter(writer);}
+
+  public Connection getConnection() throws SQLException {
+    if (this.connection == null) {
+      log.debug("Instantiating connection");
+      Connection conn = this.sourceDS.getConnection();
+      conn.setAutoCommit(false);
+      this.connection = new TestConnection(conn);
+    }
+    this.connection.uses++;
+    log.debug("Getting connection  - uses=" + this.connection.uses);
+    return this.connection;
+  }
+
+  public Connection getConnection(String user, String pass) throws SQLException {
+    return getConnection();
+  }
+}</pre>
+				    
+				    <h2>3. Utility functions needed by the test cases</h2>
+				    <h2>Execution</h2>
+				    
+				    <h2>Follow-ons</h2>
+				    
+				    <p>The above works fine when you have a custom-JDBC application, but what about
+				      Apache Torque applications ? Torque allows a DataSourceFactory class to be
+				      specified in the Torque.properties file (the property is named 
+				      <code>torque.dsfactory.&lt;dataSourceName&gt;.factory</code>). I won't go 
+				      into the code in detail here, but the basic approach is to implement a 
+				      Singleton DataSourceFactory that always returns the same DataSource 
+				      (much as the DataSource above always returns the same Connection). 
+				      Following the pattern above, you can work it out.</p>
+				      
+				    <h2>Links</h2>
+				
+				    <ul>
+				      <li>Winstone servlet container: <a href="http://winstone.sourceforge.net/">http://winstone.sourceforge.net/</a></li>
+				      <li>HttpUnit testing framework: <a href="http://httpunit.sourceforge.net/">http://httpunit.sourceforge.net/</a></li>
+				    </ul>
+	        </td>
+	      </tr>
+	      <tr>
+	        <td align="center">
+			      <hr width="90%" noshade="noshade" size="1"/>
+			      <p><i>&copy; 2004 Rick Knowles (winstone-devel AT SOURCEFORGE DOT NET)</i></p>
+			    </td>
+	      </tr>
+	    </table>
+    </center>
+  </body>
+</html>
