@@ -212,10 +212,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       catch (javax.servlet.ServletException err)
       {
         this.instance = null;
-        Logger.log(Logger.ERROR, resources.getString("ServletConfiguration.InitError") + this.servletName +
-                                          " - " + this.classFile, err);
         if (err instanceof UnavailableException)
           setUnavailable();
+        throw new WinstoneException(resources.getString("ServletConfiguration.InitError"), err);
       }
     }
 

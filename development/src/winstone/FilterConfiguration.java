@@ -143,10 +143,9 @@ public class FilterConfiguration implements javax.servlet.FilterConfig
       catch (javax.servlet.ServletException err)
       {
         this.instance = null;
-        Logger.log(Logger.ERROR, resources.getString("FilterConfiguration.InitError") + this.filterName +
-                                          " - " + this.classFile, err);
         if (err instanceof UnavailableException)
           setUnavailable();
+        throw new WinstoneException(resources.getString("FilterConfiguration.InitError"), err);
       }
     }
     return this.instance;

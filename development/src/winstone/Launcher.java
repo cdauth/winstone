@@ -26,11 +26,8 @@ import java.lang.reflect.*;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
+import org.w3c.dom.*;
+import org.xml.sax.*;
 
 /**
  * Implements the main launcher daemon thread. This is the class that
@@ -39,7 +36,7 @@ import org.xml.sax.SAXException;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class Launcher implements EntityResolver, Runnable
+public class Launcher implements EntityResolver, ErrorHandler, Runnable
 {
   static final String DTD_2_2_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN";
   static final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
@@ -378,6 +375,7 @@ public class Launcher implements EntityResolver, Runnable
 
       DocumentBuilder builder = factory.newDocumentBuilder();
       builder.setEntityResolver(this);
+      builder.setErrorHandler(this);
       return builder.parse(in);
     }
     catch (Throwable errParser)
@@ -512,6 +510,21 @@ public class Launcher implements EntityResolver, Runnable
   private static void printUsage(WinstoneResourceBundle resources)
   {
     System.out.println(resources.getString("Launcher.UsageInstructions", "[#version]", resources.getString("ServerVersion")));
+  }
+
+  public void error(SAXParseException exception) throws SAXException
+  {
+    Logger.log(Logger.ERROR, resources.getString("Launcher.XMLParseError",
+        "[#line]", exception.getLineNumber() + "", "[#error]", exception.getMessage()));
+  }
+
+  public void fatalError(SAXParseException exception) throws SAXException
+    {error(exception);}
+
+  public void warning(SAXParseException exception) throws SAXException
+  {
+    Logger.log(Logger.DEBUG, resources.getString("Launcher.XMLParseError",
+        "[#line]", exception.getLineNumber() + "", "[#error]", exception.getMessage()));
   }
 }
 

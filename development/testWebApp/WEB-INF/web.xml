@@ -39,6 +39,24 @@
 		</init-param>
 		<load-on-startup>1</load-on-startup>
 	</servlet>
+	
+	<servlet>
+		<servlet-name>UnavailableAtInitServlet</servlet-name>
+		<servlet-class>winstone.testApplication.servlets.UnavailableServlet</servlet-class>    
+		<init-param>
+			<param-name>errorTime</param-name>
+			<param-value>init</param-value>
+		</init-param>
+	</servlet>
+	
+	<servlet>
+		<servlet-name>UnavailableAtGetServlet</servlet-name>
+		<servlet-class>winstone.testApplication.servlets.UnavailableServlet</servlet-class>    
+		<init-param>
+			<param-name>errorTime</param-name>
+			<param-value>get</param-value>
+		</init-param>
+	</servlet>
 
   <!-- testing load on startup of a jsp -->
 	<servlet>
@@ -67,6 +85,16 @@
 	<servlet-mapping>
 		<servlet-name>hiddenJSP</servlet-name>
 		<url-pattern>/hidden.jsp</url-pattern>
+	</servlet-mapping>
+	
+	<servlet-mapping>
+		<servlet-name>UnavailableAtInitServlet</servlet-name>
+		<url-pattern>/UnavailableAtInitServlet</url-pattern>
+	</servlet-mapping>
+	
+	<servlet-mapping>
+		<servlet-name>UnavailableAtGetServlet</servlet-name>
+		<url-pattern>/UnavailableAtGetServlet</url-pattern>
 	</servlet-mapping>
 
 	<!-- Test the welcome file processing order -->
