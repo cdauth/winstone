@@ -142,9 +142,9 @@ public abstract class HttpServlet extends javax.servlet.GenericServlet implement
     private PrintWriter writer;
     private boolean contentLengthSet;
 
-    NoBodyResponse(HttpServletResponse r)
+    NoBodyResponse(HttpServletResponse mainResponse)
     {
-    	super(r);
+    	super(mainResponse);
 	    this.noBody = new NoBodyOutputStream();
     }
     void setContentLength()
@@ -152,9 +152,9 @@ public abstract class HttpServlet extends javax.servlet.GenericServlet implement
     	if (!contentLengthSet)
 	      setContentLength(this.noBody.getContentLength());
     }
-    public void setContentLength(int len)
+    public void setContentLength(int length)
     {
-  	  super.setContentLength(len);
+  	  super.setContentLength(length);
 	    this.contentLengthSet = true;
     }
 
