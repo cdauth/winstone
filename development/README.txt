@@ -29,6 +29,10 @@ The original goals in writing Winstone were:
 Using Winstone
 --------------
 
+If you want to build from source code, you will need to download and install Apache Ant. The
+following instructions assume you have already installed Ant and have the ant shell script in
+your path (to get Ant, see http://ant.apache.org/).
+
 To build Winstone, unpack the tree:
 
   tar zxf winstone_src_v0.3.tar.gz
@@ -36,16 +40,15 @@ To build Winstone, unpack the tree:
 Then build it:
 
   cd winstone/development
-
-  build dist (Win32) 
-  -or- 
-  build.sh dist (Unix)
+  ant dist
 
 To run it:
 
-  java -jar winstone_v0.3.jar -webroot <location of webroot> (+ other options)
+  java -jar ../dist/winstone_v0.3.jar -webroot <location of webroot> (+ other options)
+
      - OR -
-  java -jar winstone_v0.3.jar -warfile <location of warfile> (+ other options)
+
+  java -jar ../dist/winstone_v0.3.jar -warfile <location of warfile> (+ other options)
 
 The Winstone.jar file will be in the winstone/dist directory after the build is complete.
 
