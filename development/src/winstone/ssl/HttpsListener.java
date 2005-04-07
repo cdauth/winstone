@@ -153,7 +153,8 @@ public class HttpsListener extends HttpListener
       File ksFile = new File(keyStoreName);
       if (!ksFile.exists() || !ksFile.isFile())
         throw new WinstoneException(localResources.getString("HttpsListener.KeyStoreNotFound", ksFile.getPath()));
-      InputStream in = new FileInputStream(new File(".", keyStoreName));
+      //InputStream in = new FileInputStream(new File(".", keyStoreName));
+      InputStream in = new FileInputStream(ksFile);
       char[] passwordChars = password == null ? null : password.toCharArray();
       KeyStore ks = KeyStore.getInstance("JKS");
       ks.load(in, passwordChars);
@@ -168,7 +169,7 @@ public class HttpsListener extends HttpListener
       
       SSLContext context = SSLContext.getInstance("SSL");
       context.init(kmf.getKeyManagers(), null, null);
-      Arrays.fill(passwordChars, (char)'x');
+      Arrays.fill(passwordChars, 'x');
       return context;
     }
     catch (IOException err)
