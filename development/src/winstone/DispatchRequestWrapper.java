@@ -84,21 +84,39 @@ public class DispatchRequestWrapper extends HttpServletRequestWrapper
     super.setRequest(request);
     this.dispatchAttributes = new Hashtable();
     
+	// Note: Unclear point in the spec. If an error request is
+	// forwarded, it should, by my reading, only make the 
+	// error atts available until forwarded again, but Tomcat, Resin
+	// et al seem to treat error attributes like standard ones, so
+	// the commenting out below is to preserve my interpretation.
+	// If it turns out to be correct, we can revert back.
+	
     // Forward atts
-    setAtt(FORWARD_REQUEST_URI, errorPageURI);
-    setAtt(FORWARD_CONTEXT_PATH, contextPath);
-    setAtt(FORWARD_SERVLET_PATH, servletPath);
-    setAtt(FORWARD_PATH_INFO, pathInfo);
-    setAtt(FORWARD_QUERY_STRING, queryString);
+//    setAtt(FORWARD_REQUEST_URI, errorPageURI);
+//    setAtt(FORWARD_CONTEXT_PATH, contextPath);
+//    setAtt(FORWARD_SERVLET_PATH, servletPath);
+//    setAtt(FORWARD_PATH_INFO, pathInfo);
+//    setAtt(FORWARD_QUERY_STRING, queryString);
+    request.setAttribute(FORWARD_REQUEST_URI, errorPageURI);
+	request.setAttribute(FORWARD_CONTEXT_PATH, contextPath);
+	request.setAttribute(FORWARD_SERVLET_PATH, servletPath);
+	request.setAttribute(FORWARD_PATH_INFO, pathInfo);
+	request.setAttribute(FORWARD_QUERY_STRING, queryString);
 
-    setAtt(ERROR_REQUEST_URI, originalErrorURI);
-    setAtt(ERROR_SERVLET_NAME, servletName);
-    setAtt(ERROR_STATUS_CODE, statusCode);
+//    setAtt(ERROR_REQUEST_URI, originalErrorURI);
+//    setAtt(ERROR_SERVLET_NAME, servletName);
+//    setAtt(ERROR_STATUS_CODE, statusCode);
+    request.setAttribute(ERROR_REQUEST_URI, originalErrorURI);
+    request.setAttribute(ERROR_SERVLET_NAME, servletName);
+    request.setAttribute(ERROR_STATUS_CODE, statusCode);
     if (originalException != null)
     {
-      setAtt(ERROR_EXCEPTION_TYPE, originalException.getClass());
-      setAtt(ERROR_MESSAGE, originalException.getMessage());
-      setAtt(ERROR_EXCEPTION, originalException);
+//      setAtt(ERROR_EXCEPTION_TYPE, originalException.getClass());
+//      setAtt(ERROR_MESSAGE, originalException.getMessage());
+//      setAtt(ERROR_EXCEPTION, originalException);
+      request.setAttribute(ERROR_EXCEPTION_TYPE, originalException.getClass());
+      request.setAttribute(ERROR_MESSAGE, originalException.getMessage());
+      request.setAttribute(ERROR_EXCEPTION, originalException);
     }
     
     // Empty param set
