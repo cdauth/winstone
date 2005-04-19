@@ -368,7 +368,7 @@ public class WinstoneContext implements Context
     {
       synchronized (this.contextLock)
       {
-        Object removing = this.bindings.get(unbindName.get(0));
+        //Object removing = this.bindings.get(unbindName.get(0));
         this.bindings.remove(unbindName.get(0));
       }
     }

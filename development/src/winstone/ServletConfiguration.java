@@ -147,7 +147,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig, Compar
       {
         for (int m = 0; m < child.getChildNodes().getLength(); m++)
         {
-          Node roleElm = (Node) child.getChildNodes().item(m);
+          Node roleElm = child.getChildNodes().item(m);
           if ((roleElm.getNodeType() == Node.ELEMENT_NODE) &&
               (roleElm.getNodeName().equals(ELEM_ROLE_NAME)))
             this.runAsRole = roleElm.getFirstChild().getNodeValue().trim();

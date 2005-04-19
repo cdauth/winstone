@@ -53,7 +53,7 @@ public abstract class BaseAuthenticationHandler implements AuthenticationHandler
 
     for (int m = 0; m < loginConfigNode.getChildNodes().getLength(); m++)
     {
-      Node loginElm = (Node) loginConfigNode.getChildNodes().item(m);
+      Node loginElm = loginConfigNode.getChildNodes().item(m);
       if (loginElm.getNodeType() != Node.ELEMENT_NODE)
           continue;
       else if (loginElm.getNodeName().equals(ELEM_REALM_NAME))

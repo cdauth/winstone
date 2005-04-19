@@ -68,7 +68,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler
       {
         for (int k = 0; k < loginElm.getChildNodes().getLength(); k++)
         {
-          Node formElm = (Node) loginElm.getChildNodes().item(k);
+          Node formElm = loginElm.getChildNodes().item(k);
           if (formElm.getNodeType() != Node.ELEMENT_NODE)
             continue;
           else if (formElm.getNodeName().equals(ELEM_FORM_LOGIN_PAGE))

@@ -264,7 +264,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
       if (delimPos == -1) continue;
       String extension = mapping.substring(0, delimPos);
       String mimeType = mapping.substring(delimPos + 1);
-      this.mimeTypes.put(mapping.substring(0, delimPos).toLowerCase(), mapping.substring(delimPos + 1));
+      this.mimeTypes.put(extension.toLowerCase(), mimeType);
     }
 
     this.localeEncodingMap = new HashMap();
@@ -311,7 +311,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
         {
           for (int m = 0; m < child.getChildNodes().getLength(); m++)
           {
-            Node timeoutElm = (Node) child.getChildNodes().item(m);
+            Node timeoutElm = child.getChildNodes().item(m);
             if ((timeoutElm.getNodeType() == Node.ELEMENT_NODE) &&
                 (timeoutElm.getNodeName().equals(ELEM_SESSION_TIMEOUT)))
               this.sessionTimeout = new Integer(timeoutElm.getFirstChild().getNodeValue().trim());
@@ -323,7 +323,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
         {
           for (int m = 0; m < child.getChildNodes().getLength(); m++)
           {
-            Node roleElm = (Node) child.getChildNodes().item(m);
+            Node roleElm = child.getChildNodes().item(m);
             if ((roleElm.getNodeType() == Node.ELEMENT_NODE) &&
                 (roleElm.getNodeName().equals(ELEM_ROLE_NAME)))
               rolesAllowed.add(roleElm.getFirstChild().getNodeValue().trim());
@@ -352,7 +352,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
           String listenerClass = null;
           for (int m = 0; m < child.getChildNodes().getLength(); m++)
           {
-            Node listenerElm = (Node) child.getChildNodes().item(m);
+            Node listenerElm = child.getChildNodes().item(m);
             if ((listenerElm.getNodeType() == Node.ELEMENT_NODE) &&
                 (listenerElm.getNodeName().equals(ELEM_LISTENER_CLASS)))
               listenerClass = listenerElm .getFirstChild().getNodeValue().trim();
@@ -462,7 +462,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
         else if (nodeName.equals(ELEM_WELCOME_FILES))
           for (int m = 0; m < child.getChildNodes().getLength(); m++)
           {
-            Node welcomeFile = (Node) child.getChildNodes().item(m);
+            Node welcomeFile = child.getChildNodes().item(m);
             if ((welcomeFile.getNodeType() == Node.ELEMENT_NODE) &&
                 (welcomeFile.getNodeName().equals(ELEM_WELCOME_FILE)))
               localWelcomeFiles.add(welcomeFile.getFirstChild().getNodeValue().trim());
@@ -509,7 +509,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
           String mimeType  = null;
           for (int m = 0; m < child.getChildNodes().getLength(); m++)
           {
-            Node mimeTypeNode = (Node) child.getChildNodes().item(m);
+            Node mimeTypeNode = child.getChildNodes().item(m);
             if (mimeTypeNode.getNodeType() != Node.ELEMENT_NODE)
               continue;
             else if (mimeTypeNode.getNodeName().equals(ELEM_MIME_EXTENSION))
@@ -531,7 +531,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
           String value  = null;
           for (int m = 0; m < child.getChildNodes().getLength(); m++)
           {
-            Node contextParamNode = (Node) child.getChildNodes().item(m);
+            Node contextParamNode = child.getChildNodes().item(m);
             if (contextParamNode.getNodeType() != Node.ELEMENT_NODE)
               continue;
             else if (contextParamNode.getNodeName().equals(ELEM_PARAM_NAME))
@@ -551,7 +551,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
         {
           for (int m = 0; m < child.getChildNodes().getLength(); m++)
           {
-            Node mappingNode = (Node) child.getChildNodes().item(m);
+            Node mappingNode = child.getChildNodes().item(m);
             if (mappingNode.getNodeType() != Node.ELEMENT_NODE)
               continue;
             else if (mappingNode.getNodeName().equals(ELEM_LOCALE_ENC_MAPPING))
@@ -560,7 +560,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
             	String encoding = null;
               for (int l = 0; l < child.getChildNodes().getLength(); l++)
               {
-                Node mappingChildNode = (Node) child.getChildNodes().item(l);
+                Node mappingChildNode = child.getChildNodes().item(l);
                 if (mappingChildNode.getNodeType() != Node.ELEMENT_NODE)
                   continue;
                 else if (mappingChildNode.getNodeName().equals(ELEM_LOCALE))
@@ -645,13 +645,13 @@ public class WebAppConfiguration implements ServletContext, Comparator
     this.filterPatternsError   = (Mapping []) lfpError.toArray(new Mapping[lfpError.size()]);
     
     if (this.filterPatternsRequest.length > 0)
-      Arrays.sort(this.filterPatternsRequest, (Comparator) this.filterPatternsRequest[0]);
+      Arrays.sort(this.filterPatternsRequest, this.filterPatternsRequest[0]);
     if (this.filterPatternsForward.length > 0)
-      Arrays.sort(this.filterPatternsForward, (Comparator) this.filterPatternsForward[0]);
+      Arrays.sort(this.filterPatternsForward, this.filterPatternsForward[0]);
     if (this.filterPatternsInclude.length > 0)
-      Arrays.sort(this.filterPatternsInclude, (Comparator) this.filterPatternsInclude[0]);
+      Arrays.sort(this.filterPatternsInclude, this.filterPatternsInclude[0]);
     if (this.filterPatternsError.length > 0)
-      Arrays.sort(this.filterPatternsError, (Comparator) this.filterPatternsError[0]);
+      Arrays.sort(this.filterPatternsError, this.filterPatternsError[0]);
     
     this.welcomeFiles = (String []) localWelcomeFiles.toArray(
         new String[localWelcomeFiles.size()]);
@@ -736,7 +736,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
     this.patternMatches = (Mapping []) localFolderPatterns.toArray(
 				new Mapping[localFolderPatterns.size()]);
     if (this.patternMatches.length > 0)
-      Arrays.sort(this.patternMatches, (Comparator) this.patternMatches[0]);
+      Arrays.sort(this.patternMatches, this.patternMatches[0]);
     
     // Send init notifies
     try
@@ -893,7 +893,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
     // Inexact mount check
     for (int n = 0; n < this.patternMatches.length; n++)
     {
-      Mapping urlPattern = (Mapping) this.patternMatches[n];
+      Mapping urlPattern = this.patternMatches[n];
       if (urlPattern.match(path, servletPath, pathInfo))
         if (this.servletInstances.get(urlPattern.getMappedTo()) == null)
           throw new WinstoneException(resources.getString("WebAppConfig.MatchedNonExistServlet", urlPattern.getMappedTo()));
@@ -1223,8 +1223,8 @@ public class WebAppConfiguration implements ServletContext, Comparator
    */
   private String matchWelcomeFiles(String path, WinstoneRequest request)
   {
-    ServletConfiguration defaultServlet = (ServletConfiguration) 
-            this.servletInstances.get(this.defaultServletName);
+//    ServletConfiguration defaultServlet = (ServletConfiguration) 
+//            this.servletInstances.get(this.defaultServletName);
     Set subfiles = getResourcePaths(path);
     for (int n = 0; n < this.welcomeFiles.length; n++)
     {
@@ -1235,7 +1235,7 @@ public class WebAppConfiguration implements ServletContext, Comparator
       // Inexact folder mount check - note folder mounts only
       for (int j = 0; j < this.patternMatches.length; j++)
       {
-        Mapping urlPattern = (Mapping) this.patternMatches[j];
+        Mapping urlPattern = this.patternMatches[j];
         if ((urlPattern.getPatternType() == Mapping.FOLDER_PATTERN) &&
             urlPattern.match(path + this.welcomeFiles[n], null, null))
           return this.welcomeFiles[n];

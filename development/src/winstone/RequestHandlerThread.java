@@ -228,7 +228,7 @@ public class RequestHandlerThread implements Runnable
       // Null RD means we have been redirected to a welcome page, so ignore quietly
       if (rd != null)
       {
-        Logger.log(Logger.FULL_DEBUG, resources, "RequestHandlerThread.HandlingRD", ((RequestDispatcher) rd).getName());
+        Logger.log(Logger.FULL_DEBUG, resources, "RequestHandlerThread.HandlingRD", rd.getName());
         rd.forward(req, rsp);
       }
     }

@@ -169,7 +169,7 @@ public class WinstoneRequest implements HttpServletRequest
     Collection headerNames = new HashSet();
     for (int n = 0; n < this.headers.length; n++)
     {
-      String name = (String) this.headers[n];
+      String name = this.headers[n];
       int colonPos = name.indexOf(':');
       headerNames.add(name.substring(0, colonPos));
     }

@@ -91,7 +91,7 @@ public class WebAppJNDIManager implements JNDIManager
           String value = null;
           for (int m = 0; m < node.getChildNodes().getLength(); m++)
           {
-            Node envNode = (Node) node.getChildNodes().item(m);
+            Node envNode = node.getChildNodes().item(m);
             if (envNode.getNodeType() != Node.ELEMENT_NODE)
               continue;
             else if (envNode.getNodeName().equals(ELEM_ENV_ENTRY_NAME))

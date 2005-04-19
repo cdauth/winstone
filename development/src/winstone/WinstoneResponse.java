@@ -258,7 +258,7 @@ public class WinstoneResponse implements HttpServletResponse
       }
       if (cookie.getMaxAge() >= 0)
       {
-        long expiryMS = System.currentTimeMillis() + (long) (1000 * (long) cookie.getMaxAge());
+        long expiryMS = System.currentTimeMillis() + (1000 * (long) cookie.getMaxAge());
         Date expiryDate = new Date(expiryMS);
         out.append("; Expires=").append(df.format(expiryDate));
       }

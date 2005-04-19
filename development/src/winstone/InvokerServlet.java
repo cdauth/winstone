@@ -86,7 +86,7 @@ public class InvokerServlet extends HttpServlet
       // If found, mount an instance
       try
       {
-        Class servletClass = Class.forName(servletName, true, Thread.currentThread().getContextClassLoader());
+//        Class servletClass = Class.forName(servletName, true, Thread.currentThread().getContextClassLoader());
         sc = new ServletConfiguration(this.getServletContext(),
             Thread.currentThread().getContextClassLoader(), this.resources, this.prefix,
             getServletConfig().getServletName() + ":" + servletName, 

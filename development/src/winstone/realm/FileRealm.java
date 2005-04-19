@@ -72,7 +72,7 @@ public class FileRealm implements AuthenticationRealm
       Node rootElm = doc.getDocumentElement();
       for (int n = 0; n < rootElm.getChildNodes().getLength(); n++)
       {
-        Node child = (Node) rootElm.getChildNodes().item(n);
+        Node child = rootElm.getChildNodes().item(n);
   
         if ((child.getNodeType() == Node.ELEMENT_NODE) &&
             (child.getNodeName().equals(ELEM_USER)))

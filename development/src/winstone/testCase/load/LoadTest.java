@@ -82,7 +82,7 @@ public class LoadTest
       // Sleep for step period
       Thread.sleep(this.stepPeriod + gracePeriod);
       
-      int errorCount = (noOfSeconds * n) - this.successCount;
+//      int errorCount = (noOfSeconds * n) - this.successCount;
       Long averageSuccessTime = this.successCount == 0 ? null :
         new Long(this.successTimeTotal / this.successCount);
       
@@ -110,7 +110,7 @@ public class LoadTest
     
     // Loop for args
     Map options = new HashMap();
-    String operation = "";
+//    String operation = "";
     for (int n = 0; n < args.length;  n++)
     {
       String option = args[n];
