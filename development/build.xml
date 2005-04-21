@@ -51,7 +51,9 @@ Authors:
            destdir="${winstone.build}/classes"
            debug="${debug}" 
            optimize="${optimize}"
-           deprecation="off" >
+           source="1.2"
+           target="1.1"
+           deprecation="off">
       <classpath>
         <pathelement location="${java.home}/lib/tools.jar"/>
         <pathelement location="${java.home}/lib/dt.jar"/>
