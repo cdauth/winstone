@@ -1,3 +1,5 @@
-build-eclipse
-dist
 build
+dist
+build-eclipse
+logs
+target
