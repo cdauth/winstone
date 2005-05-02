@@ -58,7 +58,7 @@ public class StaticResourceServlet extends HttpServlet {
     final static String CONTENT_RANGE_HEADER = "Content-Range";
     final static String RESOURCE_FILE = "winstone.LocalStrings";
     private DateFormat sdfFileDate = new SimpleDateFormat("dd-MMM-yyyy HH:mm");
-    private String webRoot;
+    private File webRoot;
     private String prefix;
     private boolean directoryList;
     private WinstoneResourceBundle resources;
@@ -66,7 +66,7 @@ public class StaticResourceServlet extends HttpServlet {
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         this.resources = new WinstoneResourceBundle(RESOURCE_FILE);
-        this.webRoot = config.getInitParameter("webRoot");
+        this.webRoot = new File(config.getInitParameter("webRoot"));
         this.prefix = config.getInitParameter("prefix");
         String dirList = config.getInitParameter("directoryList");
         this.directoryList = (dirList == null)
@@ -103,7 +103,7 @@ public class StaticResourceServlet extends HttpServlet {
                         getServletConfig().getServletName(), path });
 
         // Check for the resource
-        File res = path.equals("") ? new File(this.webRoot) : new File(
+        File res = path.equals("") ? this.webRoot : new File(
                 this.webRoot, path);
 
         // Send a 404 if not found
@@ -112,23 +112,20 @@ public class StaticResourceServlet extends HttpServlet {
                     .getString("StaticResourceServlet.PathNotFound", path));
 
         // Check we are below the webroot
-        else if (!res.getCanonicalPath().startsWith(this.webRoot))
+        else if (!isDescendant(this.webRoot, res, this.webRoot)) {
+            Logger.log(Logger.FULL_DEBUG, resources, "StaticResourceServlet.OutsideWebroot",
+                    new String[] {res.getCanonicalPath(), this.webRoot.toString()});
             response.sendError(HttpServletResponse.SC_FORBIDDEN, this.resources
                     .getString("StaticResourceServlet.PathInvalid", path));
+        }
 
         // Check we are not below the web-inf
-        else if (!isInclude
-                && res.getCanonicalPath().toUpperCase().startsWith(
-                        new File(this.webRoot, "WEB-INF").getPath()
-                                .toUpperCase()))
+        else if (!isInclude && isDescendant(new File(this.webRoot, "WEB-INF"), res, this.webRoot)) 
             response.sendError(HttpServletResponse.SC_NOT_FOUND, this.resources
                     .getString("StaticResourceServlet.PathInvalid", path));
 
         // Check we are not below the meta-inf
-        else if (!isInclude
-                && res.getCanonicalPath().toUpperCase().startsWith(
-                        new File(this.webRoot, "META-INF").getPath()
-                                .toUpperCase()))
+        else if (!isInclude && isDescendant(new File(this.webRoot, "META-INF"), res, this.webRoot)) 
             response.sendError(HttpServletResponse.SC_NOT_FOUND, this.resources
                     .getString("StaticResourceServlet.PathInvalid", path));
 
@@ -143,11 +140,8 @@ public class StaticResourceServlet extends HttpServlet {
                 if (this.directoryList)
                     generateDirectoryList(request, response, path);
                 else
-                    response
-                            .sendError(
-                                    HttpServletResponse.SC_FORBIDDEN,
-                                    this.resources
-                                            .getString("StaticResourceServlet.AccessDenied"));
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                            this.resources.getString("StaticResourceServlet.AccessDenied"));
             } else
                 response.sendRedirect(this.prefix + path + "/");
         }
@@ -259,7 +253,7 @@ public class StaticResourceServlet extends HttpServlet {
             HttpServletResponse response, String path) throws ServletException,
             IOException {
         // Get the file list
-        File dir = path.equals("") ? new File(this.webRoot) : new File(
+        File dir = path.equals("") ? this.webRoot : new File(
                 this.webRoot, path);
         File children[] = dir.listFiles();
         Arrays.sort(children);
@@ -300,10 +294,8 @@ public class StaticResourceServlet extends HttpServlet {
                         new String[] {
                                 rowTextColour,
                                 rowCount % 2 == 0 ? evenColour : oddColour,
-                                file.getName()
-                                        + (file.isDirectory() ? "/" : ""),
-                                "./" + file.getName()
-                                        + (file.isDirectory() ? "/" : ""),
+                                file.getName() + (file.isDirectory() ? "/" : ""),
+                                "./" + file.getName() + (file.isDirectory() ? "/" : ""),
                                 file.isDirectory() ? noDateLabel : sdfFileDate
                                         .format(new Date(file.lastModified())),
                                 file.isDirectory() ? directoryLabel : ""
@@ -312,27 +304,58 @@ public class StaticResourceServlet extends HttpServlet {
             }
 
         // Build wrapper body
-        String out = this.resources
-                .getString(
-                        "StaticResourceServlet.DirectoryList.Body",
-                        new String[] {
-                                this.resources
-                                        .getString("StaticResourceServlet.DirectoryList.HeaderColour"),
-                                this.resources
-                                        .getString("StaticResourceServlet.DirectoryList.HeaderTextColour"),
-                                this.resources
-                                        .getString("StaticResourceServlet.DirectoryList.LabelColour"),
-                                this.resources
-                                        .getString("StaticResourceServlet.DirectoryList.LabelTextColour"),
-                                new Date() + "",
-                                this.resources.getString("ServerVersion"),
-                                path.equals("") ? "/" : path,
-                                rowString.toString() });
+        String out = this.resources.getString("StaticResourceServlet.DirectoryList.Body",
+                new String[] {
+                        this.resources.getString("StaticResourceServlet.DirectoryList.HeaderColour"),
+                        this.resources.getString("StaticResourceServlet.DirectoryList.HeaderTextColour"),
+                        this.resources.getString("StaticResourceServlet.DirectoryList.LabelColour"),
+                        this.resources.getString("StaticResourceServlet.DirectoryList.LabelTextColour"),
+                        new Date() + "",
+                        this.resources.getString("ServerVersion"),
+                        path.equals("") ? "/" : path,
+                        rowString.toString() });
 
         response.setContentLength(out.getBytes().length);
         response.setContentType("text/html");
         Writer w = response.getWriter();
         w.write(out);
         w.close();
+    }
+    
+    public static boolean isDescendant(File parent, File child, File commonBase) throws IOException {
+        if (child.equals(parent)) {
+            return true;
+        } else {
+            // Start by checking canonicals
+            String canonicalParent = parent.getAbsoluteFile().getCanonicalPath();
+            String canonicalChild = child.getAbsoluteFile().getCanonicalPath();
+            if (canonicalChild.startsWith(canonicalParent)) {
+                return true;
+            }
+            
+            // If canonicals don't match, we're dealing with symlinked files, so if we can
+            // build a path from the parent to the child, 
+            String childOCValue = constructOurCanonicalVersion(child, commonBase);
+            String parentOCValue = constructOurCanonicalVersion(parent, commonBase);
+            return childOCValue.startsWith(parentOCValue);
+        }
+    }
+    
+    public static String constructOurCanonicalVersion(File current, File stopPoint) {
+        int backOnes = 0;
+        StringBuffer ourCanonicalVersion = new StringBuffer();
+        while ((current != null) && !current.equals(stopPoint)) {
+            if (current.getName().equals("..")) {
+                backOnes++;
+            } else if (current.getName().equals(".")) {
+                // skip - do nothing
+            } else if (backOnes > 0) {
+                backOnes--;
+            } else {
+                ourCanonicalVersion.insert(0, "/" + current.getName());
+            }
+            current = current.getParentFile();
+        }
+        return ourCanonicalVersion.toString();
     }
 }

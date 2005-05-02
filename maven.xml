@@ -9,6 +9,10 @@
     <copy overwrite="true" todir="target">
       <fileset dir="src" includes="testwebapp/**"/>
     </copy>
+    <mkdir dir="target/testwebapp/WEB-INF/classes"/>
+    <copy overwrite="true" todir="target/testwebapp/WEB-INF/classes">
+      <fileset dir="target/test-classes" includes="**"/>
+    </copy>
   </postGoal>
 
   <postGoal name="jar:jar">
@@ -30,7 +34,7 @@
              passive="yes">
       <ant:fileset file="target/${pom.artifactId}-${pom.currentVersion}.jar"/>
       <ant:fileset file="target/${pom.artifactId}-lite-${pom.currentVersion}.jar"/>
-      <ant:fileset file="winstone_src_${release.name}.tar.gz"/>
+      <ant:fileset file="target/winstone-src-${release.name}.tar.gz"/>
     </ant:ftp>
   </goal>
 
