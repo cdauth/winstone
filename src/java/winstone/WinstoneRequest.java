@@ -362,9 +362,9 @@ public class WinstoneRequest implements HttpServletRequest {
             else
                 try {
                     String decodedNameDefault = decodeURLToken(token.substring(
-                            0, equalPos));
+                            0, equalPos), resources);
                     String decodedValueDefault = decodeURLToken(token
-                            .substring(equalPos + 1));
+                            .substring(equalPos + 1), resources);
                     String decodedName = (encoding == null ? decodedNameDefault
                             : new String(decodedNameDefault.getBytes("8859_1"),
                                     encoding));
@@ -402,16 +402,23 @@ public class WinstoneRequest implements HttpServletRequest {
     /**
      * For decoding the URL encoding used on query strings
      */
-    public static String decodeURLToken(String in) {
+    public static String decodeURLToken(String in, WinstoneResourceBundle resources) {
         StringBuffer workspace = new StringBuffer();
         for (int n = 0; n < in.length(); n++) {
             char thisChar = in.charAt(n);
             if (thisChar == '+')
                 workspace.append(' ');
             else if (thisChar == '%') {
-                int decoded = Integer.parseInt(in.substring(n + 1, n + 3), 16);
-                workspace.append((char) decoded);
-                n += 2;
+                String token = in.substring(Math.min(n + 1, in.length()), 
+                        Math.min(n + 3, in.length())); 
+                try {
+                    int decoded = Integer.parseInt(token, 16);
+                    workspace.append((char) decoded);
+                    n += 2;
+                } catch (RuntimeException err) {
+                    Logger.log(Logger.WARNING, resources, "WinstoneRequest.InvalidURLTokenChar", token);
+                    workspace.append(thisChar);
+                }
             } else
                 workspace.append(thisChar);
         }
