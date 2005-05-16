@@ -1144,7 +1144,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     }
 
     public int getMinorVersion() {
-        return 3;
+        return 4;
     }
 
     // Weird mostly deprecated crap to do with getting servlet instances
