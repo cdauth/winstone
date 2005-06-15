@@ -1201,8 +1201,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      */
     public javax.servlet.RequestDispatcher getRequestDispatcher(
             String uriInsideWebapp) {
-        if (!uriInsideWebapp.startsWith("/"))
+        if (uriInsideWebapp == null) {
             return null;
+        } else  if (!uriInsideWebapp.startsWith("/")) {
+            return null;
+        }
 
         // Parse the url for query string, etc
         String queryString = "";
