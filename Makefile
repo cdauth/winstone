@@ -3,7 +3,7 @@ CC = gcj
 CFLAGS = -ffast-math -funroll-loops
 
 WINSTONE_JAVA_BASE = ./winstone/src/java
-WINSTONE_RES_BASE = ./winstone/src/java
+WINSTONE_RES_BASE = ./winstone/src/conf
 CRIMSON_BASE = ./crimson-src
 
 WINSTONE_LITE_O = winstone_lite.o winstone_res1.o
