@@ -6,6 +6,9 @@
     default="jar:jar">
 
   <postGoal name="test:compile">
+    <copy todir="target/test-classes">
+      <fileset dir="src/test" includes="**/*.properties"/>
+    </copy>
     <copy overwrite="true" todir="target">
       <fileset dir="src" includes="testwebapp/**"/>
     </copy>
