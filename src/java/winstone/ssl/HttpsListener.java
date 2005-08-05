@@ -56,6 +56,7 @@ public class HttpsListener extends HttpListener {
     private static final String LOCAL_RESOURCE_FILE = "winstone.ssl.LocalStrings";
     private String keystore;
     private String password;
+    private String keyManagerFactoryClassName;
     private WinstoneResourceBundle localResources;
 
     /**
@@ -68,6 +69,8 @@ public class HttpsListener extends HttpListener {
                 + "KeyStore", "winstone.ks");
         this.password = WebAppConfiguration.stringArg(args, getConnectorName()
                 + "KeyStorePassword", null);
+        this.keyManagerFactoryClassName = WebAppConfiguration.stringArg(args, 
+                getConnectorName() + "KeyManagerFactory", null);
     }
 
     /**
@@ -169,18 +172,33 @@ public class HttpsListener extends HttpListener {
     public SSLContext getSSLContext(String keyStoreName, String password)
             throws IOException {
         try {
+            // Check the key manager factory
+            KeyManagerFactory kmf = null;
+            if (this.keyManagerFactoryClassName != null) {
+                try {
+                    Logger.log(Logger.DEBUG, localResources, 
+                            "HttpsListener.UsingKeyManager",
+                            this.keyManagerFactoryClassName);
+                    kmf = (KeyManagerFactory) Class.forName(
+                        this.keyManagerFactoryClassName).newInstance();
+                } catch (Throwable err) {
+                    Logger.log(Logger.WARNING, this.localResources, 
+                            "HttpsListener.KeyManagerFactoryFailed", 
+                            this.keyManagerFactoryClassName, err);
+                }
+            }
+            if (kmf == null) {
+                kmf = KeyManagerFactory.getInstance("SunX509");
+            }
+            
             File ksFile = new File(keyStoreName);
             if (!ksFile.exists() || !ksFile.isFile())
                 throw new WinstoneException(localResources.getString(
                         "HttpsListener.KeyStoreNotFound", ksFile.getPath()));
-            // InputStream in = new FileInputStream(new File(".",
-            // keyStoreName));
             InputStream in = new FileInputStream(ksFile);
-            char[] passwordChars = password == null ? null : password
-                    .toCharArray();
+            char[] passwordChars = password == null ? null : password.toCharArray();
             KeyStore ks = KeyStore.getInstance("JKS");
             ks.load(in, passwordChars);
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
             kmf.init(ks, passwordChars);
             Logger.log(Logger.FULL_DEBUG, localResources,
                     "HttpsListener.KeyCount", ks.size() + "");
