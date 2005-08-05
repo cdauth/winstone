@@ -153,7 +153,7 @@ public class Launcher implements Runnable {
                         .equalsIgnoreCase("yes"));
         if (switchOnCluster) {
             if (this.controlPort < 0) {
-                Logger.log(Logger.DEBUG, this.resources,
+                Logger.log(Logger.INFO, this.resources,
                         "Launcher.ClusterOffNoControlPort");
             } else {
                 try {
@@ -164,9 +164,10 @@ public class Launcher implements Runnable {
                     this.cluster = (Cluster) clusterConstructor
                             .newInstance(new Object[] { args, resources,
                                     new Integer(this.controlPort) });
+                } catch (ClassNotFoundException err) {
+                    Logger.log(Logger.DEBUG, this.resources, "Launcher.ClusterNotFound");
                 } catch (Throwable err) {
-                    Logger.log(Logger.DEBUG, this.resources,
-                            "Launcher.ClusterNotFound");
+                    Logger.log(Logger.WARNING, this.resources, ("Launcher.ClusterStartupError"), err);
                 }
             }
         }

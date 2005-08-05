@@ -255,13 +255,13 @@ public class WebAppGroup {
                 if (children[n].isDirectory()) {
                     File matchingWarFile = new File(webappsDir, children[n].getName() + ".war");
                     if (matchingWarFile.exists() && matchingWarFile.isFile()) {
-                        Logger.log(Logger.FULL_DEBUG, resources, "WebAppGroup.SkippingWarfileDir");
+                        Logger.log(Logger.DEBUG, resources, "WebAppGroup.SkippingWarfileDir");
                     } else {
                         String prefix = childName.equalsIgnoreCase("ROOT") ? "" : "/" + childName; 
                         if (!this.webapps.containsKey(prefix)) {
                             WebAppConfiguration webAppConfig = initWebApp(prefix, children[n], childName);
                             this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
-                            Logger.log(Logger.DEBUG, resources, "WebAppGroup.DeployingWebapp", childName);
+                            Logger.log(Logger.INFO, resources, "WebAppGroup.DeployingWebapp", childName);
                         }
                     }
                 } else if (childName.endsWith(".war")) {
@@ -275,7 +275,7 @@ public class WebAppGroup {
                                         getWebRoot(new File(webappsDir, outputName).getCanonicalPath(),
                                                 children[n].getCanonicalPath()), outputName);
                         this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
-                        Logger.log(Logger.DEBUG, resources, "WebAppGroup.DeployingWebapp", childName);
+                        Logger.log(Logger.INFO, resources, "WebAppGroup.DeployingWebapp", childName);
                     }
                 }
             }

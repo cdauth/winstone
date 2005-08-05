@@ -55,7 +55,7 @@ public class SimpleCluster implements Runnable, Cluster {
     final byte NODELIST_DOWNLOAD_TYPE = (byte) '2';
     final byte NODE_HEARTBEAT_TYPE = (byte) '3';
 
-    private static final String LOCAL_RESOURCE_FILE = "com.rickknowles.winstone.cluster.LocalStrings";
+    private static final String LOCAL_RESOURCE_FILE = "winstone.cluster.LocalStrings";
     private int controlPort;
     private String initialClusterNodes;
     private Map clusterAddresses;

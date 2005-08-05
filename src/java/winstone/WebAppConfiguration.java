@@ -158,13 +158,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     public static boolean booleanArg(Map args, String name, boolean defaultTrue) {
         String value = (String) args.get(name);
         if (defaultTrue)
-            return (value == null)
-                    || (value.equalsIgnoreCase("true") || value
-                            .equalsIgnoreCase("yes"));
+            return (value == null) || (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes"));
         else
-            return (value != null)
-                    && (value.equalsIgnoreCase("true") || value
-                            .equalsIgnoreCase("yes"));
+            return (value != null) && (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes"));
     }
 
     public static String stringArg(Map args, String name, String defaultValue) {
@@ -627,9 +623,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             }
         
         // If not distributable, remove the cluster reference
-        if (!distributable && (this.cluster != null)) {
-            Logger.log(Logger.DEBUG, this.resources,
-                    "Launcher.ClusterOffNotDistributable");
+        if (!distributable && (cluster != null)) {
+            Logger.log(Logger.INFO, this.resources,
+                    "WebAppConfig.ClusterOffNotDistributable", this.contextName);
         } else {
             this.cluster = cluster;
         }
