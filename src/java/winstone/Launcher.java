@@ -344,17 +344,10 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
                 controlSocket.setSoTimeout(CONTROL_TIMEOUT);
             }
 
-            Logger
-                    .log(
-                            Logger.INFO,
-                            resources,
-                            "Launcher.StartupOK",
-                            new String[] {
-                                    resources.getString("ServerVersion"),
-                                    (this.controlPort > 0 ? ""
-                                            + this.controlPort
-                                            : resources
-                                                    .getString("Launcher.ControlDisabled")),
+            Logger.log(Logger.INFO, resources, "Launcher.StartupOK",
+                    new String[] {resources.getString("ServerVersion"),
+                                    (this.controlPort > 0 ? "" + this.controlPort
+                                            : resources.getString("Launcher.ControlDisabled")),
                                     this.webAppConfig.getPrefix(),
                                     this.webAppConfig.getWebroot() });
 
@@ -413,8 +406,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
      * Destroy this webapp instance. Kills the webapps, plus any servlets,
      * attributes, etc
      * 
-     * @param webApp
-     *            The webapp to destroy
+     * @param webApp The webapp to destroy
      */
     public void destroyWebApp(WebAppConfiguration webApp) {
         if (this.webAppConfig != null)
@@ -429,9 +421,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
             File webXmlFile = new File(webInfFolder, WEB_XML);
             if (webXmlFile.exists()) {
                 Logger.log(Logger.DEBUG, resources, "Launcher.ParsingWebXml");
-                InputStream inWebXML = new FileInputStream(webXmlFile);
-                Document webXMLDoc = parseStreamToXML(inWebXML);
-                inWebXML.close();
+                Document webXMLDoc = parseStreamToXML(webXmlFile);
                 webXMLParentNode = webXMLDoc.getDocumentElement();
                 Logger.log(Logger.DEBUG, resources,
                         "Launcher.WebXmlParseComplete");
@@ -466,11 +456,11 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
      * Get a parsed XML DOM from the given inputstream. Used to process the
      * web.xml application deployment descriptors.
      */
-    protected Document parseStreamToXML(InputStream in) {
+    protected Document parseStreamToXML(File webXmlFile) {
         try {
+            
             // Use JAXP to create a document builder
-            DocumentBuilderFactory factory = DocumentBuilderFactory
-                    .newInstance();
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setExpandEntityReferences(false);
             factory.setValidating(true);
             factory.setNamespaceAware(true);
@@ -478,33 +468,47 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
             factory.setCoalescing(true);
             factory.setIgnoringElementContentWhitespace(true);
 
-            // If we have (and can parse) the 2.4 xsd, set to redirect locally
-            // to use it
-            if (getClass().getClassLoader().getResource(XSD_2_4_LOCAL) != null)
-                try {
-                    factory
-                            .setAttribute(
-                                    "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
-                                    "http://www.w3.org/2001/XMLSchema");
-                    factory
-                            .setAttribute(
-                                    "http://java.sun.com/xml/jaxp/properties/schemaSource",
-                                    getClass().getClassLoader().getResource(
-                                            XSD_2_4_LOCAL).toString());
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "Launcher.Local24XSDEnabled");
-                } catch (Throwable err) {
-                    Logger.log(Logger.WARNING, resources,
-                            "Launcher.NonXSDParser");
-                }
-            else {
-                Logger.log(Logger.WARNING, resources, "Launcher.24XSDNotFound");
-            }
-
+            // Test parse as a dtd-only version
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.setEntityResolver(this);
             builder.setErrorHandler(this);
-            return builder.parse(in);
+            Document doc = null;
+            String webXmlVersion = null;
+            try {
+                doc = builder.parse(webXmlFile);
+                webXmlVersion = doc.getDocumentElement().getAttribute("version");
+            } catch (SAXParseException err) {
+                webXmlVersion = "2.4";
+            }
+            
+            // Check for the version="2.4" attribute and reparse with the schema stuff set if found
+            if ((webXmlVersion != null) && !webXmlVersion.trim().equals("") && 
+                    !webXmlVersion.startsWith("2.2") && !webXmlVersion.startsWith("2.3")) {
+                // If we have (and can parse) the 2.4 xsd, set to redirect locally to use it
+                if (getClass().getClassLoader().getResource(XSD_2_4_LOCAL) != null) {
+                    try {
+                        factory.setAttribute(
+                                        "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
+                                        "http://www.w3.org/2001/XMLSchema");
+                        factory.setAttribute(
+                                        "http://java.sun.com/xml/jaxp/properties/schemaSource",
+                                        getClass().getClassLoader().getResource(
+                                                XSD_2_4_LOCAL).toString());
+                        Logger.log(Logger.FULL_DEBUG, resources,
+                                "Launcher.Local24XSDEnabled");
+                    } catch (Throwable err) {
+                        Logger.log(Logger.WARNING, resources,
+                                "Launcher.NonXSDParser");
+                    }
+                } else {
+                    Logger.log(Logger.WARNING, resources, "Launcher.24XSDNotFound");
+                }
+                builder = factory.newDocumentBuilder();
+                builder.setEntityResolver(this);
+                builder.setErrorHandler(this);
+                doc = builder.parse(webXmlFile);
+            }
+            return doc;
         } catch (Throwable errParser) {
             throw new WinstoneException(resources
                     .getString("Launcher.WebXMLParseError"), errParser);
@@ -644,9 +648,14 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
     }
 
     public void error(SAXParseException exception) throws SAXException {
-        Logger.log(Logger.ERROR, resources, "Launcher.XMLParseError",
-                new String[] { exception.getLineNumber() + "",
-                        exception.getMessage() });
+        // Suppress the message about not being able to find the web-app element declaration
+        // This is because we need to validate both 2.4 and 2.3 spec web.xmls
+//        if (!exception.getMessage().startsWith("cvc-elt.1")) {
+//            Logger.log(Logger.ERROR, resources, "Launcher.XMLParseError",
+//                    new String[] { exception.getLineNumber() + "",
+//                            exception.getLocalizedMessage()});
+        throw exception;
+  //      }
     }
 
     public void fatalError(SAXParseException exception) throws SAXException {
