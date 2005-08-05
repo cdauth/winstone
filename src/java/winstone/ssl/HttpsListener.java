@@ -57,7 +57,7 @@ public class HttpsListener extends HttpListener {
     private static final String LOCAL_RESOURCE_FILE = "winstone.ssl.LocalStrings";
     private String keystore;
     private String password;
-    private String keyManagerFactoryClassName;
+    private String keyManagerType;
     private WinstoneResourceBundle localResources;
 
     /**
@@ -70,8 +70,8 @@ public class HttpsListener extends HttpListener {
                 + "KeyStore", "winstone.ks");
         this.password = WebAppConfiguration.stringArg(args, getConnectorName()
                 + "KeyStorePassword", null);
-        this.keyManagerFactoryClassName = WebAppConfiguration.stringArg(args, 
-                getConnectorName() + "KeyManagerFactory", null);
+        this.keyManagerType = WebAppConfiguration.stringArg(args, 
+                getConnectorName() + "KeyManagerType", null);
     }
 
     /**
@@ -175,21 +175,10 @@ public class HttpsListener extends HttpListener {
         try {
             // Check the key manager factory
             KeyManagerFactory kmf = null;
-            if (this.keyManagerFactoryClassName != null) {
-                try {
-                    Logger.log(Logger.DEBUG, localResources, 
-                            "HttpsListener.UsingKeyManager",
-                            this.keyManagerFactoryClassName);
-                    kmf = (KeyManagerFactory) Class.forName(
-                        this.keyManagerFactoryClassName).newInstance();
-                } catch (Throwable err) {
-                    Logger.log(Logger.WARNING, this.localResources, 
-                            "HttpsListener.KeyManagerFactoryFailed", 
-                            this.keyManagerFactoryClassName, err);
-                }
-            }
-            if (kmf == null) {
+            if (this.keyManagerType == null) {
                 kmf = KeyManagerFactory.getInstance("SunX509");
+            } else {
+                kmf = KeyManagerFactory.getInstance(this.keyManagerType);
             }
             
             File ksFile = new File(keyStoreName);

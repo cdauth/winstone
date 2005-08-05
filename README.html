@@ -145,9 +145,10 @@
 Syntax:
   java -jar winstone-0.7.jar [--option=value] [--option=value] etc
 
-Required options: either --webroot OR --warfile
+Required options: either --webroot OR --warfile OR --webappsDir
    --webroot                = set document root folder.
    --warfile                = set location of warfile to extract from.
+   --webappsDir			        = set directory for multiple webapps to be deployed from
 
 Other options:
    --javaHome               = Override the JAVA_HOME variable
@@ -166,7 +167,7 @@ Other options:
    --httpsDoHostnameLookups = enable host name lookups on https connections. Default is false
    --httpsKeyStore          = the location of the SSL KeyStore file. Default is ./winstone.ks
    --httpsKeyStorePassword  = the password for the SSL KeyStore file. Default is null
-   --httpsKeyManagerFactory = the SSL KeyManagerFactory impl class name. Default is the built-in X509 manager
+   --httpsKeyManagerType    = the SSL KeyManagerFactory type (eg SunX509, IbmX509). Default is SunX509
    --ajp13Port              = set the ajp13 listening port. -1 to disable, Default is 8009
    --ajp13ListenAddress     = set the ajp13 listening address. Default is all interfaces
    --controlPort            = set the shutdown/control port. -1 to disable, Default disabled
