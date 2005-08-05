@@ -54,9 +54,9 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements
     private WinstoneResourceBundle localResources;
 
     public ReloadingClassLoader(WebAppConfiguration webAppConfig,
-            ClassLoader parent, List parentClassPaths,
+            ClassLoader parent, List parentClassPaths, String webroot,
             WinstoneResourceBundle resources) {
-        super(webAppConfig, parent, parentClassPaths, resources);
+        super(webAppConfig, parent, parentClassPaths, webroot, resources);
         this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
 
         // Start the file date changed monitoring thread
@@ -131,17 +131,11 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements
                         classDateTable.put(className, classDate);
                     // Trigger reset of webAppConfig
                     else if (oldClassDate.compareTo(classDate) != 0) {
-                        Logger
-                                .log(Logger.INFO, localResources,
-                                        "ReloadingClassLoader.ReloadRequired",
-                                        new String[] {
-                                                className,
-                                                ""
-                                                        + new Date(classDate
-                                                                .longValue()),
-                                                ""
-                                                        + new Date(oldClassDate
-                                                                .longValue()) });
+                        Logger.log(Logger.INFO, localResources, 
+                                "ReloadingClassLoader.ReloadRequired",
+                                new String[] {className, 
+                                        "" + new Date(classDate.longValue()),
+                                        "" + new Date(oldClassDate.longValue()) });
                         this.webAppConfig.resetClassLoader();
                     }
                     Thread.sleep(RELOAD_SEARCH_SLEEP);

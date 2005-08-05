@@ -60,6 +60,6 @@ public interface Cluster {
      * @throws IOException
      */
     public void clusterRequest(byte requestType, InputStream in,
-            OutputStream out, Socket socket, WebAppConfiguration webAppConfig)
+            OutputStream out, Socket socket, WebAppGroup webAppGroup)
             throws IOException;
 }

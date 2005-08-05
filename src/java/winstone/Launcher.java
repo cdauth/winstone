@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.net.ServerSocket;
@@ -30,25 +31,11 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 /**
  * Implements the main launcher daemon thread. This is the class that gets
@@ -57,32 +44,13 @@ import org.xml.sax.SAXParseException;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class Launcher implements EntityResolver, ErrorHandler, Runnable {
-    static final String DTD_2_2_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN";
-    static final String DTD_2_3_PUBLIC = "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN";
-    static final String XSD_2_4_URL = "http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd";
-    static final String XSD_XML_URL = "http://www.w3.org/2001/xml.xsd";
-    static final String XSD_DTD_PUBLIC = "-//W3C//DTD XMLSCHEMA 200102//EN";
-    static final String DATATYPES_URL = "http://www.w3.org/2001/datatypes.dtd";
-    static final String WS_CLIENT_URL = "http://www.ibm.com/webservices/xsd/j2ee_web_services_client_1_1.xsd";
-    
-    static final String DTD_2_2_LOCAL = "javax/servlet/resources/web-app_2_2.dtd";
-    static final String DTD_2_3_LOCAL = "javax/servlet/resources/web-app_2_3.dtd";
-    static final String XSD_2_4_LOCAL = "javax/servlet/resources/web-app_2_4.xsd";
-    static final String XSD_XML_LOCAL = "javax/servlet/resources/xml.xsd";
-    static final String XSD_DTD_LOCAL = "javax/servlet/resources/XMLSchema.dtd";
-    static final String DATATYPES_LOCAL = "javax/servlet/resources/datatypes.dtd";
-    static final String WS_CLIENT_LOCAL = "javax/servlet/resources/j2ee_web_services_client_1_1.xsd";
+public class Launcher implements Runnable {
     
     static final String HTTP_LISTENER_CLASS = "winstone.HttpListener";
     static final String HTTPS_LISTENER_CLASS = "winstone.ssl.HttpsListener";
     static final String AJP_LISTENER_CLASS = "winstone.ajp13.Ajp13Listener";
     static final String CLUSTER_CLASS = "winstone.cluster.SimpleCluster";
     static final String RESOURCE_FILE = "winstone.LocalStrings";
-    
-    static final String WEB_ROOT = "webroot";
-    static final String WEB_INF = "WEB-INF";
-    static final String WEB_XML = "web.xml";
 
     public static final byte SHUTDOWN_TYPE = (byte) '0';
     public static final byte RELOAD_TYPE = (byte) '4';
@@ -93,14 +61,10 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
     private Thread controlThread;
     private WinstoneResourceBundle resources;
     private int controlPort;
-    private WebAppConfiguration webAppConfig;
+    private WebAppGroup webAppGroup;
     private ObjectPool objectPool;
     private List listeners;
-    private boolean interrupted;
     private Map args;
-    private File webRoot;
-    private ClassLoader commonLibCL;
-    private List commonLibCLPaths;
     private Cluster cluster;
     
     /**
@@ -126,7 +90,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
 
         // Check for java home
         List jars = new ArrayList();
-        this.commonLibCLPaths = new ArrayList();
+        List commonLibCLPaths = new ArrayList();
         String defaultJavaHome = System.getProperty("java.home"); 
         String javaHome = WebAppConfiguration.stringArg(args, "javaHome", defaultJavaHome);
         Logger.log(Logger.DEBUG, resources, "Launcher.UsingJavaHome", javaHome);
@@ -152,7 +116,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
         // Add tools jar to classloader path
         if (toolsJar.exists()) {
             jars.add(toolsJar.toURL());
-            this.commonLibCLPaths.add(toolsJar);
+            commonLibCLPaths.add(toolsJar);
             Logger.log(Logger.DEBUG, resources, "Launcher.AddedCommonLibJar",
                     toolsJar.getName());
         } else if (WebAppConfiguration.booleanArg(args, "useJasper", false))
@@ -170,26 +134,17 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
                 if (children[n].getName().endsWith(".jar")
                         || children[n].getName().endsWith(".zip")) {
                     jars.add(children[n].toURL());
-                    this.commonLibCLPaths.add(children[n]);
-                    Logger.log(Logger.DEBUG, resources,
-                                    "Launcher.AddedCommonLibJar", children[n]
-                                            .getName());
+                    commonLibCLPaths.add(children[n]);
+                    Logger.log(Logger.DEBUG, resources, "Launcher.AddedCommonLibJar", 
+                            children[n].getName());
                 }
-        } else
+        } else {
             Logger.log(Logger.DEBUG, resources, "Launcher.NoCommonLib");
-        this.commonLibCL = new URLClassLoader((URL[]) jars.toArray(new URL[jars
-                .size()]), getClass().getClassLoader());
+        }
+        ClassLoader commonLibCL = new URLClassLoader((URL[]) jars.toArray(new URL[jars.size()]), 
+                getClass().getClassLoader());
 
-        // Get the parsed webapp xml deployment descriptor
-        this.webRoot = getWebRoot((String) args.get("webroot"), (String) args
-                .get("warfile"), resources);
-        if (!webRoot.exists())
-            throw new WinstoneException(resources.getString(
-                    "Launcher.NoWebRoot", webRoot + ""));
-        else
-            initWebApp((String) args.get("prefix"), webRoot);
-
-        this.objectPool = new ObjectPool(args, resources, this.webAppConfig);
+        this.objectPool = new ObjectPool(args, resources);
 
         // Optionally set up clustering if enabled and libraries are available
         String useCluster = (String) args.get("useCluster");
@@ -197,13 +152,10 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
                 && (useCluster.equalsIgnoreCase("true") || useCluster
                         .equalsIgnoreCase("yes"));
         if (switchOnCluster) {
-            if (this.controlPort < 0)
+            if (this.controlPort < 0) {
                 Logger.log(Logger.DEBUG, this.resources,
                         "Launcher.ClusterOffNoControlPort");
-            else if (!this.webAppConfig.isDistributable())
-                Logger.log(Logger.DEBUG, this.resources,
-                        "Launcher.ClusterOffNotDistributable");
-            else
+            } else {
                 try {
                     Class clusterClass = Class.forName(CLUSTER_CLASS);
                     Constructor clusterConstructor = clusterClass
@@ -216,46 +168,18 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
                     Logger.log(Logger.DEBUG, this.resources,
                             "Launcher.ClusterNotFound");
                 }
+            }
         }
+        
+        // Open the web apps
+        this.webAppGroup = new WebAppGroup(this.resources, this.cluster, 
+                this.objectPool, commonLibCL, commonLibCLPaths, args);
 
-        // Create connectors (http and ajp)
+        // Create connectors (http, https and ajp)
         this.listeners = new ArrayList();
-        try {
-            Class httpClass = Class.forName(HTTP_LISTENER_CLASS);
-            Constructor httpConstructor = httpClass
-                    .getConstructor(new Class[] { Map.class,
-                            WinstoneResourceBundle.class, ObjectPool.class });
-            Listener httpListener = (Listener) httpConstructor
-                    .newInstance(new Object[] { args, resources,
-                            this.objectPool });
-            this.listeners.add(httpListener);
-        } catch (Throwable err) {
-            Logger.log(Logger.DEBUG, this.resources, "Launcher.HTTPNotFound");
-        }
-        try {
-            Class httpsClass = Class.forName(HTTPS_LISTENER_CLASS);
-            Constructor httpsConstructor = httpsClass
-                    .getConstructor(new Class[] { Map.class,
-                            WinstoneResourceBundle.class, ObjectPool.class });
-            Listener httpsListener = (Listener) httpsConstructor
-                    .newInstance(new Object[] { args, resources,
-                            this.objectPool });
-            this.listeners.add(httpsListener);
-        } catch (Throwable err) {
-            Logger.log(Logger.DEBUG, this.resources, "Launcher.HTTPSNotFound");
-        }
-        try {
-            Class ajpClass = Class.forName(AJP_LISTENER_CLASS);
-            Constructor ajpConstructor = ajpClass
-                    .getConstructor(new Class[] { Map.class,
-                            WinstoneResourceBundle.class, ObjectPool.class });
-            Listener ajpListener = (Listener) ajpConstructor
-                    .newInstance(new Object[] { args, resources,
-                            this.objectPool });
-            this.listeners.add(ajpListener);
-        } catch (Throwable err) {
-            Logger.log(Logger.DEBUG, this.resources, "Launcher.AJPNotFound");
-        }
+        spawnListener(HTTP_LISTENER_CLASS);
+        spawnListener(HTTPS_LISTENER_CLASS);
+        spawnListener(AJP_LISTENER_CLASS);
 
         this.controlThread = new Thread(this, resources.getString(
                 "Launcher.ThreadName", "" + this.controlPort));
@@ -264,87 +188,34 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
 
     }
 
-    public WebAppConfiguration getWebAppConfig() {
-        return this.webAppConfig;
-    }
-
-    public Cluster getCluster() {
-        return this.cluster;
-    }
-
     /**
-     * Setup the webroot. If a warfile is supplied, extract any files that the
-     * war file is newer than. If none is supplied, use the default temp
-     * directory.
+     * Instantiates listeners. Note that an exception thrown in the 
+     * constructor is interpreted as the listener being disabled, so 
+     * don't do anything too adventurous in the constructor, or if you do, 
+     * catch and log any errors locally before rethrowing.
      */
-    protected static File getWebRoot(String webroot, String warfile,
-            WinstoneResourceBundle resources) throws IOException {
-        if (warfile != null) {
-            Logger.log(Logger.INFO, resources,
-                    "Launcher.BeginningWarExtraction");
-
-            // open the war file
-            File warfileRef = new File(warfile);
-            if (!warfileRef.exists() || !warfileRef.isFile())
-                throw new WinstoneException(resources.getString(
-                        "Launcher.WarFileInvalid", warfile));
-
-            // Get the webroot folder (or a temp dir if none supplied)
-            File unzippedDir = (webroot != null ? new File(webroot) : new File(
-                    File.createTempFile("dummy", "dummy").getParent(),
-                    "winstone/" + warfileRef.getName()));
-            if (unzippedDir.exists()) {
-                if (!unzippedDir.isDirectory())
-                    throw new WinstoneException(resources.getString(
-                            "Launcher.WebRootNotDirectory", unzippedDir
-                                    .getPath()));
-                else
-                    Logger.log(Logger.DEBUG, resources,
-                            "Launcher.WebRootExists", unzippedDir
-                                    .getCanonicalPath());
-            } else
-                unzippedDir.mkdirs();
-
-            // Iterate through the files
-            JarFile warArchive = new JarFile(warfileRef);
-            for (Enumeration e = warArchive.entries(); e.hasMoreElements();) {
-                JarEntry element = (JarEntry) e.nextElement();
-                if (element.isDirectory())
-                    continue;
-                String elemName = element.getName();
-
-                // If archive date is newer than unzipped file, overwrite
-                File outFile = new File(unzippedDir, elemName);
-                if (outFile.exists()
-                        && (outFile.lastModified() > warfileRef.lastModified()))
-                    continue;
-
-                outFile.getParentFile().mkdirs();
-                byte buffer[] = new byte[8192];
-
-                // Copy out the extracted file
-                InputStream inContent = warArchive.getInputStream(element);
-                OutputStream outStream = new FileOutputStream(outFile);
-                int readBytes = inContent.read(buffer);
-                while (readBytes != -1) {
-                    outStream.write(buffer, 0, readBytes);
-                    readBytes = inContent.read(buffer);
-                }
-                inContent.close();
-                outStream.close();
-            }
-
-            // Return webroot
-            return unzippedDir;
-        } else
-            return new File(webroot == null ? WEB_ROOT : webroot);
+    private void spawnListener(String listenerClassName) {
+        try {
+            Class listenerClass = Class.forName(listenerClassName);
+            Constructor listenerConstructor = listenerClass
+                    .getConstructor(new Class[] { Map.class,
+                            WinstoneResourceBundle.class, 
+                            ObjectPool.class, WebAppGroup.class});
+            Listener listener = (Listener) listenerConstructor
+                    .newInstance(new Object[] { args, resources,
+                            this.objectPool, this.webAppGroup });
+            this.listeners.add(listener);
+        } catch (Throwable err) {
+            Logger.log(Logger.DEBUG, this.resources, 
+                    "Launcher.ListenerNotFound", listenerClassName);
+        }
     }
 
     /**
      * The main run method. This handles the normal thread processing.
      */
     public void run() {
-        interrupted = false;
+        boolean interrupted = false;
         try {
             ServerSocket controlSocket = null;
 
@@ -356,213 +227,97 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
             Logger.log(Logger.INFO, resources, "Launcher.StartupOK",
                     new String[] {resources.getString("ServerVersion"),
                                     (this.controlPort > 0 ? "" + this.controlPort
-                                            : resources.getString("Launcher.ControlDisabled")),
-                                    this.webAppConfig.getPrefix(),
-                                    this.webAppConfig.getWebroot() });
+                                            : resources.getString("Launcher.ControlDisabled"))});
 
             // Enter the main loop
             while (!interrupted) {
                 this.objectPool.removeUnusedRequestHandlers();
 
                 // Check for control request
+                Socket accepted = null;
                 try {
                     if (controlSocket != null) {
-                        Socket csAccepted = controlSocket.accept();
-
-                        if (csAccepted == null)
-                            continue;
-                        InputStream inSocket = csAccepted.getInputStream();
-                        int reqType = inSocket.read();
-                        if ((byte) reqType == SHUTDOWN_TYPE) {
-                            Logger.log(Logger.INFO, resources,
-                                    "Launcher.ShutdownRequestReceived");
-                            shutdown();
-                        } else if ((byte) reqType == RELOAD_TYPE) {
-                            Logger.log(Logger.INFO, resources,
-                                    "Launcher.ReloadRequestReceived");
-                            destroyWebApp(this.webAppConfig);
-                            initWebApp((String) args.get("prefix"),
-                                    this.webRoot);
-                        } else if (this.cluster != null) {
-                            OutputStream outSocket = csAccepted
-                                    .getOutputStream();
-                            this.cluster.clusterRequest((byte) reqType,
-                                    inSocket, outSocket, csAccepted,
-                                    this.webAppConfig);
-                            outSocket.close();
+                        accepted = controlSocket.accept();
+                        if (accepted != null) {
+                            handleControlRequest(accepted);
                         }
-                        inSocket.close();
-                        csAccepted.close();
-                    } else
+                    } else {
                         Thread.sleep(CONTROL_TIMEOUT);
+                    }
                 } catch (InterruptedIOException err) {
+                } catch (InterruptedException err) {
+                    interrupted = true;
                 } catch (Throwable err) {
                     Logger.log(Logger.ERROR, resources,
                             "Launcher.ShutdownError", err);
+                } finally {
+                    if (accepted != null) {
+                        try {accepted.close();} catch (IOException err) {}
+                    }
                 }
             }
 
             // Close server socket
-            if (controlSocket != null)
+            if (controlSocket != null) {
                 controlSocket.close();
-
+            }
         } catch (Throwable err) {
             Logger.log(Logger.ERROR, resources, "Launcher.ShutdownError", err);
         }
+        Logger.log(Logger.INFO, resources, "Launcher.ControlThreadShutdownOK");
     }
 
-    /**
-     * Destroy this webapp instance. Kills the webapps, plus any servlets,
-     * attributes, etc
-     * 
-     * @param webApp The webapp to destroy
-     */
-    public void destroyWebApp(WebAppConfiguration webApp) {
-        if (this.webAppConfig != null)
-            webApp.destroy();
-        this.webAppConfig = null; // since we only hold one webapp right now
-    }
-
-    public void initWebApp(String prefix, File webRoot) throws IOException {
-        Node webXMLParentNode = null;
-        File webInfFolder = new File(webRoot, WEB_INF);
-        if (webInfFolder.exists()) {
-            File webXmlFile = new File(webInfFolder, WEB_XML);
-            if (webXmlFile.exists()) {
-                Logger.log(Logger.DEBUG, resources, "Launcher.ParsingWebXml");
-                Document webXMLDoc = parseStreamToXML(webXmlFile);
-                webXMLParentNode = webXMLDoc.getDocumentElement();
-                Logger.log(Logger.DEBUG, resources,
-                        "Launcher.WebXmlParseComplete");
+    protected void handleControlRequest(Socket csAccepted) throws IOException {
+        InputStream inSocket = null;
+        OutputStream outSocket = null;
+        ObjectInputStream inControl = null;
+        try {
+            inSocket = csAccepted.getInputStream();
+            int reqType = inSocket.read();
+            if ((byte) reqType == SHUTDOWN_TYPE) {
+                Logger.log(Logger.INFO, resources,
+                        "Launcher.ShutdownRequestReceived");
+                shutdown();
+            } else if ((byte) reqType == RELOAD_TYPE) {
+                inControl = new ObjectInputStream(inSocket);
+                String prefix = inControl.readUTF();
+                Logger.log(Logger.INFO, resources, "Launcher.ReloadRequestReceived", prefix);
+                this.webAppGroup.reloadWebApp(prefix);
+            } else if (this.cluster != null) {
+                outSocket = csAccepted.getOutputStream();
+                this.cluster.clusterRequest((byte) reqType,
+                        inSocket, outSocket, csAccepted,
+                        this.webAppGroup);
+            }
+        } finally {
+            if (inControl != null) {
+                try {inControl.close();} catch (IOException err) {}
+            }
+            if (inSocket != null) {
+                try {inSocket.close();} catch (IOException err) {}
+            }
+            if (outSocket != null) {
+                try {outSocket.close();} catch (IOException err) {}
             }
         }
-
-        // Instantiate the webAppConfig
-        this.webAppConfig = new WebAppConfiguration(this, webRoot
-                .getCanonicalPath(), prefix, this.objectPool, args,
-                webXMLParentNode, this.resources, this.commonLibCL,
-                this.commonLibCLPaths);
     }
-
+    
     public void shutdown() {
-        // Release all listeners/handlers/webapps
+        // Release all listeners/pools/webapps
         for (Iterator i = this.listeners.iterator(); i.hasNext();)
             ((Listener) i.next()).destroy();
         this.objectPool.destroy();
         if (this.cluster != null)
             this.cluster.destroy();
-        destroyWebApp(this.webAppConfig);
-        this.controlThread = null;
+        this.webAppGroup.destroy();
+
+        if (this.controlThread != null) {
+            this.controlThread.interrupt();
+            this.controlThread = null;
+        }
+        Thread.yield();
 
         Logger.log(Logger.INFO, resources, "Launcher.ShutdownOK");
-
-        this.interrupted = true;
-        if (this.controlThread != null)
-            this.controlThread.interrupt();
-    }
-
-    /**
-     * Get a parsed XML DOM from the given inputstream. Used to process the
-     * web.xml application deployment descriptors.
-     */
-    protected Document parseStreamToXML(File webXmlFile) {
-        try {
-            
-            // Use JAXP to create a document builder
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setExpandEntityReferences(false);
-            factory.setValidating(true);
-            factory.setNamespaceAware(true);
-            factory.setIgnoringComments(true);
-            factory.setCoalescing(true);
-            factory.setIgnoringElementContentWhitespace(true);
-
-            // Test parse as a dtd-only version
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            builder.setEntityResolver(this);
-            builder.setErrorHandler(this);
-            Document doc = null;
-            String webXmlVersion = null;
-            try {
-                doc = builder.parse(webXmlFile);
-                webXmlVersion = doc.getDocumentElement().getAttribute("version");
-            } catch (SAXParseException err) {
-                webXmlVersion = "2.4";
-            }
-            
-            // Check for the version="2.4" attribute and reparse with the schema stuff set if found
-            if ((webXmlVersion != null) && !webXmlVersion.trim().equals("") && 
-                    !webXmlVersion.startsWith("2.2") && !webXmlVersion.startsWith("2.3")) {
-                // If we have (and can parse) the 2.4 xsd, set to redirect locally to use it
-                if (getClass().getClassLoader().getResource(XSD_2_4_LOCAL) != null) {
-                    try {
-                        factory.setAttribute(
-                                        "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
-                                        "http://www.w3.org/2001/XMLSchema");
-                        factory.setAttribute(
-                                        "http://java.sun.com/xml/jaxp/properties/schemaSource",
-                                        getClass().getClassLoader().getResource(
-                                                XSD_2_4_LOCAL).toString());
-                        Logger.log(Logger.FULL_DEBUG, resources,
-                                "Launcher.Local24XSDEnabled");
-                    } catch (Throwable err) {
-                        Logger.log(Logger.WARNING, resources,
-                                "Launcher.NonXSDParser");
-                    }
-                } else {
-                    Logger.log(Logger.WARNING, resources, "Launcher.24XSDNotFound");
-                }
-                builder = factory.newDocumentBuilder();
-                builder.setEntityResolver(this);
-                builder.setErrorHandler(this);
-                doc = builder.parse(webXmlFile);
-            }
-            return doc;
-        } catch (Throwable errParser) {
-            throw new WinstoneException(resources
-                    .getString("Launcher.WebXMLParseError"), errParser);
-        }
-    }
-
-    /**
-     * Implements the EntityResolver interface. This allows us to redirect any
-     * requests by the parser for webapp DTDs to local copies. It's faster and
-     * it means you can run winstone without being web-connected.
-     */
-    public InputSource resolveEntity(String publicName, String url)
-            throws SAXException, IOException {
-        Logger.log(Logger.FULL_DEBUG, resources, "Launcher.ResolvingEntity",
-                new String[] { publicName, url });
-        if ((publicName != null) && publicName.equals(DTD_2_2_PUBLIC))
-            return getLocalResource(url, DTD_2_2_LOCAL);
-        else if ((publicName != null) && publicName.equals(DTD_2_3_PUBLIC))
-            return getLocalResource(url, DTD_2_3_LOCAL);
-        else if ((url != null) && url.equals(XSD_2_4_URL))
-            return getLocalResource(url, XSD_2_4_LOCAL);
-        else if ((url != null) && url.equals(XSD_XML_URL))
-            return getLocalResource(url, XSD_XML_LOCAL);
-        else if ((publicName != null) && publicName.equals(XSD_DTD_PUBLIC))
-            return getLocalResource(url, XSD_DTD_LOCAL);
-        else if ((url != null) && url.equals(DATATYPES_URL))
-            return getLocalResource(url, DATATYPES_LOCAL);
-        else if ((url != null) && url.equals(WS_CLIENT_URL))
-            return getLocalResource(url, WS_CLIENT_LOCAL);
-        else if ((url != null) && url.startsWith("jar:"))
-            return getLocalResource(url, url.substring(url.indexOf("!/") + 2));
-        else {
-            Logger.log(Logger.FULL_DEBUG, resources,
-                    "Launcher.NoLocalResource", url);
-            return new InputSource(url);
-        }
-    }
-
-    private InputSource getLocalResource(String url, String local) {
-        ClassLoader cl = getClass().getClassLoader();
-        if (cl.getResource(local) == null)
-            return new InputSource(url);
-        InputSource is = new InputSource(cl.getResourceAsStream(local));
-        is.setSystemId(url);
-        return is;
     }
 
     public static WinstoneResourceBundle getResourceBundle() {
@@ -634,7 +389,7 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
             }
         }
 
-        if (!args.containsKey("webroot") && !args.containsKey("warfile"))
+        if (!args.containsKey("webroot") && !args.containsKey("warfile") && !args.containsKey("webappsDir"))
             printUsage(resources);
         else {
             if (args.containsKey("usage") || args.containsKey("help"))
@@ -654,26 +409,5 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
     private static void printUsage(WinstoneResourceBundle resources) {
         System.out.println(resources.getString("Launcher.UsageInstructions",
                 resources.getString("ServerVersion")));
-    }
-
-    public void error(SAXParseException exception) throws SAXException {
-        // Suppress the message about not being able to find the web-app element declaration
-        // This is because we need to validate both 2.4 and 2.3 spec web.xmls
-//        if (!exception.getMessage().startsWith("cvc-elt.1")) {
-//            Logger.log(Logger.ERROR, resources, "Launcher.XMLParseError",
-//                    new String[] { exception.getLineNumber() + "",
-//                            exception.getLocalizedMessage()});
-        throw exception;
-  //      }
-    }
-
-    public void fatalError(SAXParseException exception) throws SAXException {
-        error(exception);
-    }
-
-    public void warning(SAXParseException exception) throws SAXException {
-        Logger.log(Logger.DEBUG, resources, "Launcher.XMLParseError",
-                new String[] { exception.getLineNumber() + "",
-                        exception.getMessage() });
     }
 }

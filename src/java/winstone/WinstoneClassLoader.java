@@ -42,7 +42,7 @@ public class WinstoneClassLoader extends URLClassLoader {
     protected WebAppConfiguration webAppConfig;
     
     public WinstoneClassLoader(WebAppConfiguration webAppConfig,
-            ClassLoader parent, List parentClassPaths,
+            ClassLoader parent, List parentClassPaths, String webroot,
             WinstoneResourceBundle resources) {
         super(new URL[0], parent);
         this.resources = resources;
@@ -52,7 +52,7 @@ public class WinstoneClassLoader extends URLClassLoader {
         this.webAppConfig = webAppConfig;
         try {
             // Web-inf folder
-            File webInfFolder = new File(webAppConfig.getWebroot(), WEB_INF);
+            File webInfFolder = new File(webroot, WEB_INF);
 
             // Classes folder
             File classesFolder = new File(webInfFolder, CLASSES);

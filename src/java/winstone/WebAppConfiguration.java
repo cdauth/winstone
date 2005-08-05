@@ -62,62 +62,63 @@ import org.w3c.dom.Node;
  * @version $Id$
  */
 public class WebAppConfiguration implements ServletContext, Comparator {
-    static final String ELEM_DESCRIPTION = "description";
-    static final String ELEM_DISPLAY_NAME = "display-name";
-    static final String ELEM_SERVLET = "servlet";
-    static final String ELEM_SERVLET_MAPPING = "servlet-mapping";
-    static final String ELEM_SERVLET_NAME = "servlet-name";
-    static final String ELEM_FILTER = "filter";
-    static final String ELEM_FILTER_MAPPING = "filter-mapping";
-    static final String ELEM_FILTER_NAME = "filter-name";
-    static final String ELEM_DISPATCHER = "dispatcher";
-    static final String ELEM_URL_PATTERN = "url-pattern";
-    static final String ELEM_WELCOME_FILES = "welcome-file-list";
-    static final String ELEM_WELCOME_FILE = "welcome-file";
-    static final String ELEM_SESSION_CONFIG = "session-config";
-    static final String ELEM_SESSION_TIMEOUT = "session-timeout";
-    static final String ELEM_MIME_MAPPING = "mime-mapping";
-    static final String ELEM_MIME_EXTENSION = "extension";
-    static final String ELEM_MIME_TYPE = "mime-type";
-    static final String ELEM_CONTEXT_PARAM = "context-param";
-    static final String ELEM_PARAM_NAME = "param-name";
-    static final String ELEM_PARAM_VALUE = "param-value";
-    static final String ELEM_LISTENER = "listener";
-    static final String ELEM_LISTENER_CLASS = "listener-class";
-    static final String ELEM_DISTRIBUTABLE = "distributable";
-    static final String ELEM_ERROR_PAGE = "error-page";
-    static final String ELEM_EXCEPTION_TYPE = "exception-type";
-    static final String ELEM_ERROR_CODE = "error-code";
-    static final String ELEM_ERROR_LOCATION = "location";
-    static final String ELEM_SECURITY_CONSTRAINT = "security-constraint";
-    static final String ELEM_LOGIN_CONFIG = "login-config";
-    static final String ELEM_SECURITY_ROLE = "security-role";
-    static final String ELEM_ROLE_NAME = "role-name";
-    static final String ELEM_ENV_ENTRY = "env-entry";
-    static final String ELEM_LOCALE_ENC_MAP_LIST = "locale-encoding-mapping-list";
-    static final String ELEM_LOCALE_ENC_MAPPING = "locale-encoding-mapping";
-    static final String ELEM_LOCALE = "locale";
-    static final String ELEM_ENCODING = "encoding";
-    static final String DISPATCHER_REQUEST = "REQUEST";
-    static final String DISPATCHER_FORWARD = "FORWARD";
-    static final String DISPATCHER_INCLUDE = "INCLUDE";
-    static final String DISPATCHER_ERROR = "ERROR";
-    static final String WEBAPP_LOGSTREAM = "WebApp";
-    static final String JSP_SERVLET_NAME = "JspServlet";
-    static final String JSP_SERVLET_MAPPING = "*.jsp";
+    private static final String ELEM_DESCRIPTION = "description";
+    private static final String ELEM_DISPLAY_NAME = "display-name";
+    private static final String ELEM_SERVLET = "servlet";
+    private static final String ELEM_SERVLET_MAPPING = "servlet-mapping";
+    private static final String ELEM_SERVLET_NAME = "servlet-name";
+    private static final String ELEM_FILTER = "filter";
+    private static final String ELEM_FILTER_MAPPING = "filter-mapping";
+    private static final String ELEM_FILTER_NAME = "filter-name";
+    private static final String ELEM_DISPATCHER = "dispatcher";
+    private static final String ELEM_URL_PATTERN = "url-pattern";
+    private static final String ELEM_WELCOME_FILES = "welcome-file-list";
+    private static final String ELEM_WELCOME_FILE = "welcome-file";
+    private static final String ELEM_SESSION_CONFIG = "session-config";
+    private static final String ELEM_SESSION_TIMEOUT = "session-timeout";
+    private static final String ELEM_MIME_MAPPING = "mime-mapping";
+    private static final String ELEM_MIME_EXTENSION = "extension";
+    private static final String ELEM_MIME_TYPE = "mime-type";
+    private static final String ELEM_CONTEXT_PARAM = "context-param";
+    private static final String ELEM_PARAM_NAME = "param-name";
+    private static final String ELEM_PARAM_VALUE = "param-value";
+    private static final String ELEM_LISTENER = "listener";
+    private static final String ELEM_LISTENER_CLASS = "listener-class";
+    private static final String ELEM_DISTRIBUTABLE = "distributable";
+    private static final String ELEM_ERROR_PAGE = "error-page";
+    private static final String ELEM_EXCEPTION_TYPE = "exception-type";
+    private static final String ELEM_ERROR_CODE = "error-code";
+    private static final String ELEM_ERROR_LOCATION = "location";
+    private static final String ELEM_SECURITY_CONSTRAINT = "security-constraint";
+    private static final String ELEM_LOGIN_CONFIG = "login-config";
+    private static final String ELEM_SECURITY_ROLE = "security-role";
+    private static final String ELEM_ROLE_NAME = "role-name";
+    private static final String ELEM_ENV_ENTRY = "env-entry";
+    private static final String ELEM_LOCALE_ENC_MAP_LIST = "locale-encoding-mapping-list";
+    private static final String ELEM_LOCALE_ENC_MAPPING = "locale-encoding-mapping";
+    private static final String ELEM_LOCALE = "locale";
+    private static final String ELEM_ENCODING = "encoding";
+    private static final String DISPATCHER_REQUEST = "REQUEST";
+    private static final String DISPATCHER_FORWARD = "FORWARD";
+    private static final String DISPATCHER_INCLUDE = "INCLUDE";
+    private static final String DISPATCHER_ERROR = "ERROR";
+    private static final String JSP_SERVLET_NAME = "JspServlet";
+    private static final String JSP_SERVLET_MAPPING = "*.jsp";
+    private static final String JSP_SERVLET_LOG_LEVEL = "WARNING";
+    private static final String INVOKER_SERVLET_NAME = "invoker";
+    private static final String INVOKER_SERVLET_CLASS = "winstone.InvokerServlet";
+    private static final String DEFAULT_INVOKER_PREFIX = "/servlet/";
+    private static final String DEFAULT_SERVLET_NAME = "default";
+    private static final String DEFAULT_SERVLET_CLASS = "winstone.StaticResourceServlet";
+    private static final String DEFAULT_REALM_CLASS = "winstone.realm.ArgumentsRealm";
+    private static final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.WebAppJNDIManager";
+    private static final String RELOADING_CL_CLASS = "winstone.classLoader.ReloadingClassLoader";
+    
     static final String JSP_SERVLET_CLASS = "org.apache.jasper.servlet.JspServlet";
-    static final String JSP_SERVLET_LOG_LEVEL = "WARNING";
-    static final String INVOKER_SERVLET_NAME = "invoker";
-    static final String INVOKER_SERVLET_CLASS = "winstone.InvokerServlet";
-    static final String DEFAULT_INVOKER_PREFIX = "/servlet/";
-    static final String DEFAULT_SERVLET_NAME = "default";
-    static final String DEFAULT_SERVLET_CLASS = "winstone.StaticResourceServlet";
-    static final String DEFAULT_REALM_CLASS = "winstone.realm.ArgumentsRealm";
-    static final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.WebAppJNDIManager";
-    static final String RELOADING_CL_CLASS = "winstone.classLoader.ReloadingClassLoader";
     
     private WinstoneResourceBundle resources;
-    private Launcher launcher;
+    private WebAppGroup ownerWebappGroup;
+    private Cluster cluster;
     private String webRoot;
     private String prefix;
     private String contextName;
@@ -147,12 +148,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private AuthenticationRealm authenticationRealm;
     private String welcomeFiles[];
     private Integer sessionTimeout;
-    private boolean distributable;
     private Class[] errorPagesByExceptionKeysSorted;
     private Map errorPagesByException;
     private Map errorPagesByCode;
     private Map localeEncodingMap;
-    // private ServletConfiguration staticResourceProcessor;
     private String defaultServletName;
     private JNDIManager jndiManager;
 
@@ -175,15 +174,15 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     /**
      * Constructor. This parses the xml and sets up for basic routing
      */
-    public WebAppConfiguration(Launcher launcher, String webRoot,
+    public WebAppConfiguration(WebAppGroup ownerWebappGroup, Cluster cluster, String webRoot,
             String prefix, ObjectPool objectPool, Map startupArgs, Node elm,
             WinstoneResourceBundle resources, ClassLoader parentClassLoader,
-            List parentClassPaths) {
-        this.launcher = launcher;
+            List parentClassPaths, String contextName) {
+        this.ownerWebappGroup = ownerWebappGroup;
         this.resources = resources;
         this.webRoot = webRoot;
-        this.prefix = (prefix != null ? prefix : "");
-        this.contextName = WEBAPP_LOGSTREAM;
+        this.prefix = prefix;
+        this.contextName = contextName;
 
         // Build switch values
         boolean useDirLists = booleanArg(startupArgs, "directoryListings", true);
@@ -196,26 +195,29 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // Try to set up the reloading class loader, and if we fail, use the
         // normal one
-        if (useWCL && useReloading)
+        if (useWCL && useReloading) {
             try {
                 Class reloaderClass = Class.forName(RELOADING_CL_CLASS);
                 Constructor reloadConstr = reloaderClass
                         .getConstructor(new Class[] { this.getClass(),
-                                ClassLoader.class, List.class,
+                                ClassLoader.class, List.class, String.class,
                                 WinstoneResourceBundle.class });
                 this.loader = (ClassLoader) reloadConstr
                         .newInstance(new Object[] { this, parentClassLoader,
-                                parentClassPaths, this.resources });
+                                parentClassPaths, webRoot, this.resources });
             } catch (Throwable err) {
-                Logger
-                        .log(Logger.ERROR, resources, "WebAppConfig.CLError",
-                                err);
+                Logger.log(Logger.ERROR, resources, "WebAppConfig.CLError", err);
             }
+        }
 
-        if (this.loader == null)
-            this.loader = (useWCL ? new WinstoneClassLoader(this,
-                    parentClassLoader, parentClassPaths, this.resources)
-                    : parentClassLoader);
+        if (this.loader == null) {
+            if (useWCL) {
+                this.loader = new WinstoneClassLoader(this, parentClassLoader, 
+                        parentClassPaths, webRoot, this.resources);
+            } else {
+                this.loader = parentClassLoader;
+            }
+        }
 
         // Check jasper is available
         if (useJasper) {
@@ -247,7 +249,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         this.errorPagesByException = new HashMap();
         this.errorPagesByCode = new HashMap();
-        this.distributable = false;
+        boolean distributable = false;
 
         this.exactServletMatchMounts = new Hashtable();
         List localFolderPatterns = new ArrayList();
@@ -270,8 +272,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // init mimeTypes set
         this.mimeTypes = new Hashtable();
-        String allTypes = this.resources
-                .getString("WebAppConfig.DefaultMimeTypes");
+        String allTypes = this.resources.getString("WebAppConfig.DefaultMimeTypes");
         StringTokenizer mappingST = new StringTokenizer(allTypes, ":", false);
         for (; mappingST.hasMoreTokens();) {
             String mapping = mappingST.nextToken();
@@ -313,7 +314,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             .trim();
 
                 else if (nodeName.equals(ELEM_DISTRIBUTABLE))
-                    this.distributable = true;
+                    distributable = true;
 
                 else if (nodeName.equals(ELEM_SECURITY_CONSTRAINT))
                     constraintNodes.add(child);
@@ -496,10 +497,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     for (int m = 0; m < child.getChildNodes().getLength(); m++) {
                         Node welcomeFile = child.getChildNodes().item(m);
                         if ((welcomeFile.getNodeType() == Node.ELEMENT_NODE)
-                                && (welcomeFile.getNodeName()
-                                        .equals(ELEM_WELCOME_FILE)))
+                                && welcomeFile.getNodeName().equals(ELEM_WELCOME_FILE)
+                                && (welcomeFile.getFirstChild() != null)) {
                             localWelcomeFiles.add(welcomeFile.getFirstChild()
                                     .getNodeValue().trim());
+                        }
                     }
 
                 // Process the error pages
@@ -623,6 +625,15 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     }
                 }
             }
+        
+        // If not distributable, remove the cluster reference
+        if (!distributable && (this.cluster != null)) {
+            Logger.log(Logger.DEBUG, this.resources,
+                    "Launcher.ClusterOffNotDistributable");
+        } else {
+            this.cluster = cluster;
+        }
+
 
         // Build the login/security role instance
         if (!constraintNodes.isEmpty() && (loginConfigNode != null)) {
@@ -745,14 +756,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         this.requestListeners = (ServletRequestListener[]) requestListeners
                 .toArray(new ServletRequestListener[requestListeners.size()]);
         this.requestAttributeListeners = (ServletRequestAttributeListener[]) requestAttributeListeners
-                .toArray(new ServletRequestAttributeListener[requestAttributeListeners
-                        .size()]);
+                .toArray(new ServletRequestAttributeListener[requestAttributeListeners.size()]);
         this.sessionActivationListeners = (HttpSessionActivationListener[]) sessionActivationListeners
-                .toArray(new HttpSessionActivationListener[sessionActivationListeners
-                        .size()]);
+                .toArray(new HttpSessionActivationListener[sessionActivationListeners.size()]);
         this.sessionAttributeListeners = (HttpSessionAttributeListener[]) sessionAttributeListeners
-                .toArray(new HttpSessionAttributeListener[sessionAttributeListeners
-                        .size()]);
+                .toArray(new HttpSessionAttributeListener[sessionAttributeListeners.size()]);
         this.sessionListeners = (HttpSessionListener[]) sessionListeners
                 .toArray(new HttpSessionListener[sessionListeners.size()]);
 
@@ -764,7 +772,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // inbuilt one
         if (this.servletInstances.get(this.defaultServletName) == null) {
             Map staticParams = new Hashtable();
-            staticParams.put("webRoot", this.webRoot);
+            staticParams.put("webRoot", webRoot);
             staticParams.put("prefix", this.prefix);
             staticParams.put("directoryList", "" + useDirLists);
             ServletConfiguration defaultServlet = new ServletConfiguration(
@@ -852,6 +860,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     public String getWebroot() {
         return this.webRoot;
     }
+    
+    public String getContextName() {
+        return this.contextName;
+    }
 
     public Class[] getErrorPageExceptions() {
         return this.errorPagesByExceptionKeysSorted;
@@ -873,9 +885,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         return this.welcomeFiles;
     }
 
-    public boolean isDistributable() {
-        return this.distributable;
-    }
+//    public boolean isDistributable() {
+//        return this.distributable;
+//    }
 
     public ServletRequestListener[] getRequestListeners() {
         return this.requestListeners;
@@ -947,8 +959,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * environments.
      */
     public void resetClassLoader() throws IOException {
-        this.launcher.destroyWebApp(this);
-        this.launcher.initWebApp(this.prefix, new File(this.webRoot));
+        this.ownerWebappGroup.reloadWebApp(getPrefix());
     }
 
     /**
@@ -1030,8 +1041,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * @return A valid session object
      */
     public WinstoneSession makeNewSession(String sessionId) {
-        WinstoneSession ws = new WinstoneSession(sessionId, this,
-                this.distributable);
+        WinstoneSession ws = new WinstoneSession(sessionId, this, (this.cluster != null));
         setSessionListeners(ws);
         if ((this.sessionTimeout != null)
                 && (this.sessionTimeout.intValue() > 0))
@@ -1053,21 +1063,21 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * @return A valid session instance
      */
     public WinstoneSession getSessionById(String sessionId, boolean localOnly) {
-        WinstoneSession session = (WinstoneSession) this.sessions
-                .get(sessionId);
-        if (session != null)
+        WinstoneSession session = (WinstoneSession) this.sessions.get(sessionId);
+        if (session != null) {
             return session;
+        }
 
-        // If I'm distributable ...
-        if (this.distributable && !localOnly
-                && (this.launcher.getCluster() != null)) {
-            session = this.launcher.getCluster().askClusterForSession(
-                    sessionId, this);
-            if (session != null)
+        // If I'm distributable ... check remotely
+        if ((this.cluster != null) && !localOnly) {
+            session = this.cluster.askClusterForSession(sessionId, this);
+            if (session != null) {
                 this.sessions.put(sessionId, session);
+            }
             return session;
-        } else
+        } else {
             return null;
+        }
     }
 
     /**
@@ -1149,7 +1159,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
     // Weird mostly deprecated crap to do with getting servlet instances
     public javax.servlet.ServletContext getContext(String uri) {
-        return this;
+        return this.ownerWebappGroup.getWebAppByURI(uri);
     }
 
     public String getServletContextName() {
@@ -1437,7 +1447,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Trim the prefix
         if (path == null)
             return null;
-        else
+        else {
             try {
                 File res = new File(this.webRoot, path);
                 if (res.isDirectory())
@@ -1447,6 +1457,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             } catch (IOException err) {
                 return null;
             }
+        }
     }
 
     public Set getResourcePaths(String path) {

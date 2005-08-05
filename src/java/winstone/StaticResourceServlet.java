@@ -57,7 +57,7 @@ public class StaticResourceServlet extends HttpServlet {
     final static String ACCEPT_RANGES_HEADER = "Accept-Ranges";
     final static String CONTENT_RANGE_HEADER = "Content-Range";
     final static String RESOURCE_FILE = "winstone.LocalStrings";
-    private DateFormat sdfFileDate = new SimpleDateFormat("dd-MMM-yyyy HH:mm");
+    private DateFormat sdfFileDate = new SimpleDateFormat("dd-MM-yyyy HH:mm");
     private File webRoot;
     private String prefix;
     private boolean directoryList;

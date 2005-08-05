@@ -70,7 +70,6 @@ public class HttpConnectorTest extends TestCase {
         args.put("ajp13Port", "-1");
         args.put("controlPort", "-1");
         args.put("debug", "7");
-        Logger.setStream(Logger.DEFAULT_STREAM, System.err);
         Logger.setCurrentDebugLevel(Logger.DEBUG);
         WinstoneResourceBundle resources = Launcher.getResourceBundle();
         Launcher winstone = new Launcher(args, resources);
@@ -100,7 +99,6 @@ public class HttpConnectorTest extends TestCase {
         args.put("ajp13Port", "-1");
         args.put("controlPort", "-1");
         args.put("debug", "7");
-        Logger.setStream(Logger.DEFAULT_STREAM, System.err);
         Logger.setCurrentDebugLevel(Logger.DEBUG);
         WinstoneResourceBundle resources = Launcher.getResourceBundle();
         Launcher winstone = new Launcher(args, resources);

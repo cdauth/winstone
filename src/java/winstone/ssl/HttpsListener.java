@@ -41,6 +41,7 @@ import winstone.HttpListener;
 import winstone.Logger;
 import winstone.ObjectPool;
 import winstone.WebAppConfiguration;
+import winstone.WebAppGroup;
 import winstone.WinstoneException;
 import winstone.WinstoneRequest;
 import winstone.WinstoneResourceBundle;
@@ -63,8 +64,8 @@ public class HttpsListener extends HttpListener {
      * Constructor
      */
     public HttpsListener(Map args, WinstoneResourceBundle resources,
-            ObjectPool objectPool) throws IOException {
-        super(args, resources, objectPool);
+            ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
+        super(args, resources, objectPool, webAppGroup);
         this.keystore = WebAppConfiguration.stringArg(args, getConnectorName()
                 + "KeyStore", "winstone.ks");
         this.password = WebAppConfiguration.stringArg(args, getConnectorName()

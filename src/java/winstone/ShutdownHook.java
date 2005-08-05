@@ -18,6 +18,8 @@
 package winstone;
 
 /**
+ * A jvm hook to force the calling of the web-app destroy before the process terminates
+ * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */

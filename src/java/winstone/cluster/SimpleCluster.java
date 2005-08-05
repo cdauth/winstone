@@ -38,6 +38,7 @@ import java.util.StringTokenizer;
 import winstone.Cluster;
 import winstone.Logger;
 import winstone.WebAppConfiguration;
+import winstone.WebAppGroup;
 import winstone.WinstoneResourceBundle;
 import winstone.WinstoneSession;
 
@@ -148,8 +149,8 @@ public class SimpleCluster implements Runnable, Cluster {
         Collection searchThreads = new ArrayList();
         for (Iterator i = addresses.iterator(); i.hasNext();) {
             String ipPort = (String) i.next();
-            ClusterSessionSearch search = new ClusterSessionSearch(sessionId,
-                    ipPort, this.controlPort, localResources);
+            ClusterSessionSearch search = new ClusterSessionSearch(webAppConfig.getPrefix(), 
+                    sessionId, ipPort, this.controlPort, localResources);
             searchThreads.add(search);
         }
 
@@ -290,10 +291,10 @@ public class SimpleCluster implements Runnable, Cluster {
      * @throws IOException
      */
     public void clusterRequest(byte requestType, InputStream in,
-            OutputStream out, Socket socket, WebAppConfiguration webAppConfig)
+            OutputStream out, Socket socket, WebAppGroup webAppGroup)
             throws IOException {
         if (requestType == ClusterSessionSearch.SESSION_CHECK_TYPE)
-            handleClusterSessionRequest(socket, in, out, webAppConfig);
+            handleClusterSessionRequest(socket, in, out, webAppGroup);
         else if (requestType == NODELIST_DOWNLOAD_TYPE)
             handleNodeListDownloadRequest(socket, in, out);
         else if (requestType == NODE_HEARTBEAT_TYPE)
@@ -307,27 +308,33 @@ public class SimpleCluster implements Runnable, Cluster {
      * Handles incoming socket requests for session search
      */
     public void handleClusterSessionRequest(Socket socket, InputStream in,
-            OutputStream out, WebAppConfiguration webAppConfig)
+            OutputStream out, WebAppGroup webAppGroup)
             throws IOException {
         // Read in a string for the sessionId
         ObjectInputStream inControl = new ObjectInputStream(in);
         int port = inControl.readInt();
-        String ipPortSender = socket.getInetAddress().getHostAddress() + ":"
-                + port;
+        String ipPortSender = socket.getInetAddress().getHostAddress() + ":" + port;
         String sessionId = inControl.readUTF();
-        WinstoneSession session = webAppConfig.getSessionById(sessionId, true);
+        String webAppPrefix = inControl.readUTF();
+        WebAppConfiguration webAppConfig = webAppGroup.getWebAppByURI(webAppPrefix);
         ObjectOutputStream outData = new ObjectOutputStream(out);
-        if (session != null) {
-            outData.writeUTF(ClusterSessionSearch.SESSION_FOUND);
-            outData.writeObject(session);
-            outData.flush();
-            if (inControl.readUTF().equals(
-                    ClusterSessionSearch.SESSION_RECEIVED))
-                session.passivate();
-            Logger.log(Logger.DEBUG, localResources,
-                    "SimpleCluster.SessionTransferredTo", ipPortSender);
-        } else
+        if (webAppConfig == null) {
             outData.writeUTF(ClusterSessionSearch.SESSION_NOT_FOUND);
+        } else {
+            WinstoneSession session = webAppConfig.getSessionById(sessionId, true);
+            if (session != null) {
+                outData.writeUTF(ClusterSessionSearch.SESSION_FOUND);
+                outData.writeObject(session);
+                outData.flush();
+                if (inControl.readUTF().equals(
+                        ClusterSessionSearch.SESSION_RECEIVED))
+                    session.passivate();
+                Logger.log(Logger.DEBUG, localResources,
+                        "SimpleCluster.SessionTransferredTo", ipPortSender);
+            } else {
+                outData.writeUTF(ClusterSessionSearch.SESSION_NOT_FOUND);
+            }
+        }
         outData.close();
         inControl.close();
     }

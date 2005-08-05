@@ -53,18 +53,13 @@ public class ObjectPool {
     private Object responsePoolSemaphore = new Boolean(true);
     private int threadIndex = 0;
     private WinstoneResourceBundle resources;
-    private WebAppConfiguration webAppConfig;
-
-    // private Launcher launcher;
 
     /**
      * Constructs an instance of the object pool, including handlers, requests
      * and responses
      */
-    public ObjectPool(Map args, WinstoneResourceBundle resources,
-            WebAppConfiguration webAppConfig) throws IOException {
+    public ObjectPool(Map args, WinstoneResourceBundle resources) throws IOException {
         this.resources = resources;
-        this.webAppConfig = webAppConfig;
 
         // Build the initial pool of handler threads
         this.unusedRequestHandlerThreads = new Vector();
@@ -90,7 +85,7 @@ public class ObjectPool {
         // Start the base set of handler threads
         for (int n = 0; n < STARTUP_REQUEST_HANDLERS_IN_POOL; n++)
             this.unusedRequestHandlerThreads
-                    .add(new RequestHandlerThread(this.webAppConfig, this,
+                    .add(new RequestHandlerThread(this,
                             this.resources, this.threadIndex++));
 
         // Initialise the request/response pools
@@ -150,8 +145,7 @@ public class ObjectPool {
 
             // If we are out (and not over our limit), allocate a new one
             else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL) {
-                rh = new RequestHandlerThread(this.webAppConfig, this,
-                        this.resources, this.threadIndex++);
+                rh = new RequestHandlerThread(this, this.resources, this.threadIndex++);
                 this.usedRequestHandlerThreads.add(rh);
                 Logger.log(Logger.FULL_DEBUG, resources,
                         "ObjectPool.NewRHPoolThread", new String[] {
@@ -178,8 +172,7 @@ public class ObjectPool {
 
             synchronized (this.requestHandlerSemaphore) {
                 if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL) {
-                    rh = new RequestHandlerThread(this.webAppConfig, this,
-                            this.resources, this.threadIndex++);
+                    rh = new RequestHandlerThread(this, this.resources, this.threadIndex++);
                     this.usedRequestHandlerThreads.add(rh);
                     Logger.log(Logger.FULL_DEBUG, resources,
                             "ObjectPool.NewRHPoolThread", new String[] {

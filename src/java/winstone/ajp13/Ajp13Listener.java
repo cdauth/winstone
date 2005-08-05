@@ -38,6 +38,7 @@ import winstone.Logger;
 import winstone.ObjectPool;
 import winstone.RequestHandlerThread;
 import winstone.WebAppConfiguration;
+import winstone.WebAppGroup;
 import winstone.WinstoneException;
 import winstone.WinstoneInputStream;
 import winstone.WinstoneOutputStream;
@@ -65,6 +66,7 @@ public class Ajp13Listener implements Listener, Runnable {
     private static final String LOCAL_RESOURCE_FILE = "winstone.ajp13.LocalStrings";
     private WinstoneResourceBundle mainResources;
     private WinstoneResourceBundle localResources;
+    private WebAppGroup webAppGroup;
     private ObjectPool objectPool;
     private int listenPort;
     private boolean interrupted;
@@ -74,10 +76,11 @@ public class Ajp13Listener implements Listener, Runnable {
      * Constructor
      */
     public Ajp13Listener(Map args, WinstoneResourceBundle resources,
-            ObjectPool objectPool) {
+            ObjectPool objectPool, WebAppGroup webAppGroup) {
         // Load resources
         this.mainResources = resources;
         this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
+        this.webAppGroup = webAppGroup;
         this.objectPool = objectPool;
 
         this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args,
@@ -212,6 +215,7 @@ public class Ajp13Listener implements Listener, Runnable {
             handler.setResponse(rsp);
             handler.setInStream(inData);
             handler.setOutStream(outData);
+            handler.setWebAppGroup(this.webAppGroup);
         }
     }
 
@@ -222,12 +226,13 @@ public class Ajp13Listener implements Listener, Runnable {
      */
     public void deallocateRequestResponse(RequestHandlerThread handler,
             WinstoneRequest req, WinstoneResponse rsp,
-            WinstoneInputStream inData, WinstoneOutputStream outData)
-            throws IOException {
+            WinstoneInputStream inData, WinstoneOutputStream outData,
+            WebAppGroup webAppGroup) throws IOException {
         handler.setInStream(null);
         handler.setOutStream(null);
         handler.setRequest(null);
         handler.setResponse(null);
+        handler.setWebAppGroup(null);
         if (req != null)
             this.objectPool.releaseRequestToPool(req);
         if (rsp != null)

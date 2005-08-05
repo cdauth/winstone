@@ -46,6 +46,7 @@ public class HttpListener implements Listener, Runnable {
     protected static int KEEP_ALIVE_SLEEP = 20;
     protected static int KEEP_ALIVE_SLEEP_MAX = 500;
     protected WinstoneResourceBundle resources;
+    protected WebAppGroup webAppGroup;
     protected ObjectPool objectPool;
     protected boolean doHostnameLookups;
     protected int listenPort;
@@ -59,9 +60,10 @@ public class HttpListener implements Listener, Runnable {
      * Constructor
      */
     public HttpListener(Map args, WinstoneResourceBundle resources,
-            ObjectPool objectPool) throws IOException {
+            ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
         // Load resources
         this.resources = resources;
+        this.webAppGroup = webAppGroup;
         this.objectPool = objectPool;
         this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args,
                 getConnectorName() + "Port", "" + getDefaultPort()));
@@ -195,6 +197,7 @@ public class HttpListener implements Listener, Runnable {
         handler.setResponse(rsp);
         handler.setInStream(inData);
         handler.setOutStream(outData);
+        handler.setWebAppGroup(this.webAppGroup);
     }
 
     /**
@@ -204,12 +207,13 @@ public class HttpListener implements Listener, Runnable {
      */
     public void deallocateRequestResponse(RequestHandlerThread handler,
             WinstoneRequest req, WinstoneResponse rsp,
-            WinstoneInputStream inData, WinstoneOutputStream outData)
-            throws IOException {
+            WinstoneInputStream inData, WinstoneOutputStream outData,
+            WebAppGroup webAppGroup) throws IOException {
         handler.setInStream(null);
         handler.setOutStream(null);
         handler.setRequest(null);
         handler.setResponse(null);
+        handler.setWebAppGroup(null);
         if (req != null)
             this.objectPool.releaseRequestToPool(req);
         if (rsp != null)

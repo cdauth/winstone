@@ -39,7 +39,9 @@ public interface Listener {
     /**
      * Called by the request handler thread, because it needs specific setup
      * code for this connection's protocol (ie construction of request/response
-     * objects, in/out streams, etc).
+     * objects, in/out streams, etc). The iAmFirst variable identifies whether or 
+     * not this is the initial request on on this socket (ie a keep alive or 
+     * a first-time accept)
      */
     public void allocateRequestResponse(Socket socket, InputStream inSocket,
             OutputStream outSocket, RequestHandlerThread handler,
@@ -52,13 +54,16 @@ public interface Listener {
      */
     public void deallocateRequestResponse(RequestHandlerThread handler,
             WinstoneRequest req, WinstoneResponse rsp,
-            WinstoneInputStream inData, WinstoneOutputStream outData)
+            WinstoneInputStream inData, WinstoneOutputStream outData,
+            WebAppGroup webAppGroup)
             throws IOException;
 
     /**
      * Called by the request handler thread, because it needs specific shutdown
      * code for this connection's protocol if the keep-alive period expires (ie
-     * closing sockets, etc).
+     * closing sockets, etc).The iAmFirst variable identifies whether or 
+     * not this is the initial request on on this socket (ie a keep alive or 
+     * a first-time accept)
      */
     public String parseURI(RequestHandlerThread handler, WinstoneRequest req,
             WinstoneResponse rsp, WinstoneInputStream inData, Socket socket,
