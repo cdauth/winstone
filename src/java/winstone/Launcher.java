@@ -109,6 +109,15 @@ public class Launcher implements EntityResolver, ErrorHandler, Runnable {
      */
     public Launcher(Map args, WinstoneResourceBundle resources)
             throws IOException {
+        
+        // Set jndi resource handler if not set (workaround for JamVM bug)
+        if (System.getProperty("java.naming.factory.initial") == null) {
+            System.setProperty("java.naming.factory.initial", "winstone.jndi.java.javaURLContextFactory");
+        }
+        if (System.getProperty("java.naming.factory.url.pkgs") == null) {
+            System.setProperty("java.naming.factory.url.pkgs", "winstone.jndi");
+        }
+        
         // Load resources
         this.resources = resources;
         this.args = args;

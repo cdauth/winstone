@@ -162,6 +162,8 @@ public class WebAppJNDIManager implements JNDIManager {
                                     name, err);
                 }
             }
+            Logger.log(Logger.DEBUG, this.resources, 
+                    "WebAppJNDIManager.SetupComplete", "" + this.objectsToCreate.size());
         } catch (NamingException err) {
             Logger.log(Logger.ERROR, this.resources,
                     "WebAppJNDIManager.ErrorGettingInitialContext", err);
@@ -191,6 +193,8 @@ public class WebAppJNDIManager implements JNDIManager {
                 Logger.log(Logger.FULL_DEBUG, this.resources,
                         "WebAppJNDIManager.UnboundResource", name);
             }
+            Logger.log(Logger.DEBUG, this.resources, 
+                    "WebAppJNDIManager.TeardownComplete", "" + this.objectsToCreate.size());
         } catch (NamingException err) {
             Logger.log(Logger.ERROR, this.resources,
                     "WebAppJNDIManager.ErrorGettingInitialContext", err);
