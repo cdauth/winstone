@@ -1,12 +1,8 @@
 List of other things to do:
 ---------------------------
 
-Short-term
-     - Control port password
-
 Long-term
-     - Add session persistence across reboots (ie serialize to file)
-     - In memory cache for default servlet, caches previously requested files ?
+     - Control port password ? Maybe not, or only if someone asks for it
      - Cache filter chain calculation for known URLs
      - Add more automated tests as part of release process:
        - url matching (evaluation of servletPath/pathInfo)
@@ -15,15 +11,22 @@ Long-term
        - ajp13 connector
      - More complete manual/documentation
      - Publish apidocs
-     - Add a JSP compiler ?
+     - Auto-deployer for webappsDir folder. Redeploy warfiles that have been updated or added
+     - Maven winstone plugin, so we can run maven winstone, and it will war-up and execute
+     - Eclipse plug-in ? internal launcher plus browser window, and project level config for winstone properties
 
 v0.7
 DONE - Fixed load-on-startup optional content bug (thanks to Matthias Wuttke)
 DONE - Lots of bugfixes. See the bug tracker at sourceforge
 DONE - Fixed the "error request loses attributes when forwarded" bug
-DONE - Upgraded to maven build process
+DONE - Upgraded to maven build process, ant is deprecated
 DONE - Reformatted source using eclipse source formatter
-DONE - Added better resolution of paths in static resource servlet
+DONE - Added better resolution of paths in static resource servlet, so that spaces etc in paths are handled properly
+DONE - Multiple webapp support
+DONE - Fix for JamVM JNDI properties bug (thanks Martin Cordova)
+DONE - SSL Key manager factory selector (thanks Martin Cordova)
+     - Add session persistence across reboots (ie serialize to file)
+     - TCK compliance testing
 
 v0.6.4
 DONE - Added HTTPS listener class

@@ -76,7 +76,7 @@
   <p>The original goals in writing Winstone were:</p>
     <ul>
       <li>Supply fast, reliable servlet container functionality for a single webapp per server</li>
-      <li>Keep the size of the core distribution jar as low as possible (currently 138KB)</li>
+      <li>Keep the size of the core distribution jar as low as possible (currently 150KB)</li>
       <li>Keep configuration files to an absolute minimum, using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -216,8 +216,6 @@ Security options:
 
   <p>As a result of the design goals, there are some things Winstone doesn't do</p>
   <ul>
-    <li>Winstone only supports a single web application per server. This is a deliberate limitation,
-      intended to reduce complexity and therefore size.</li>
     <li>There are now three connectors supplied with Winstone:
       <ol>
         <li>An internal HTTP connector - allows plain HTTP/1.1 connections only</li>
@@ -230,8 +228,7 @@ Security options:
     <li>HttpSession support is cookie-based only (no URL rewriting). URL rewriting introduces a lot of 
       unnecessary complex request body processing, and given that browser cookie support is common these
       days (and no-one I know uses URL rewriting), I plan not to implement this.</li>
-    <li>The messages are all in English only. These have been updated to use resource 
-      bundles, but no translations yet.</li>
+    <li>The messages are all in English only. Resource bundles are used, but no translations yet.</li>
   </ul>
 
 <h2><a name="security">Security Warning</a></h2>
@@ -244,6 +241,19 @@ Security options:
     Winstone down is to kill the process (either by Ctrl-C or kill command).</p>
 
 <h2><a name="recent">Recent additions</a></h2>
+
+  <p>New features in v0.7:</p>
+
+  <ul>
+    <li>Updated build process to use Apache Maven (see <a href="http://maven.apache.org">
+      http://maven.apache.org</a>. Build instructions have been updated to match.</li>
+    <li>Source code has been formatted - a fair bit easier to read now</li>
+    <li>Multiple webapp support has been added. There's no auto-deploy features yet,
+      but that will come soon. Use the --webappsDir=&lt;webapps directory&gt; to declare
+      a folder that will have any directories auto-mounted and any warfiles auto-deployed.
+      (I originally said this was not going to be included, but changed my mind when I
+      realised it could be done with only 10K additional jarfile size).</li>
+  </ul>
 
   <p>New features in v0.6:</p>
 
