@@ -5,6 +5,10 @@
     xmlns:maven="jelly:maven"
     default="jar:jar">
 
+  <goal name="timestamp">
+    <ant:tstamp/>
+  </goal>
+  
   <postGoal name="test:compile">
     <copy todir="target/test-classes">
       <fileset dir="src/test" includes="**/*.properties"/>
@@ -50,5 +54,16 @@
     <ant:gzip src="target/source-release/winstone-src-${pom.currentVersion}.tar" 
               zipfile="target/source-release/winstone-src-${pom.currentVersion}.tar.gz"/>
     <delete file="target/source-release/winstone-src-${pom.currentVersion}.tar"/>
+  </goal>
+  
+  <goal name="backup" prereqs="timestamp">
+    <ant:mkdir dir="${backup.dir}"/>
+    <ant:tar tarfile="${backup.dir}/${pom.artifactId}_${DSTAMP}${TSTAMP}.tar" 
+             basedir="." 
+             includes="**"
+             excludes="build-eclipse/**,target/**"/>
+    <ant:gzip src="${backup.dir}/${pom.artifactId}_${DSTAMP}${TSTAMP}.tar" 
+             zipfile="${backup.dir}/${pom.artifactId}_${DSTAMP}${TSTAMP}.tar.gz"/>
+    <ant:delete file="${backup.dir}/${pom.artifactId}_${DSTAMP}${TSTAMP}.tar"/>
   </goal>
 </project>
