@@ -23,7 +23,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 
 /**
- * Represents a cluster of winstone containers.
+ * Represents a cluster implementation, which is basically the communication
+ * mechanism between a group of winstone containers.
  * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
@@ -38,8 +39,8 @@ public interface Cluster {
      * Check if the other nodes in this cluster have a session for this
      * sessionId.
      * 
-     * @param sessionId
-     *            The id of the session to check for
+     * @param sessionId The id of the session to check for
+     * @param webAppConfig The web app that owns the session we want
      * @return A valid session instance
      */
     public WinstoneSession askClusterForSession(String sessionId,
@@ -49,14 +50,10 @@ public interface Cluster {
      * Accept a control socket request related to the cluster functions and
      * process the request.
      * 
-     * @param requestType
-     *            A byte indicating the request type
-     * @param in
-     *            Socket input stream
-     * @param outSocket
-     *            output stream
-     * @param webAppConfig
-     *            Instance of the web app
+     * @param requestType A byte indicating the request type
+     * @param in Socket input stream
+     * @param outSocket output stream
+     * @param webAppGroup The collection of all local webapps
      * @throws IOException
      */
     public void clusterRequest(byte requestType, InputStream in,

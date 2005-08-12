@@ -64,11 +64,13 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream {
         if (this.contentLength == null) {
             int data = this.inData.read();
             this.dump.write(data);
+  //          System.out.println("Char: " + (char) data);
             return data;
         } else if (this.contentLength.intValue() > this.readSoFar) {
             this.readSoFar++;
             int data = this.inData.read();
             this.dump.write(data);
+//            System.out.println("Char: " + (char) data);
             return data;
         } else
             return -1;
@@ -80,11 +82,6 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream {
         // com.rickknowles.winstone.ajp13.Ajp13Listener.packetDump(content,
         // content.length);
     }
-
-    /*
-     * { int charRead = this.inData.read(); System.out.println("Char: " + (char)
-     * charRead); return charRead; }
-     */
 
     public int available() throws IOException {
         return this.inData.available();

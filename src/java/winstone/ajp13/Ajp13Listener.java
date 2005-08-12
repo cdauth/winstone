@@ -431,30 +431,25 @@ public class Ajp13Listener implements Listener, Runnable {
         else
             return packetBytesRead + offset;
     }
-
-    /**
-     * Useful method for dumping out the contents of a packet in hex form
-     */
-    /*
-     public static void packetDump(byte packetBytes[], int packetLength)
-     {
-     String dump = "";
-     for (int n = 0; n < packetLength; n+=16)
-     {
-     String line = Integer.toHexString((n >> 4) & 0xF) + "0:";
-     for (int j = 0; j < Math.min(packetLength - n, 16); j++)
-     line = line + " " + ((packetBytes[n + j] & 0xFF) < 16 ? "0" : "") +
-     Integer.toHexString(packetBytes[n + j] & 0xFF);
-
-     line = line + "    ";
-     for (int j = 0; j < Math.min(packetLength - n, 16); j++)
-     {
-     byte me = (byte) (packetBytes[n + j] & 0xFF);
-     line = line + (((me > 32) && (me < 123)) ? (char) me : '.');
-     }
-     dump = dump + line + "\r\n";
-     }
-     System.out.println(dump);
-     }
-     */
+//
+//    /**
+//     * Useful method for dumping out the contents of a packet in hex form
+//     */
+//    public static void packetDump(byte packetBytes[], int packetLength) {
+//        String dump = "";
+//        for (int n = 0; n < packetLength; n+=16) {
+//            String line = Integer.toHexString((n >> 4) & 0xF) + "0:";
+//            for (int j = 0; j < Math.min(packetLength - n, 16); j++)
+//            line = line + " " + ((packetBytes[n + j] & 0xFF) < 16 ? "0" : "") +
+//            Integer.toHexString(packetBytes[n + j] & 0xFF);
+//       
+//            line = line + "    ";
+//            for (int j = 0; j < Math.min(packetLength - n, 16); j++) {
+//                byte me = (byte) (packetBytes[n + j] & 0xFF);
+//                line = line + (((me > 32) && (me < 123)) ? (char) me : '.');
+//            }
+//            dump = dump + line + "\r\n";
+//        }
+//        System.out.println(dump);
+//    }
 }

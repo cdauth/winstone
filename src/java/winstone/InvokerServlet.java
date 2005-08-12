@@ -77,9 +77,9 @@ public class InvokerServlet extends HttpServlet {
             throws ServletException, IOException {
         ServletConfiguration sc = null;
         synchronized (this.mountedInstances) {
-            if (this.mountedInstances.containsKey(servletName))
-                sc = (ServletConfiguration) this.mountedInstances
-                        .get(servletName);
+            if (this.mountedInstances.containsKey(servletName)) {
+                sc = (ServletConfiguration) this.mountedInstances.get(servletName);
+            }
         }
 
         if (sc == null) {
@@ -87,10 +87,9 @@ public class InvokerServlet extends HttpServlet {
             try {
                 // Class servletClass = Class.forName(servletName, true,
                 // Thread.currentThread().getContextClassLoader());
-                sc = new ServletConfiguration(this.getServletContext(), Thread
-                        .currentThread().getContextClassLoader(),
-                        this.resources, this.prefix, getServletConfig()
-                                .getServletName()
+                sc = new ServletConfiguration((WebAppConfiguration) this.getServletContext(), 
+                        Thread.currentThread().getContextClassLoader(),
+                        this.resources, this.prefix, getServletConfig().getServletName()
                                 + ":" + servletName, servletName,
                         new Hashtable(), -1);
                 this.mountedInstances.put(servletName, sc);
@@ -98,8 +97,8 @@ public class InvokerServlet extends HttpServlet {
                         "InvokerServlet.MountingServlet", new String[] {
                                 servletName,
                                 getServletConfig().getServletName() });
-                sc.getRequestDispatcher(new HashMap()); // just to trigger the
-                                                        // servlet.init()
+                // just to trigger the servlet.init()
+                sc.getRequestDispatcher(new HashMap(), null); 
             } catch (Throwable err) {
                 sc = null;
             }
@@ -133,7 +132,7 @@ public class InvokerServlet extends HttpServlet {
                             servletName));
         } else {
             RequestDispatcher rd = invokedServlet
-                    .getRequestDispatcher(new HashMap());
+                    .getRequestDispatcher(new HashMap(), "/" + servletName);
             rd.setForNamedDispatcher(new Mapping[0], new Mapping[0]);
             rd.forward(req, rsp);
         }

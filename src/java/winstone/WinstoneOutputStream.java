@@ -40,7 +40,6 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     protected ByteArrayOutputStream buffer;
     protected boolean committed;
     protected boolean bodyOnly;
-    // private boolean headersWritten;
     protected WinstoneResourceBundle resources;
     protected WinstoneResponse owner;
 
@@ -74,9 +73,6 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         return this.committed;
     }
 
-    // public boolean areHeadersWritten() {return this.headersWritten;}
-    // public void setHeadersWritten(boolean headersWritten)
-    // {this.headersWritten = headersWritten;}
     public int getBytesWritten() {
         return this.bytesWritten;
     }
@@ -130,9 +126,8 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             // Logger.log(Logger.FULL_DEBUG,
             // resources.getString("HttpProtocol.OutHeaders") + out.toString());
         }
-        // byte content[] = this.buffer.toByteArray();
-        // com.rickknowles.winstone.ajp13.Ajp13Listener.packetDump(content,
-        // content.length);
+//        byte content[] = this.buffer.toByteArray();
+//        winstone.ajp13.Ajp13Listener.packetDump(content, content.length);
         this.buffer.writeTo(this.outStream);
         this.outStream.flush();
 
@@ -163,4 +158,8 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         this.outStream = null;
     }
 
+    public void flush() throws IOException {
+        super.flush();
+        this.commit();
+    }
 }

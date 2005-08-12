@@ -93,9 +93,9 @@ public abstract class BaseAuthenticationHandler implements
         HttpServletResponse response = (HttpServletResponse) inResponse;
 
         // Give previous attempts a chance to be validated
-        if (!validatePossibleAuthenticationResponse(request, response,
-                pathRequested))
+        if (!validatePossibleAuthenticationResponse(request, response, pathRequested)) {
             return false;
+        }
 
         // Loop through constraints
         boolean foundApplicable = false;
@@ -105,8 +105,7 @@ public abstract class BaseAuthenticationHandler implements
                     this.constraints[n].getName());
 
             // Find one that applies, then
-            if (this.constraints[n].isApplicable(pathRequested, request
-                    .getMethod())) {
+            if (this.constraints[n].isApplicable(pathRequested, request.getMethod())) {
                 Logger.log(Logger.FULL_DEBUG, this.resources,
                         "BaseAuthenticationHandler.ApplicableConstraint",
                         this.constraints[n].getName());
@@ -116,33 +115,25 @@ public abstract class BaseAuthenticationHandler implements
                     Logger.log(Logger.DEBUG, resources,
                             "BaseAuthenticationHandler.ConstraintNeedsSSL",
                             this.constraints[n].getName());
-                    response
-                            .sendError(
-                                    HttpServletResponse.SC_FORBIDDEN,
-                                    resources
-                                            .getString(
-                                                    "BaseAuthenticationHandler.ConstraintNeedsSSL",
-                                                    this.constraints[n]
-                                                            .getName()));
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, 
+                            resources.getString("BaseAuthenticationHandler.ConstraintNeedsSSL", 
+                                    this.constraints[n].getName()));
                     return false;
                 }
 
                 else if (!this.constraints[n].isAllowed(request)) {
-                    // Logger.log(Logger.FULL_DEBUG, "Not allowed - requesting
-                    // auth");
+                    // Logger.log(Logger.FULL_DEBUG, "Not allowed - requesting auth");
                     requestAuthentication(request, response, pathRequested);
                     return false;
-                } else
-                    // Logger.log(Logger.FULL_DEBUG, "Allowed - authorization
-                    // accepted");
+                } else {
+                    // Logger.log(Logger.FULL_DEBUG, "Allowed - authorization accepted");
                     // Ensure that secured resources are not cached
                     setNoCache(response);
+                }
             }
         }
-        // If we made it this far without a check being run, there must be none
-        // applicable
-        Logger.log(Logger.FULL_DEBUG, this.resources,
-                "BaseAuthenticationHandler.PassedAuthCheck");
+        // If we made it this far without a check being run, there must be none applicable
+        Logger.log(Logger.FULL_DEBUG, this.resources, "BaseAuthenticationHandler.PassedAuthCheck");
         return true;
     }
 

@@ -286,8 +286,9 @@ public class StaticResourceServlet extends HttpServlet {
         }
 
         // Write the rows for each file
-        for (int n = 0; n < children.length; n++)
-            if (!children[n].getName().equalsIgnoreCase("web-inf")) {
+        for (int n = 0; n < children.length; n++) {
+            if (!children[n].getName().equalsIgnoreCase("web-inf") && 
+                    !children[n].getName().equalsIgnoreCase("meta-inf")) {
                 File file = children[n];
                 rowString.write(this.resources.getString(
                         "StaticResourceServlet.DirectoryList.Row",
@@ -302,7 +303,8 @@ public class StaticResourceServlet extends HttpServlet {
                                         + file.length() }));
                 rowCount++;
             }
-
+        }
+        
         // Build wrapper body
         String out = this.resources.getString("StaticResourceServlet.DirectoryList.Body",
                 new String[] {

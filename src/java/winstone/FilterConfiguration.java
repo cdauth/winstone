@@ -24,6 +24,7 @@ import java.util.Map;
 
 import javax.servlet.Filter;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
 import javax.servlet.UnavailableException;
 
 import org.w3c.dom.Node;
@@ -124,7 +125,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
      * Implements the first-time-init of an instance, and wraps it in a
      * dispatcher.
      */
-    public Filter getFilter() {
+    public Filter getFilter() throws ServletException {
         synchronized (this.filterSemaphore) {
             if (isUnavailable())
                 throw new WinstoneException(resources
@@ -156,12 +157,13 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
                     Logger.log(Logger.ERROR, resources,
                             "FilterConfiguration.ClassLoadError",
                             this.classFile, err);
-                } catch (javax.servlet.ServletException err) {
+                } catch (ServletException err) {
                     this.instance = null;
                     if (err instanceof UnavailableException)
                         setUnavailable();
-                    throw new WinstoneException(resources
-                            .getString("FilterConfiguration.InitError"), err);
+                    throw err;
+//                    throw new WinstoneException(resources
+//                            .getString("FilterConfiguration.InitError"), err);
                 }
         }
         return this.instance;

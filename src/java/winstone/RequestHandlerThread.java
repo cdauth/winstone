@@ -33,8 +33,7 @@ import javax.servlet.ServletRequestListener;
  * The threads to which incoming requests get allocated.
  * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
- * @version $Id: RequestHandlerThread.java,v 1.16 2005/04/19 07:33:41
- *          rickknowles Exp $
+ * @version $Id$
  */
 public class RequestHandlerThread implements Runnable {
     private Thread thread;
@@ -47,11 +46,9 @@ public class RequestHandlerThread implements Runnable {
     private Listener listener;
     private Socket socket;
     private String threadName;
-    private boolean interrupted;
     private WinstoneResourceBundle resources;
     private long requestStartTime;
-    public Object startupMonitor = new Boolean(true);
-    private Object processingMonitor = new Boolean(true);
+//    private Object processingMonitor = new Boolean(true);
 
     /**
      * Constructor - this is called by the handler pool, and just sets up for
@@ -60,7 +57,6 @@ public class RequestHandlerThread implements Runnable {
     public RequestHandlerThread(ObjectPool objectPool, 
             WinstoneResourceBundle resources, int threadIndex) {
         this.resources = resources;
-//        this.prefix = webAppConfig.getPrefix();
         this.objectPool = objectPool;
         this.threadName = resources.getString(
                 "RequestHandlerThread.ThreadName", "" + threadIndex);
@@ -75,7 +71,7 @@ public class RequestHandlerThread implements Runnable {
      */
     public void run() {
         
-        interrupted = false;
+        boolean interrupted = false;
         while (!interrupted) {
             // Start request processing
             InputStream inSocket = null;
@@ -86,6 +82,7 @@ public class RequestHandlerThread implements Runnable {
                 inSocket = socket.getInputStream();
                 outSocket = socket.getOutputStream();
 
+                // The keep alive loop - exiting from here means the connection has closed
                 boolean continueFlag = true;
                 while (continueFlag && !interrupted) {
                     try {
@@ -111,7 +108,6 @@ public class RequestHandlerThread implements Runnable {
 
                         // Get the URI from the request, check for prefix, then
                         // match it to a requestDispatcher
-                        String path = null;
                         WebAppConfiguration webAppConfig = this.webAppGroup.getWebAppByURI(servletURI);
                         if (webAppConfig == null) {
                             webAppConfig = this.webAppGroup.getWebAppByURI("/");    
@@ -126,43 +122,30 @@ public class RequestHandlerThread implements Runnable {
                             rsp.verifyContentLength();
 
                             // Process keep-alive
-                            continueFlag = this.listener.processKeepAlive(req,
-                                    rsp, inSocket);
-                            this.listener.deallocateRequestResponse(this, req,
-                                    rsp, inData, outData, webAppGroup);
-                            Logger.log(Logger.FULL_DEBUG, resources,
-                                    "RequestHandlerThread.FinishRequest",
-                                    new String[] { "" + requestId,
-                                            Thread.currentThread().getName() });
-                            Logger.log(Logger.SPEED, resources,
-                                    "RequestHandlerThread.RequestTime",
-                                    new String[] { servletURI,
-                                            "" + headerParseTime,
-                                            "" + getRequestProcessTime() });
+                            continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
+                            this.listener.deallocateRequestResponse(this, req, rsp, inData, outData, webAppGroup);
+                            Logger.log(Logger.FULL_DEBUG, resources, "RequestHandlerThread.FinishRequest",
+                                    new String[] { "" + requestId, Thread.currentThread().getName() });
+                            Logger.log(Logger.SPEED, resources, "RequestHandlerThread.RequestTime",
+                                    new String[] { servletURI, "" + headerParseTime, "" + getRequestProcessTime() });
                             continue;
-                        }
-                        String prefix = webAppConfig.getPrefix();
-                        if (prefix.equals("")) {
-                            path = servletURI;
-                        } else if (servletURI.startsWith(prefix)) {
-                            path = servletURI.substring(prefix.length());
-                        } else {
-                            throw new WinstoneException("This shouldn't happen");
                         }
 
                         // Now we've verified it's in the right webapp, send
                         // request in scope notify
-                        ServletRequestListener requestListeners[] = webAppConfig.getRequestListeners();
-                        ServletRequestAttributeListener requestAttributeListeners[] = webAppConfig.getRequestAttributeListeners();
-                        for (int n = 0; n < requestListeners.length; n++)
-                            requestListeners[n].requestInitialized(
+                        ServletRequestListener reqLsnrs[] = webAppConfig.getRequestListeners();
+                        ServletRequestAttributeListener reqAttLsnrs[] = webAppConfig.getRequestAttributeListeners();
+                        for (int n = 0; n < reqLsnrs.length; n++) {
+                            reqLsnrs[n].requestInitialized(
                                     new ServletRequestEvent(webAppConfig, req));
+                        }
 
                         // Lookup a dispatcher, then process with it
                         req.setWebAppConfig(webAppConfig);
                         rsp.setWebAppConfig(webAppConfig);
-                        req.setRequestAttributeListeners(requestAttributeListeners);
-                        processRequest(webAppConfig, req, rsp, path);
+                        req.setRequestAttributeListeners(reqAttLsnrs);
+                        processRequest(webAppConfig, req, rsp, 
+                                webAppConfig.getServletURIFromRequestURI(servletURI));
                         this.outData.finishResponse();
                         this.inData.finishRequest();
 
@@ -182,8 +165,8 @@ public class RequestHandlerThread implements Runnable {
                         }
 
                         // send request listener notifies
-                        for (int n = 0; n < requestListeners.length; n++)
-                            requestListeners[n].requestDestroyed(new ServletRequestEvent(
+                        for (int n = 0; n < reqLsnrs.length; n++)
+                            reqLsnrs[n].requestDestroyed(new ServletRequestEvent(
                                             webAppConfig, req));
 
                         req.setWebAppConfig(null);
@@ -221,17 +204,17 @@ public class RequestHandlerThread implements Runnable {
             if (!interrupted) {
                 // Suspend this thread until we get assigned and woken up
                 Logger.log(Logger.FULL_DEBUG, this.resources,
-                        "RequestHandlerThread.EnterWaitState", Thread
-                                .currentThread().getName());
+                        "RequestHandlerThread.EnterWaitState", 
+                                Thread.currentThread().getName());
                 try {
-                    synchronized (this.processingMonitor) {
-                        this.processingMonitor.wait();
+                    synchronized (this) {
+                        this.wait();
                     }
-                } catch (Throwable err) {
+                } catch (InterruptedException err) {
+                    interrupted = true;
                 }
                 Logger.log(Logger.FULL_DEBUG, this.resources,
-                        "RequestHandlerThread.WakingUp", Thread.currentThread()
-                                .getName());
+                        "RequestHandlerThread.WakingUp", Thread.currentThread().getName());
             }
         }
         Logger.log(Logger.FULL_DEBUG, this.resources,
@@ -247,20 +230,38 @@ public class RequestHandlerThread implements Runnable {
     private void processRequest(WebAppConfiguration webAppConfig, WinstoneRequest req, WinstoneResponse rsp,
             String path) throws IOException, ServletException {
         RequestDispatcher rd = null;
+        javax.servlet.RequestDispatcher rdError = null;
         try {
             rd = webAppConfig.getInitialDispatcher(path, req, rsp);
 
-            // Null RD means we have been redirected to a welcome page, so ignore quietly
+            // Null RD means an error or we have been redirected to a welcome page
             if (rd != null) {
                 Logger.log(Logger.FULL_DEBUG, resources,
                         "RequestHandlerThread.HandlingRD", rd.getName());
                 rd.forward(req, rsp);
             }
+            // if null returned, assume we were redirected
         } catch (Throwable err) {
             Logger.log(Logger.WARNING, resources,
                     "RequestHandlerThread.UntrappedError", err);
-            rsp.resetBuffer();
-            rsp.sendUntrappedError(err, req, rd != null ? rd.getName() : null);
+            rdError = webAppConfig.getErrorDispatcherByClass(
+                    new Integer(WinstoneResponse.SC_INTERNAL_SERVER_ERROR), 
+                    err.toString(), err, rd.getName(), path);
+        }
+
+        // If there was any kind of error, execute the error dispatcher here
+        if (rdError != null) {
+            try {
+                if (rsp.isCommitted()) {
+                    rdError.include(req, rsp);
+                } else {
+                    rsp.resetBuffer();
+                    rdError.forward(req, rsp);
+                }
+            } catch (Throwable err) {
+                Logger.log(Logger.ERROR, resources, "RequestHandlerThread.ErrorInErrorServlet", err);
+            }
+//            rsp.sendUntrappedError(err, req, rd != null ? rd.getName() : null);
         }
         rsp.flushBuffer();
         rsp.verifyContentLength();
@@ -273,8 +274,8 @@ public class RequestHandlerThread implements Runnable {
         this.listener = listener;
         this.socket = socket;
         if (this.thread.isAlive())
-            synchronized (this.processingMonitor) {
-                this.processingMonitor.notifyAll();
+            synchronized (this) {
+                this.notifyAll();
             }
         else
             this.thread.start();
@@ -313,11 +314,7 @@ public class RequestHandlerThread implements Runnable {
      */
     public void destroy() {
         if (this.thread.isAlive()) {
-            interrupted = true;
             this.thread.interrupt();
-            synchronized (this.processingMonitor) {
-                this.processingMonitor.notifyAll();
-            }
         }
     }
 }

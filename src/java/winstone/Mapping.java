@@ -18,7 +18,8 @@
 package winstone;
 
 /**
- * Encapsulates the parsing of URL patterns, as well as the
+ * Encapsulates the parsing of URL patterns, as well as the mapping of a 
+ * url pattern to a servlet instance
  * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
@@ -48,7 +49,7 @@ public class Mapping implements java.util.Comparator {
     }
 
     /**
-     * Constructor - this parses the url pattern into pieces we can use to match
+     * Factory constructor method - this parses the url pattern into pieces we can use to match
      * against incoming URLs.
      */
     public static Mapping createFromURL(String mappedTo, String pattern,
@@ -74,18 +75,18 @@ public class Mapping implements java.util.Comparator {
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
 
         // check for default servlet, ie mapping = exactly /*
-        else if (pattern.equals(SLASH + STAR)) {
+        else if (pattern.equals(SLASH + STAR) || pattern.equals(SLASH)) {
             me.urlPattern = "";
             me.patternType = DEFAULT_SERVLET;
         }
 
         // check for folder style mapping (ends in /*)
-        else if (pattern.indexOf(SLASH + STAR) == (patternLength - (SLASH + STAR)
-                .length())) {
+        else if (pattern.indexOf(SLASH + STAR) == (patternLength - (SLASH + STAR).length())) {
             me.urlPattern = pattern.substring(0, pattern.length()
                     - (SLASH + STAR).length());
             me.patternType = FOLDER_PATTERN;
         }
+        
         // check for non-extension match
         else if (pattern.indexOf(SLASH) != -1)
             throw new WinstoneException(resources.getString(
@@ -112,8 +113,7 @@ public class Mapping implements java.util.Comparator {
     }
 
     /**
-     * Constructor - this parses the url pattern into pieces we can use to match
-     * against incoming URLs.
+     * Factory constructor method - this turns a servlet name into a mapping element
      */
     public static Mapping createFromLink(String mappedTo, String linkName,
             WinstoneResourceBundle resources) {
@@ -145,13 +145,9 @@ public class Mapping implements java.util.Comparator {
     /**
      * Try to match this pattern against the incoming url
      * 
-     * @param inputPattern
-     *            The URL we want to check for a match
-     * @param servletPath
-     *            An empty stringbuffer for the servletPath of a successful
-     *            match
-     * @param pathInfo
-     *            An empty stringbuffer for the pathInfo of a successful match
+     * @param inputPattern The URL we want to check for a match
+     * @param servletPath An empty stringbuffer for the servletPath of a successful match
+     * @param pathInfo An empty stringbuffer for the pathInfo of a successful match
      * @return true if the match is successful
      */
     public boolean match(String inputPattern, StringBuffer servletPath,
@@ -160,7 +156,7 @@ public class Mapping implements java.util.Comparator {
         // me=" + toString());
         switch (this.patternType) {
         case FOLDER_PATTERN:
-            if (inputPattern.startsWith(this.urlPattern + "/")) {
+            if (inputPattern.startsWith(this.urlPattern)) {
                 if (servletPath != null)
                     servletPath.append(this.urlPattern);
                 if (pathInfo != null)
@@ -181,8 +177,6 @@ public class Mapping implements java.util.Comparator {
                             .endsWith(this.urlPattern))) {
                 if (servletPath != null)
                     servletPath.append(inputPattern);
-                // if (pathInfo != null)
-                // pathInfo.append("");
                 return true;
             } else
                 return false;
@@ -191,15 +185,11 @@ public class Mapping implements java.util.Comparator {
             if (inputPattern.equals(this.urlPattern)) {
                 if (servletPath != null)
                     servletPath.append(inputPattern);
-                // if (pathInfo != null)
-                // pathInfo.append("");
                 return true;
             } else
                 return false;
 
         case DEFAULT_SERVLET:
-            // if (servletPath != null)
-            // servletPath.append("");
             if (pathInfo != null)
                 pathInfo.append(inputPattern);
             return true;
@@ -217,11 +207,18 @@ public class Mapping implements java.util.Comparator {
         Mapping one = (Mapping) objOne;
         Mapping two = (Mapping) objTwo;
 
-        int order = -1
-                * new Integer(one.getPatternType()).compareTo(new Integer(two
-                        .getPatternType()));
-        return (order != 0 ? order : -1
-                * one.getUrlPattern().compareTo(two.getUrlPattern()));
+        Integer intOne = new Integer(one.getPatternType());
+        Integer intTwo = new Integer(two.getPatternType());
+        int order = -1 * intOne.compareTo(intTwo);
+        if (order != 0) {
+            return order;
+        }
+        if (one.getLinkName() != null) {
+            // servlet name mapping - just alphabetical sort
+            return one.getLinkName().compareTo(two.getLinkName());
+        } else {
+            return -1 * one.getUrlPattern().compareTo(two.getUrlPattern());
+        }
     }
 
     public String toString() {

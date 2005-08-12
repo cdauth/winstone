@@ -255,7 +255,7 @@ public class WebAppGroup {
                 if (children[n].isDirectory()) {
                     File matchingWarFile = new File(webappsDir, children[n].getName() + ".war");
                     if (matchingWarFile.exists() && matchingWarFile.isFile()) {
-                        Logger.log(Logger.DEBUG, resources, "WebAppGroup.SkippingWarfileDir");
+                        Logger.log(Logger.DEBUG, resources, "WebAppGroup.SkippingWarfileDir", childName);
                     } else {
                         String prefix = childName.equalsIgnoreCase("ROOT") ? "" : "/" + childName; 
                         if (!this.webapps.containsKey(prefix)) {

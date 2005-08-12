@@ -361,22 +361,12 @@ public class Launcher implements Runnable {
             inConfig.close();
             props.putAll(args);
             args = props;
-
-            // Reset the log level
-            int logLevel = args.get("debug") == null ? Logger.INFO : Integer
-                    .parseInt((String) args.get("debug"));
-            OutputStream logStream = args.get("logfile") == null ? (OutputStream) System.out
-                    : new FileOutputStream((String) args.get("logfile"));
-            Logger.init(logLevel, logStream);
+            initLogger(args);
             Logger.log(Logger.DEBUG, resources, "Launcher.UsingPropertyFile",
                     configFilename);
 
         } else {
-            int logLevel = args.get("debug") == null ? Logger.INFO : Integer
-                    .parseInt((String) args.get("debug"));
-            OutputStream logStream = args.get("logfile") == null ? (OutputStream) System.out
-                    : new FileOutputStream((String) args.get("logfile"));
-            Logger.init(logLevel, logStream);
+            initLogger(args);
         }
 
         // Check if the non-switch arg is a file or folder, and overwrite the config
@@ -398,13 +388,27 @@ public class Launcher implements Runnable {
 
             try {
                 Launcher launcher = new Launcher(args, resources);
-                Runtime.getRuntime()
-                        .addShutdownHook(new ShutdownHook(launcher));
+                Runtime.getRuntime().addShutdownHook(new ShutdownHook(launcher));
             } catch (WinstoneException err) {
                 System.err.println(err.getMessage());
                 err.printStackTrace();
             }
         }
+    }
+    
+    private static void initLogger(Map args) throws IOException {
+        // Reset the log level
+        int logLevel = args.get("debug") == null ? Logger.INFO : Integer
+                .parseInt((String) args.get("debug"));
+        OutputStream logStream = null;
+        if (args.get("logfile") != null) {
+            logStream = new FileOutputStream((String) args.get("logfile"));
+        } else if (WebAppConfiguration.booleanArg(args, "logToStdErr", false)) {
+            logStream = System.err;
+        } else {
+            logStream = System.out;
+        }
+        Logger.init(logLevel, logStream);
     }
 
     private static void printUsage(WinstoneResourceBundle resources) {

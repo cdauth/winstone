@@ -133,6 +133,11 @@ public class WebAppJNDIManager implements JNDIManager {
      * specified
      */
     public void setup() {
+        
+        // Set context class loader
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.loader);
+        
         try {
             InitialContext ic = new InitialContext();
             for (Iterator i = this.objectsToCreate.keySet().iterator(); i
@@ -156,8 +161,7 @@ public class WebAppJNDIManager implements JNDIManager {
                     Logger.log(Logger.FULL_DEBUG, this.resources,
                             "WebAppJNDIManager.BoundResource", name);
                 } catch (NamingException err) {
-                    Logger
-                            .log(Logger.ERROR, this.resources,
+                    Logger.log(Logger.ERROR, this.resources,
                                     "WebAppJNDIManager.ErrorBindingResource",
                                     name, err);
                 }
@@ -167,6 +171,8 @@ public class WebAppJNDIManager implements JNDIManager {
         } catch (NamingException err) {
             Logger.log(Logger.ERROR, this.resources,
                     "WebAppJNDIManager.ErrorGettingInitialContext", err);
+        } finally {
+            Thread.currentThread().setContextClassLoader(cl);
         }
     }
 
@@ -175,6 +181,10 @@ public class WebAppJNDIManager implements JNDIManager {
      * destroy the objects
      */
     public void tearDown() {
+        // Set context class loader
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.loader);
+        
         try {
             InitialContext ic = new InitialContext();
             for (Iterator i = this.objectsToCreate.keySet().iterator(); i
@@ -198,6 +208,8 @@ public class WebAppJNDIManager implements JNDIManager {
         } catch (NamingException err) {
             Logger.log(Logger.ERROR, this.resources,
                     "WebAppJNDIManager.ErrorGettingInitialContext", err);
+        } finally {
+            Thread.currentThread().setContextClassLoader(cl);
         }
     }
 

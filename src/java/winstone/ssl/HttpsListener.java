@@ -71,7 +71,7 @@ public class HttpsListener extends HttpListener {
         this.password = WebAppConfiguration.stringArg(args, getConnectorName()
                 + "KeyStorePassword", null);
         this.keyManagerType = WebAppConfiguration.stringArg(args, 
-                getConnectorName() + "KeyManagerType", null);
+                getConnectorName() + "KeyManagerType", "SunX509");
     }
 
     /**
@@ -174,12 +174,7 @@ public class HttpsListener extends HttpListener {
             throws IOException {
         try {
             // Check the key manager factory
-            KeyManagerFactory kmf = null;
-            if (this.keyManagerType == null) {
-                kmf = KeyManagerFactory.getInstance("SunX509");
-            } else {
-                kmf = KeyManagerFactory.getInstance(this.keyManagerType);
-            }
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(this.keyManagerType);
             
             File ksFile = new File(keyStoreName);
             if (!ksFile.exists() || !ksFile.isFile())

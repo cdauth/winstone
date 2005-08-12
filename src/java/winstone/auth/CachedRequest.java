@@ -17,9 +17,13 @@
  */
 package winstone.auth;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-import winstone.*;
+import winstone.WinstoneInputStream;
+import winstone.WinstoneRequest;
+import winstone.WinstoneResourceBundle;
 
 /**
  * This class has been included so that we can handle caching a request object
@@ -47,8 +51,10 @@ public class CachedRequest extends WinstoneRequest {
         super(resources);
 
         // Stash the relevant pieces of info
+        this.attributesStack.addAll(request.getAttributesStack());
+        this.parametersStack.addAll(request.getParametersStack());
         this.attributes.putAll(request.getAttributes());
-        this.parameters.putAll((request.getParameters()));
+        this.parameters.putAll(request.getParameters());
         this.locales = request.getListLocales();
         this.method = request.getMethod();
         this.scheme = request.getScheme();
@@ -83,13 +89,17 @@ public class CachedRequest extends WinstoneRequest {
 
     /**
      * Copies the contents we stashed earlier into a new request
-     * 
-     * @param request
-     *            The request to write to
+     * @param request The request to write to
      */
     public void transferContent(WinstoneRequest request) {
-        request.getAttributes().putAll(this.attributes);
+        request.getAttributesStack().clear();
+        request.getAttributesStack().addAll(this.attributesStack);
+        request.getParametersStack().clear();
+        request.getParametersStack().addAll(this.parametersStack);
+        request.getParameters().clear();
         request.getParameters().putAll(this.parameters);
+        request.getAttributes().clear();
+        request.getAttributes().putAll(this.attributes);
         request.setLocales(this.locales);
         request.setMethod(this.method);
         request.setScheme(this.scheme);

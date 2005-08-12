@@ -24,7 +24,7 @@ import java.util.Map;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
-import javax.servlet.UnavailableException;
+import javax.servlet.ServletException;
 
 import org.w3c.dom.Node;
 
@@ -33,8 +33,7 @@ import org.w3c.dom.Node;
  * holding the instance itself.
  * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
- * @version $Id: ServletConfiguration.java,v 1.16 2005/04/19 07:33:41
- *          rickknowles Exp $
+ * @version $Id$
  */
 public class ServletConfiguration implements javax.servlet.ServletConfig,
         Comparable {
@@ -51,22 +50,23 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     static final String ELEM_SECURITY_ROLE_REF = "security-role-ref";
     static final String ELEM_ROLE_NAME = "role-name";
     static final String ELEM_ROLE_LINK = "role-link";
+    
     private String servletName;
     private String classFile;
     private Servlet instance;
     private Map initParameters;
-    private ServletContext webAppConfig;
+    private WebAppConfiguration webAppConfig;
     private ClassLoader loader;
     private int loadOnStartup;
     private String prefix;
     private String jspFile;
     private String runAsRole;
     private Map securityRoleRefs;
-    private boolean unavailableException;
     private WinstoneResourceBundle resources;
     private Object servletSemaphore = new Boolean(true);
+    private boolean unavailable = false;
     
-    protected ServletConfiguration(ServletContext webAppConfig,
+    protected ServletConfiguration(WebAppConfiguration webAppConfig,
             ClassLoader loader, WinstoneResourceBundle resources, String prefix) {
         this.webAppConfig = webAppConfig;
         this.loader = loader;
@@ -74,11 +74,10 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         this.loadOnStartup = -1;
         this.resources = resources;
         this.prefix = prefix;
-        this.unavailableException = false;
         this.securityRoleRefs = new Hashtable();
     }
 
-    public ServletConfiguration(ServletContext webAppConfig,
+    public ServletConfiguration(WebAppConfiguration webAppConfig,
             ClassLoader loader, WinstoneResourceBundle resources,
             String prefix, String servletName, String className,
             Map initParams, int loadOnStartup) {
@@ -172,51 +171,69 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
      * Implements the first-time-init of an instance, and wraps it in a
      * dispatcher.
      */
-    public RequestDispatcher getRequestDispatcher(Map filters) {
+    public RequestDispatcher getRequestDispatcher(Map filters, String originalURI) {
+        
+        boolean failed = false;
+        
         synchronized (this.servletSemaphore) {
-            if (isUnavailable())
-                throw new WinstoneException(resources
-                        .getString("ServletConfiguration.ServletUnavailable"));
-            else if ((this.instance == null))
+            // Check if we were decommissioned while blocking
+            if (this.unavailable) {
+                // Return the 404-dispatcher
+                failed = true;
+            } 
+            
+            // If no instance, class load, then call init()
+            else if ((this.instance == null)) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(this.loader);
+                
                 try {
-                    ClassLoader cl = Thread.currentThread()
-                            .getContextClassLoader();
-                    Thread.currentThread().setContextClassLoader(this.loader);
-
-                    Class servletClass = Class.forName(classFile, true,
-                            this.loader);
+                    Class servletClass = Class.forName(classFile, true, this.loader);
                     this.instance = (Servlet) servletClass.newInstance();
-                    Logger.log(Logger.DEBUG, resources,
-                            "ServletConfiguration.init", this.servletName);
-
-                    // Initialise with the correct classloader
-                    this.instance.init(this);
-                    Thread.currentThread().setContextClassLoader(cl);
                 } catch (ClassNotFoundException err) {
-                    throw new WinstoneException(resources.getString(
-                            "ServletConfiguration.ClassLoadError",
-                            this.classFile), err);
+                    Logger.log(Logger.WARNING, resources, 
+                            "ServletConfiguration.ClassLoadError", this.classFile, err);
+                    setUnavailable();
+                    failed = true;
                 } catch (IllegalAccessException err) {
-                    throw new WinstoneException(resources.getString(
-                            "ServletConfiguration.ClassLoadError",
-                            this.classFile), err);
+                    Logger.log(Logger.WARNING, resources, 
+                            "ServletConfiguration.ClassLoadError", this.classFile, err);
+                    setUnavailable();
+                    failed = true;
                 } catch (InstantiationException err) {
-                    throw new WinstoneException(resources.getString(
-                            "ServletConfiguration.ClassLoadError",
-                            this.classFile), err);
-                } catch (javax.servlet.ServletException err) {
-                    this.instance = null;
-                    if (err instanceof UnavailableException)
-                        setUnavailable();
-                    throw new WinstoneException(resources
-                            .getString("ServletConfiguration.InitError"), err);
+                    Logger.log(Logger.WARNING, resources, 
+                            "ServletConfiguration.ClassLoadError", this.classFile, err);
+                    setUnavailable();
+                    failed = true;
                 }
+                
+                if (!failed) {
+                    try {
+                        // Initialise with the correct classloader
+                        Logger.log(Logger.DEBUG, resources, "ServletConfiguration.init", this.servletName);
+                        this.instance.init(this);
+                        Thread.currentThread().setContextClassLoader(cl);
+                    } catch (ServletException err) {
+                        Logger.log(Logger.WARNING, resources, 
+                                "ServletConfiguration.InitError", this.servletName, err);
+                        setUnavailable();
+                        failed = true;
+                    }
+                }
+            }
         }
 
         // Build filter chain
-        return new RequestDispatcher(this, this.instance, this.servletName,
-                this.loader, this.servletSemaphore, this.prefix, this.jspFile,
-                filters, this.resources);
+        if (failed) {
+//            return this.webAppConfig.getErrorDispatcherByCode(
+//                    new Integer(HttpServletResponse.SC_NOT_FOUND), null, 
+//                    getServletName(), originalURI);
+            return null;
+        } else {
+            return new RequestDispatcher(this, this.instance, this.servletName,
+                    this.loader, this.servletSemaphore, this.prefix, this.jspFile,
+                    filters, this.resources);
+        }
     }
 
     public int getLoadOnStartup() {
@@ -263,20 +280,22 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                         "ServletConfiguration.destroy", this.servletName);
                 ClassLoader cl = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(this.loader);
-                this.instance.destroy();
-                Thread.currentThread().setContextClassLoader(cl);
+                try {
+                    this.instance.destroy();
+                } finally {
+                    Thread.currentThread().setContextClassLoader(cl);
+                }
             }
         }
     }
 
-    public boolean isUnavailable() {
-        return this.unavailableException;
-    }
-
     public void setUnavailable() {
-        this.unavailableException = true;
+        this.unavailable = true;
         if (this.instance != null)
             this.instance.destroy();
         this.instance = null;
+        
+        // remove from webapp
+        this.webAppConfig.removeServletConfigurationAndMappings(this);
     }
 }

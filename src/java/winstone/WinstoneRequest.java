@@ -19,7 +19,6 @@ package winstone;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -38,6 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
+import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 
@@ -58,8 +59,10 @@ import javax.servlet.http.HttpSession;
 public class WinstoneRequest implements HttpServletRequest {
     protected static DateFormat headerDF = new SimpleDateFormat(
             "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+    protected static Random rnd = null;
     static {
         headerDF.setTimeZone(TimeZone.getTimeZone("GMT"));
+        rnd = new Random(System.currentTimeMillis());
     }
 
     // Request header constants
@@ -111,7 +114,9 @@ public class WinstoneRequest implements HttpServletRequest {
     protected Map securityRoleRefs;
     private WinstoneResourceBundle resources;
     private MessageDigest md5Digester;
-
+    protected Stack attributesStack;
+    protected Stack parametersStack;
+    
     /**
      * InputStream factory method.
      */
@@ -120,6 +125,8 @@ public class WinstoneRequest implements HttpServletRequest {
         this.attributes = new Hashtable();
         this.parameters = new Hashtable();
         this.locales = new ArrayList();
+        this.attributesStack = new Stack();
+        this.parametersStack = new Stack();
         this.contentLength = -1;
         this.isSecure = false;
         try {
@@ -140,6 +147,8 @@ public class WinstoneRequest implements HttpServletRequest {
         this.listener = null;
         this.attributes.clear();
         this.parameters.clear();
+        this.attributesStack.clear();
+        this.parametersStack.clear();
         this.headers = null;
         this.cookies = null;
         this.method = null;
@@ -175,12 +184,11 @@ public class WinstoneRequest implements HttpServletRequest {
      * Steps through the header array, searching for the first header matching
      */
     private String extractFirstHeader(String name) {
-        for (int n = 0; n < this.headers.length; n++)
-            if (this.headers[n].toUpperCase().startsWith(
-                    name.toUpperCase() + ':'))
-                return this.headers[n].substring(name.length() + 1).trim(); // 1
-                                                                            // for
-                                                                            // colon
+        for (int n = 0; n < this.headers.length; n++) {
+            if (this.headers[n].toUpperCase().startsWith(name.toUpperCase() + ':')) {
+                return this.headers[n].substring(name.length() + 1).trim(); // 1 for colon
+            }
+        }
         return null;
     }
 
@@ -202,6 +210,14 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.parameters;
     }
 
+    public Stack getAttributesStack() {
+        return this.attributesStack;
+    }
+    
+    public Stack getParametersStack() {
+        return this.parametersStack;
+    }
+    
     public String getSessionCookie() {
         return this.sessionCookie;
     }
@@ -346,20 +362,19 @@ public class WinstoneRequest implements HttpServletRequest {
     /**
      * Gets parameters from the url encoded parameter string
      */
-    public static Map extractParameters(String urlEncodedParams,
-            String encoding, WinstoneResourceBundle resources) {
+    public static void extractParameters(String urlEncodedParams,
+            String encoding, Map outputParams, WinstoneResourceBundle resources) {
         Logger.log(Logger.DEBUG, resources,
                 "WinstoneRequest.ParsingParameters", new String[] {
                         urlEncodedParams, encoding });
-        Map params = new Hashtable();
         StringTokenizer st = new StringTokenizer(urlEncodedParams, "&", false);
         while (st.hasMoreTokens()) {
             String token = st.nextToken();
             int equalPos = token.indexOf('=');
-            if (equalPos == -1)
+            if (equalPos == -1) {
                 Logger.log(Logger.WARNING, resources,
                         "WinstoneRequest.IgnoringBadParameter", token);
-            else
+            } else {
                 try {
                     String decodedNameDefault = decodeURLToken(token.substring(
                             0, equalPos), resources);
@@ -372,21 +387,21 @@ public class WinstoneRequest implements HttpServletRequest {
                             : new String(
                                     decodedValueDefault.getBytes("8859_1"),
                                     encoding));
-                    Object already = params.get(decodedName);
+                    Object already = outputParams.get(decodedName);
                     if (already == null)
-                        params.put(decodedName, decodedValue);
+                        outputParams.put(decodedName, decodedValue);
                     else if (already instanceof String) {
                         String pair[] = new String[2];
                         pair[0] = (String) already;
                         pair[1] = decodedValue;
-                        params.put(decodedName, pair);
+                        outputParams.put(decodedName, pair);
                     } else if (already instanceof String[]) {
                         String alreadyArray[] = (String[]) already;
                         String oneMore[] = new String[alreadyArray.length + 1];
                         System.arraycopy(alreadyArray, 0, oneMore, 0,
                                 alreadyArray.length);
                         oneMore[oneMore.length - 1] = decodedValue;
-                        params.put(decodedName, oneMore);
+                        outputParams.put(decodedName, oneMore);
                     } else
                         Logger.log(Logger.WARNING, resources,
                                 "WinstoneRequest.UnknownParameterType",
@@ -395,8 +410,8 @@ public class WinstoneRequest implements HttpServletRequest {
                     Logger.log(Logger.ERROR, resources,
                             "WinstoneRequest.ErrorParameters", err);
                 }
+            }
         }
-        return params;
     }
 
     /**
@@ -429,32 +444,22 @@ public class WinstoneRequest implements HttpServletRequest {
      * This takes the parameters in the body of the request and puts them into
      * the parameters map.
      */
-    public Boolean parseRequestParameters(InputStream inData,
-            Boolean parsedParameters, String method, String contentType,
-            int contentLength, Map params) {
+    public void parseRequestParameters() {
         if ((parsedParameters != null) && !parsedParameters.booleanValue()) {
             Logger.log(Logger.WARNING, resources,
                     "WinstoneRequest.BothMethodsCalled");
-            return new Boolean(true);
-        } else if (parsedParameters == null)
+            this.parsedParameters = new Boolean(true);
+        } else if (parsedParameters == null) {
+            Map workingParameters = new HashMap();
             try {
                 Logger.log(Logger.FULL_DEBUG, resources,
                         "WinstoneRequest.ParsingBodyParameters");
                 if (method.equals(METHOD_POST) && (contentType != null)
                         && contentType.equals(POST_PARAMETERS)) {
-                    // Put any query string params in first
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParsingParameters", new String[] {
-                                    this.queryString, this.encoding });
-                    Map qsParams = extractParameters(this.queryString,
-                            this.encoding, resources);
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParamLine", "" + qsParams);
-                    params.putAll(qsParams);
 
                     // Parse params
                     byte paramBuffer[] = new byte[contentLength];
-                    int readCount = inData.read(paramBuffer);
+                    int readCount = this.inputData.read(paramBuffer);
                     if (readCount != contentLength)
                         Logger.log(Logger.WARNING, resources,
                                 "WinstoneRequest.IncorrectContentLength",
@@ -463,30 +468,41 @@ public class WinstoneRequest implements HttpServletRequest {
                     String paramLine = (this.encoding == null ? new String(
                             paramBuffer) : new String(paramBuffer,
                             this.encoding));
-                    Map postParams = extractParameters(paramLine.trim(),
-                            this.encoding, resources);
+                    extractParameters(paramLine.trim(), this.encoding, workingParameters, resources);
                     Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParamLine", "" + postParams);
-                    params.putAll(postParams);
-                } else if (method.equals(METHOD_GET)
+                            "WinstoneRequest.ParamLine", "" + workingParameters);
+                } 
+                
+                // Parse query string from request
+                if ((method.equals(METHOD_GET) || method.equals(METHOD_POST))
                         && (this.queryString != null)) {
                     Logger.log(Logger.FULL_DEBUG, resources,
                             "WinstoneRequest.ParsingParameters", new String[] {
                                     this.queryString, this.encoding });
-                    Map qsParams = extractParameters(this.queryString,
-                            this.encoding, resources);
+                    extractParameters(this.queryString, this.encoding, workingParameters, resources);
                     Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParamLine", "" + qsParams);
-                    params.putAll(qsParams);
+                            "WinstoneRequest.ParamLine", "" + workingParameters);
                 }
-                return new Boolean(true);
+                
+                // Parse query string from include / forward
+                String forwardQueryString = (String) getAttribute(RequestDispatcher.FORWARD_QUERY_STRING);
+                if (forwardQueryString != null) {
+                    Logger.log(Logger.FULL_DEBUG, resources,
+                            "WinstoneRequest.ParsingParameters", new String[] {
+                            forwardQueryString, this.encoding });
+                    extractParameters(forwardQueryString, this.encoding, workingParameters, resources);
+                    Logger.log(Logger.FULL_DEBUG, resources,
+                            "WinstoneRequest.ParamLine", "" + workingParameters);
+                }
+                
+                this.parameters.putAll(workingParameters);
+                this.parsedParameters = new Boolean(true);
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, resources,
                         "WinstoneRequest.ErrorBodyParameters", err);
-                return null;
+                this.parsedParameters = null;
             }
-        else
-            return parsedParameters;
+        }
     }
 
     /**
@@ -546,8 +562,7 @@ public class WinstoneRequest implements HttpServletRequest {
         if (cookieLine.startsWith("$Version")) {
             int equalPos = cookieLine.indexOf('=');
             try {
-                version = Integer.parseInt(cookieLine.substring(equalPos)
-                        .trim());
+                version = Integer.parseInt(cookieLine.substring(equalPos).trim());
             } catch (NumberFormatException err) {
                 version = 0;
             }
@@ -578,9 +593,9 @@ public class WinstoneRequest implements HttpServletRequest {
                         String attrValue = equalPos == -1 ? "" : cookieLine
                                 .substring(equalPos + 1).trim();
                         if (cookieLine.startsWith("$Path"))
-                            thisCookie.setPath(attrValue);
+                            thisCookie.setPath(extractFromQuotes(attrValue));
                         else if (cookieLine.startsWith("$Domain"))
-                            thisCookie.setDomain(attrValue);
+                            thisCookie.setDomain(extractFromQuotes(attrValue));
 
                         // next part
                         if (st.hasMoreTokens())
@@ -594,14 +609,20 @@ public class WinstoneRequest implements HttpServletRequest {
                 Logger.log(Logger.FULL_DEBUG, resources,
                         "WinstoneRequest.CookieFound", new String[] {
                                 thisCookie.getName(), thisCookie.getValue() });
-                if (thisCookie.getName().equals(
-                        WinstoneSession.SESSION_COOKIE_NAME)) {
+                if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME)) {
                     this.sessionCookie = thisCookie.getValue();
                     Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.SessionCookieFound", thisCookie
-                                    .getValue());
+                            "WinstoneRequest.SessionCookieFound", thisCookie.getValue());
                 }
             }
+        }
+    }
+    
+    private static String extractFromQuotes(String input) {
+        if ((input != null) && input.startsWith("\"") && input.endsWith("\"")) {
+            return input.substring(1, input.length() - 1);
+        } else {
+            return input;
         }
     }
 
@@ -667,14 +688,12 @@ public class WinstoneRequest implements HttpServletRequest {
         Arrays.sort(orderKeys);
         List outputLocaleList = new ArrayList();
         for (int n = 0; n < orderKeys.length; n++) {
-            // Skip backwards through the list of maps and add to the output
-            // list
+            // Skip backwards through the list of maps and add to the output list
             int reversedIndex = (orderKeys.length - 1) - n;
             if ((orderKeys[reversedIndex].floatValue() <= 0)
                     || (orderKeys[reversedIndex].floatValue() > 1))
                 continue;
-            List localeList = (List) localeEntries
-                    .get(orderKeys[reversedIndex]);
+            List localeList = (List) localeEntries.get(orderKeys[reversedIndex]);
             for (Iterator i = localeList.iterator(); i.hasNext();)
                 outputLocaleList.add(i.next());
         }
@@ -682,32 +701,98 @@ public class WinstoneRequest implements HttpServletRequest {
         return outputLocaleList;
     }
 
+    public void addIncludeQueryParameters(String queryString) {
+        parseRequestParameters();
+        Map lastParams = new Hashtable(this.parameters);
+        if (!this.parametersStack.isEmpty()) {
+            lastParams.putAll((Map) this.parametersStack.peek());
+        }
+        Map newQueryParams = new HashMap();
+        if (queryString != null) {
+            extractParameters(queryString, this.encoding, newQueryParams, resources);
+        }
+        lastParams.putAll(newQueryParams);
+        this.parametersStack.push(lastParams);
+    }
+
+    public void addIncludeAttributes(String requestURI, String contextPath,
+            String servletPath, String pathInfo, String queryString) {
+        Map includeAttributes = new HashMap();
+        if (requestURI != null) {
+            includeAttributes.put(RequestDispatcher.INCLUDE_REQUEST_URI, requestURI);
+        }
+        if (contextPath != null) {
+            includeAttributes.put(RequestDispatcher.INCLUDE_CONTEXT_PATH, contextPath);
+        }
+        if (servletPath != null) {
+            includeAttributes.put(RequestDispatcher.INCLUDE_SERVLET_PATH, servletPath);
+        }
+        if (pathInfo != null) {
+            includeAttributes.put(RequestDispatcher.INCLUDE_PATH_INFO, pathInfo);
+        }
+        if (queryString != null) {
+            includeAttributes.put(RequestDispatcher.INCLUDE_QUERY_STRING, queryString);
+        }
+        this.attributesStack.push(includeAttributes);
+    }
+    
+    public void removeIncludeQueryString() {
+        if (!this.parametersStack.isEmpty()) {
+            this.parametersStack.pop(); 
+        }
+    }
+    
+    public void clearIncludeStackForForward() {
+        this.parametersStack.clear();
+        this.attributesStack.clear();
+    }
+    
+    public void removeIncludeAttributes() {
+        if (!this.attributesStack.isEmpty()) {
+            this.attributesStack.pop();
+        }
+    }
+    
     // Implementation methods for the servlet request stuff
     public Object getAttribute(String name) {
+        if (!this.attributesStack.isEmpty()) {
+            Map includedAttributes = (Map) this.attributesStack.peek();
+            Object value = includedAttributes.get(name);
+            if (value != null) {
+                return value;
+            }
+        }
         return this.attributes.get(name);
     }
 
     public Enumeration getAttributeNames() {
-        return Collections.enumeration(this.attributes.keySet());
+        Map attributes = new HashMap(this.attributes);
+        if (!this.attributesStack.isEmpty()) {
+            Map includedAttributes = (Map) this.attributesStack.peek();
+            attributes.putAll(includedAttributes);
+        }
+        return Collections.enumeration(attributes.keySet());
     }
 
     public void removeAttribute(String name) {
-        Object value = this.attributes.get(name);
+        Object value = attributes.get(name);
         if (value == null)
             return;
 
         // fire event
-        for (int n = 0; n < this.requestAttributeListeners.length; n++)
-            this.requestAttributeListeners[n]
-                    .attributeRemoved(new ServletRequestAttributeEvent(
-                            this.webappConfig, this, name, value));
+        for (int n = 0; n < this.requestAttributeListeners.length; n++) {
+            this.requestAttributeListeners[n].attributeRemoved(
+                    new ServletRequestAttributeEvent(this.webappConfig, 
+                            this, name, value));
+        }
+        
         this.attributes.remove(name);
     }
 
     public void setAttribute(String name, Object o) {
         if ((name != null) && (o != null)) {
-            Object oldValue = this.attributes.get(name);
-            this.attributes.put(name, o);
+            Object oldValue = attributes.get(name);
+            attributes.put(name, o); // make sure it's set at the top level
 
             // fire event
             if (oldValue == null)
@@ -720,8 +805,9 @@ public class WinstoneRequest implements HttpServletRequest {
                     this.requestAttributeListeners[n]
                             .attributeReplaced(new ServletRequestAttributeEvent(
                                     this.webappConfig, this, name, oldValue));
-        } else if (name != null)
+        } else if (name != null) {
             removeAttribute(name);
+        }
     }
 
     public String getCharacterEncoding() {
@@ -786,11 +872,12 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public String getParameter(String name) {
-        Boolean parsed = parseRequestParameters(this.inputData,
-                this.parsedParameters, this.method, this.contentType,
-                this.contentLength, this.parameters);
-        this.parsedParameters = parsed;
-        Object param = this.parameters.get(name);
+        parseRequestParameters();
+        Map parameters = this.parameters;
+        if (!this.parametersStack.isEmpty()) {
+            parameters = (Map) this.parametersStack.peek();
+        }
+        Object param = parameters.get(name);
         if (param == null)
             return null;
         else if (param instanceof String)
@@ -802,19 +889,21 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public Enumeration getParameterNames() {
-        Boolean parsed = parseRequestParameters(this.inputData,
-                this.parsedParameters, this.method, this.contentType,
-                this.contentLength, this.parameters);
-        this.parsedParameters = parsed;
-        return Collections.enumeration(this.parameters.keySet());
+        parseRequestParameters();
+        Map parameters = this.parameters;
+        if (!this.parametersStack.isEmpty()) {
+            parameters = (Map) this.parametersStack.peek();
+        }
+        return Collections.enumeration(parameters.keySet());
     }
 
     public String[] getParameterValues(String name) {
-        Boolean parsed = parseRequestParameters(this.inputData,
-                this.parsedParameters, this.method, this.contentType,
-                this.contentLength, this.parameters);
-        this.parsedParameters = parsed;
-        Object param = this.parameters.get(name);
+        parseRequestParameters();
+        Map parameters = this.parameters;
+        if (!this.parametersStack.isEmpty()) {
+            parameters = (Map) this.parametersStack.peek();
+        }
+        Object param = parameters.get(name);
         if (param == null)
             return null;
         else if (param instanceof String) {
@@ -1078,7 +1167,7 @@ public class WinstoneRequest implements HttpServletRequest {
      */
     private String makeNewSession() {
         String cookieValue = "Winstone_" + this.remoteIP + "_"
-                + this.serverPort + "_" + System.currentTimeMillis();
+                + this.serverPort + "_" + System.currentTimeMillis() + rnd.nextLong();
         byte digestBytes[] = this.md5Digester.digest(cookieValue.getBytes());
 
         // Write out in hex format

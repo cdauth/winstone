@@ -17,25 +17,26 @@
  */
 package winstone;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 
-import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
@@ -68,20 +69,24 @@ public class WinstoneResponse implements HttpServletResponse {
     static final String OUT_COOKIE_HEADER1 = "Set-Cookie";
     static final String OUT_COOKIE_HEADER2 = "Set-Cookie2";
     static final String X_POWERED_BY_HEADER = "X-Powered-By";
-    static final String POWERED_BY_WINSTONE = "Servlet/2.4 (Winstone/0.6)";
+    static final String POWERED_BY_WINSTONE = "Servlet/2.4 (Winstone/0.7)";
 
     private int statusCode;
     private WinstoneRequest req;
     private WebAppConfiguration webAppConfig;
     private WinstoneOutputStream outputStream;
+    private Stack includeByteArrays;
+    private Stack includeOutputStreams;
+    
     private List headers;
     private String encoding;
     private List cookies;
-    private Writer outWriter;
+    
+    private Map outWriters;
     private Locale locale;
-    private Map encodingMap;
     private String protocol;
     private String reqKeepAliveHeader;
+    
     private WinstoneResourceBundle resources;
     
     /**
@@ -91,7 +96,9 @@ public class WinstoneResponse implements HttpServletResponse {
         this.resources = resources;
         this.headers = new ArrayList();
         this.cookies = new ArrayList();
-        this.encodingMap = new HashMap();
+        this.includeByteArrays = new Stack();
+        this.includeOutputStreams = new Stack();
+        this.outWriters = new Hashtable();
 
         this.statusCode = SC_OK;
         this.locale = Locale.getDefault();
@@ -107,9 +114,12 @@ public class WinstoneResponse implements HttpServletResponse {
         this.req = null;
         this.webAppConfig = null;
         this.outputStream = null;
+        this.includeByteArrays.clear();
+        this.includeOutputStreams.clear();
+        this.outWriters.clear();
         this.headers.clear();
         this.cookies.clear();
-        this.outWriter = null;
+        this.outWriters.clear();
         this.protocol = null;
         this.reqKeepAliveHeader = null;
 
@@ -162,6 +172,51 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void setRequest(WinstoneRequest req) {
         this.req = req;
+    }
+    
+    public void startIncludeBuffer() {
+        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
+        WinstoneOutputStream outStream = new WinstoneOutputStream(outBytes, true, resources);
+            
+        this.includeByteArrays.push(outBytes);
+        this.includeOutputStreams.push(outStream);
+    }
+    
+    public void finishIncludeBuffer() throws IOException {
+        if (this.includeOutputStreams.isEmpty()) {
+            return; // must have been forwarded, and the include buffers cleared. Ignore
+        }
+        ByteArrayOutputStream body = (ByteArrayOutputStream) this.includeByteArrays.pop();
+        WinstoneOutputStream included = (WinstoneOutputStream) this.includeOutputStreams.pop();
+        included.commit();
+        included.close();
+        body.flush();
+        String underlyingEncoding = getCharacterEncoding();
+        String bodyBlock = (underlyingEncoding != null ? new String(
+                body.toByteArray(), underlyingEncoding)
+                : new String(body.toByteArray()));
+
+        // Try to write the body in
+        WinstoneOutputStream including = getTopOutputStream();
+        Writer out = (Writer) this.outWriters.get(including);
+        if (out == null) {
+            out = new OutputStreamWriter(getOutputStream(), underlyingEncoding);
+        }
+        out.write(bodyBlock);
+        out.flush();
+    }
+    
+    public void clearIncludeStackForForward() throws IOException {
+        for (Iterator i = this.includeOutputStreams.iterator(); i.hasNext(); ) {
+            ((WinstoneOutputStream) i.next()).close();
+        }
+        this.includeOutputStreams.clear();
+        this.includeByteArrays.clear();
+        Writer mainOutWriter = (Writer) this.outWriters.get(this.outputStream);
+        this.outWriters.clear();
+        if (mainOutWriter != null) {
+            this.outWriters.put(this.outputStream, mainOutWriter);
+        }
     }
 
     public void updateContentTypeHeader(String type) {
@@ -232,8 +287,7 @@ public class WinstoneResponse implements HttpServletResponse {
                 cookie.setMaxAge(-1);
                 cookie.setSecure(req.isSecure());
                 cookie.setVersion(req.isSecure() ? 1 : 0);
-                cookie
-                        .setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
+                cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
                                 : req.getWebAppConfig().getPrefix());
                 this.addCookie(cookie);
             }
@@ -337,21 +391,35 @@ public class WinstoneResponse implements HttpServletResponse {
             return false;
     }
 
+    private WinstoneOutputStream getTopOutputStream() {
+        WinstoneOutputStream outStream = this.outputStream;
+        if (!this.includeOutputStreams.isEmpty()) {
+            outStream = (WinstoneOutputStream) this.includeOutputStreams.peek();
+        }
+        return outStream;
+    }
+    
     // ServletResponse interface methods
     public void flushBuffer() throws IOException {
-        try {
-            this.outWriter.flush();
-        } catch (Throwable err) {
+        WinstoneOutputStream outStream = getTopOutputStream();
+        Writer outWriter = (Writer) this.outWriters.get(outStream);
+        if (outWriter != null) {
+            try {
+                outWriter.flush();
+            } catch (Throwable err) {
+            }
         }
-        this.outputStream.commit();
+        outStream.flush();
     }
 
     public void setBufferSize(int size) {
-        this.outputStream.setBufferSize(size);
+        WinstoneOutputStream outStream = getTopOutputStream();
+        outStream.setBufferSize(size);
     }
 
     public int getBufferSize() {
-        return this.outputStream.getBufferSize();
+        WinstoneOutputStream outStream = getTopOutputStream();
+        return outStream.getBufferSize();
     }
 
     public String getCharacterEncoding() {
@@ -367,7 +435,9 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setContentType(String type) {
-        updateContentTypeHeader(type);
+        if (this.includeOutputStreams.isEmpty()) {
+            updateContentTypeHeader(type);
+        }
     }
 
     public Locale getLocale() {
@@ -375,7 +445,12 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setLocale(Locale loc) {
-        if (this.outWriter == null) {
+        if (!this.includeOutputStreams.isEmpty()) {
+            return;
+        }
+        
+        Writer outWriter = (Writer) this.outWriters.get(this.outputStream);
+        if (outWriter == null) {
             // Logger.log(Logger.DEBUG, "Response.setLocale()");
             this.locale = loc;
             String ct = getHeader(CONTENT_TYPE_HEADER);
@@ -394,18 +469,20 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public ServletOutputStream getOutputStream() throws IOException {
-        return this.outputStream;
+        return getTopOutputStream();
     }
 
     public PrintWriter getWriter() throws IOException {
         String encoding = getCharacterEncoding();
-        if (this.outWriter != null)
-            return new PrintWriter(this.outWriter, true);
+        ServletOutputStream outStream = getTopOutputStream();
+        Writer outWriter = (Writer) this.outWriters.get(outStream);
+        if (outWriter != null)
+            return new PrintWriter(outWriter, true);
         else
             try {
-                this.outWriter = new OutputStreamWriter(getOutputStream(),
-                        encoding);
-                return new PrintWriter(this.outWriter, true);
+                outWriter = new OutputStreamWriter(outStream, encoding);
+                this.outWriters.put(outStream, outWriter);
+                return new PrintWriter(outWriter, true);
             } catch (UnsupportedEncodingException err) {
                 throw new WinstoneException(resources
                         .getString("WinstoneResponse.WriterError")
@@ -418,18 +495,22 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void reset() {
-        resetBuffer();
-        this.statusCode = SC_OK;
-        this.headers.clear();
-        this.cookies.clear();
+        if (this.includeOutputStreams.isEmpty()) {
+            resetBuffer();
+            this.statusCode = SC_OK;
+            this.headers.clear();
+            this.cookies.clear();
+        }
     }
 
     public void resetBuffer() {
-        if (isCommitted())
-            throw new IllegalStateException(resources
-                    .getString("WinstoneResponse.ResponseCommitted"));
-        this.outWriter = null;
-        this.outputStream.reset();
+        if (this.includeOutputStreams.isEmpty()) {
+            if (isCommitted())
+                throw new IllegalStateException(resources
+                        .getString("WinstoneResponse.ResponseCommitted"));
+            this.outWriters.remove(this.outputStream);
+            this.outputStream.reset();
+        }
     }
 
     public void setContentLength(int len) {
@@ -438,7 +519,9 @@ public class WinstoneResponse implements HttpServletResponse {
 
     // HttpServletResponse interface methods
     public void addCookie(Cookie cookie) {
-        this.cookies.add(cookie);
+        if (this.includeOutputStreams.isEmpty()) {
+            this.cookies.add(cookie);
+        }
     }
 
     public boolean containsHeader(String name) {
@@ -457,7 +540,9 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void addHeader(String name, String value) {
-        this.headers.add(name + ": " + value);
+        if (this.includeOutputStreams.isEmpty()) {
+            this.headers.add(name + ": " + value);
+        }
     }
 
     public void setDateHeader(String name, long date) {
@@ -469,16 +554,18 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setHeader(String name, String value) {
-        boolean found = false;
-        for (int n = 0; n < this.headers.size(); n++) {
-            String header = (String) this.headers.get(n);
-            if (header.startsWith(name)) {
-                this.headers.set(n, name + ": " + value);
-                found = true;
+        if (this.includeOutputStreams.isEmpty()) {
+            boolean found = false;
+            for (int n = 0; n < this.headers.size(); n++) {
+                String header = (String) this.headers.get(n);
+                if (header.startsWith(name)) {
+                    this.headers.set(n, name + ": " + value);
+                    found = true;
+                }
             }
+            if (!found)
+                addHeader(name, value);
         }
-        if (!found)
-            addHeader(name, value);
     }
 
     public String getHeader(String name) {
@@ -503,56 +590,18 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setStatus(int sc) {
-        this.statusCode = sc;
-    }
-
-    public void sendError(int sc) throws IOException {
-        sendError(sc, null);
-    }
-
-    public void sendError(int sc, String msg) throws IOException {
-        Logger.log(Logger.DEBUG, this.resources,
-                "WinstoneResponse.SendingError", new String[] { "" + sc, msg });
-
-        boolean found = false;
-        if ((this.webAppConfig != null)
-                && (this.req != null)
-                && (this.webAppConfig.getErrorPagesByCode().get("" + sc) != null)) {
-            String errorPage = (String) this.webAppConfig.getErrorPagesByCode()
-                    .get("" + sc);
-            javax.servlet.RequestDispatcher rd = this.webAppConfig
-                    .getErrorDispatcher(errorPage, new Integer(sc), null, null,
-                            getRequest().getRequestURI());
-            try {
-                rd.forward(this.req, this);
-                found = true;
-            } catch (IllegalStateException err) {
-                throw err;
-            } catch (IOException err) {
-                throw err;
-            } catch (Throwable err) {
-                Logger.log(Logger.WARNING, this.resources,
-                        "WinstoneResponse.ErrorInErrorPage", new String[] {
-                                errorPage, sc + "" }, err);
-            }
-        }
-
-        // If all fails, show the default page
-        if (!found) {
+        if (this.includeOutputStreams.isEmpty()) {
             this.statusCode = sc;
-
-            String output = resources.getString("WinstoneResponse.ErrorPage",
-                    new String[] { sc + "", (msg == null ? "" : msg),
-                            resources.getString("ServerVersion"),
-                            "" + new Date() });
-            setContentLength(output.getBytes(getCharacterEncoding()).length);
-            Writer out = getWriter();
-            out.write(output);
-            out.close();
         }
     }
 
     public void sendRedirect(String location) throws IOException {
+        if (!this.includeOutputStreams.isEmpty()) {
+            Logger.log(Logger.ERROR, resources, "IncludeResponse.Redirect",
+                    location);
+            return;
+        }
+        
         // Build location
         StringBuffer fullLocation = new StringBuffer();
         if (location.startsWith("http://"))
@@ -583,85 +632,71 @@ public class WinstoneResponse implements HttpServletResponse {
         }
 
         // If body not parsed
-        if (this.req.getParsedParameters() == null)
-            this.req.getParameterNames(); // dummy to force parsing of the
-                                            // request
-        else if (this.req.getParsedParameters().equals(Boolean.FALSE)) {
+        if (this.req.getParsedParameters() == null) {
+            this.req.getParameterNames(); // dummy to force parsing of the request
+        } else if (this.req.getParsedParameters().equals(Boolean.FALSE)) {
             // read full stream length
             InputStream in = this.req.getInputStream();
-            while (in.read() != -1)
+            byte buffer[] = new byte[2048];
+            while (in.read(buffer) != -1)
                 ;
         }
 
         this.statusCode = HttpServletResponse.SC_MOVED_TEMPORARILY;
         setHeader(LOCATION_HEADER, fullLocation.toString());
         setContentLength(0);
-        getWriter().close();
+        getWriter().flush();
     }
 
-    /**
-     * Method used for handling untrapped errors. It looks to see if there are
-     * any errorPage directives for this class first, then falls through to the
-     * default error page if there are none.
-     */
-    public void sendUntrappedError(Throwable err, WinstoneRequest req,
-            String throwingServletName) throws IOException {
-        boolean found = false;
-        if ((this.webAppConfig != null)
-                && !this.webAppConfig.getErrorPagesByException().isEmpty()) {
-            Class exceptionClasses[] = this.webAppConfig
-                    .getErrorPageExceptions();
-            Map errorPages = this.webAppConfig.getErrorPagesByException();
-            Throwable errWrapper = new ServletException("First time only", err);
-            while (!found && (errWrapper instanceof ServletException)) {
-                errWrapper = ((ServletException) errWrapper).getRootCause();
-                for (int n = 0; n < exceptionClasses.length && !found; n++) {
+    public void sendError(int sc) throws IOException {
+        sendError(sc, null);
+    }
 
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneResponse.TestingException",
-                            exceptionClasses[n] + "");
-                    String errorPage = null;
-                    try {
-                        if (exceptionClasses[n].isInstance(err)) {
-                            errorPage = (String) errorPages
-                                    .get(exceptionClasses[n]);
-                            javax.servlet.RequestDispatcher rd = this.webAppConfig
-                                    .getErrorDispatcher(errorPage, new Integer(
-                                            SC_INTERNAL_SERVER_ERROR), err,
-                                            throwingServletName, req
-                                                    .getRequestURI());
-                            if (rd != null) {
-                                found = true;
-                                rd.forward(req, this);
-                            } else
-                                Logger
-                                        .log(
-                                                Logger.WARNING,
-                                                resources,
-                                                "WinstoneResponse.SkippingException",
-                                                new String[] {
-                                                        exceptionClasses[n]
-                                                                .getName(),
-                                                        (String) errorPages
-                                                                .get(exceptionClasses[n]) });
-                        }
-                    } catch (Throwable err2) {
-                        Logger.log(Logger.WARNING, this.resources,
-                                "WinstoneResponse.ErrorInErrorPage",
-                                new String[] { errorPage, "" + 500 }, err2);
-                    }
+    public void sendError(int sc, String msg) throws IOException {
+        if (!this.includeOutputStreams.isEmpty()) {
+            Logger.log(Logger.ERROR, resources, "IncludeResponse.Error",
+                    new String[] { "" + sc, msg });
+            return;
+        }
+        
+        Logger.log(Logger.DEBUG, this.resources,
+                "WinstoneResponse.SendingError", new String[] { "" + sc, msg });
+
+        if ((this.webAppConfig != null) && (this.req != null)) {
+//                && (this.webAppConfig.getErrorPagesByCode().get("" + sc) != null)) {
+//            String errorPage = (String) this.webAppConfig.getErrorPagesByCode().get("" + sc);
+            
+            RequestDispatcher rd = this.webAppConfig
+                    .getErrorDispatcherByCode(new Integer(sc), msg, null, null,
+                            getRequest().getRequestURI());
+            if (rd != null) {
+                try {
+                    rd.forward(this.req, this);
+                    return;
+                } catch (IllegalStateException err) {
+                    throw err;
+                } catch (IOException err) {
+                    throw err;
+                } catch (Throwable err) {
+                    Logger.log(Logger.WARNING, this.resources,
+                            "WinstoneResponse.ErrorInErrorPage", new String[] {
+                                    rd.getName(), sc + "" }, err);
+                    return;
                 }
             }
         }
-
-        // Fall through to the default page if no webapp or no errorPage tags
-        if (!found) {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw, true);
-            err.printStackTrace(pw);
-            sendError(SC_INTERNAL_SERVER_ERROR, resources.getString(
-                    "WinstoneResponse.ServletExceptionPage", sw.toString()));
-        }
+        
+        // If we are here there was no webapp and/or no request object, so 
+        // show the default error page
+        this.statusCode = sc;
+        String output = resources.getString("WinstoneResponse.ErrorPage",
+                new String[] { sc + "", (msg == null ? "" : msg), "",
+                        resources.getString("ServerVersion"),
+                        "" + new Date() });
+        setContentLength(output.getBytes(getCharacterEncoding()).length);
+        Writer out = getWriter();
+        out.write(output);
+        out.flush();
     }
 
     /**
