@@ -398,8 +398,8 @@ public class Launcher implements Runnable {
     
     private static void initLogger(Map args) throws IOException {
         // Reset the log level
-        int logLevel = args.get("debug") == null ? Logger.INFO : Integer
-                .parseInt((String) args.get("debug"));
+        int logLevel = WebAppConfiguration.intArg(args, "debug", Logger.INFO);
+        boolean showThrowingLineNo = WebAppConfiguration.booleanArg(args, "logThrowingLineNo", false);
         OutputStream logStream = null;
         if (args.get("logfile") != null) {
             logStream = new FileOutputStream((String) args.get("logfile"));
@@ -408,7 +408,7 @@ public class Launcher implements Runnable {
         } else {
             logStream = System.out;
         }
-        Logger.init(logLevel, logStream);
+        Logger.init(logLevel, logStream, showThrowingLineNo);
     }
 
     private static void printUsage(WinstoneResourceBundle resources) {

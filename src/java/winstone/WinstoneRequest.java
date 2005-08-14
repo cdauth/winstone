@@ -20,6 +20,7 @@ package winstone;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
@@ -93,6 +95,7 @@ public class WinstoneRequest implements HttpServletRequest {
     protected String contentType;
     protected String encoding;
     protected WinstoneInputStream inputData;
+    protected BufferedReader inputReader;
     protected ServletConfiguration servletConfig;
     protected WebAppConfiguration webappConfig;
     protected Listener listener;
@@ -163,6 +166,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.contentType = null;
         this.encoding = null;
         this.inputData = null;
+        this.inputReader = null;
         this.servletConfig = null;
         this.webappConfig = null;
         this.serverPort = -1;
@@ -447,7 +451,7 @@ public class WinstoneRequest implements HttpServletRequest {
     public void parseRequestParameters() {
         if ((parsedParameters != null) && !parsedParameters.booleanValue()) {
             Logger.log(Logger.WARNING, resources,
-                    "WinstoneRequest.BothMethodsCalled");
+                    "WinstoneRequest.BothMethods");
             this.parsedParameters = new Boolean(true);
         } else if (parsedParameters == null) {
             Map workingParameters = new HashMap();
@@ -702,8 +706,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public void addIncludeQueryParameters(String queryString) {
-        parseRequestParameters();
-        Map lastParams = new Hashtable(this.parameters);
+        Map lastParams = new Hashtable();
         if (!this.parametersStack.isEmpty()) {
             lastParams.putAll((Map) this.parametersStack.peek());
         }
@@ -814,7 +817,8 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.encoding;
     }
 
-    public void setCharacterEncoding(String encoding) {
+    public void setCharacterEncoding(String encoding) throws UnsupportedEncodingException {
+        "blah".getBytes(encoding);
         Logger.log(Logger.DEBUG, resources, "WinstoneRequest.SetCharEncoding",
                 new String[] { this.encoding, encoding });
         this.encoding = encoding;
@@ -853,31 +857,52 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public BufferedReader getReader() throws IOException {
-        if (this.encoding != null)
-            return new BufferedReader(new InputStreamReader(getInputStream(),
-                    this.encoding));
-        else
-            return new BufferedReader(new InputStreamReader(getInputStream()));
+        if (this.inputReader != null) {
+            return this.inputReader;
+        } else {
+            if (this.parsedParameters != null) {
+                if (this.parsedParameters.equals(Boolean.TRUE)) {
+                    Logger.log(Logger.WARNING, resources, "WinstoneRequest.BothMethodsReader");
+                } else {
+                    throw new IllegalStateException(resources.getString(
+                            "WinstoneRequest.CalledReaderAfterStream"));
+                }
+            }
+            if (this.encoding != null) {
+                this.inputReader = new BufferedReader(new InputStreamReader(
+                        this.inputData, this.encoding));
+            } else {
+                this.inputReader = new BufferedReader(new InputStreamReader(
+                        this.inputData));
+            }
+            this.parsedParameters = new Boolean(false);
+            return this.inputReader;
+        }
     }
 
     public ServletInputStream getInputStream() throws IOException {
-        if ((this.parsedParameters != null)
-                && this.parsedParameters.booleanValue())
-            Logger
-                    .log(Logger.WARNING, resources,
-                            "WinstoneRequest.BothMethods");
-        else
-            this.parsedParameters = new Boolean(false);
+        if (this.inputReader != null) {
+            throw new IllegalStateException(resources.getString(
+                    "WinstoneRequest.CalledStreamAfterReader"));
+        }
+        if (this.parsedParameters != null) {
+            if (this.parsedParameters.equals(Boolean.TRUE)) {
+                Logger.log(Logger.WARNING, resources, "WinstoneRequest.BothMethods");
+            }
+        }
+        this.parsedParameters = new Boolean(false);
         return this.inputData;
     }
 
     public String getParameter(String name) {
         parseRequestParameters();
-        Map parameters = this.parameters;
+        Object param = null;
         if (!this.parametersStack.isEmpty()) {
-            parameters = (Map) this.parametersStack.peek();
+            param = ((Map) this.parametersStack.peek()).get(name);
         }
-        Object param = parameters.get(name);
+        if (param == null) {
+            param = this.parameters.get(name);
+        }
         if (param == null)
             return null;
         else if (param instanceof String)
@@ -890,26 +915,26 @@ public class WinstoneRequest implements HttpServletRequest {
 
     public Enumeration getParameterNames() {
         parseRequestParameters();
-        Map parameters = this.parameters;
+        Set parameterKeys = new HashSet(this.parameters.keySet());
         if (!this.parametersStack.isEmpty()) {
-            parameters = (Map) this.parametersStack.peek();
+            parameterKeys.addAll(((Map) this.parametersStack.peek()).keySet());
         }
-        return Collections.enumeration(parameters.keySet());
+        return Collections.enumeration(parameterKeys);
     }
 
     public String[] getParameterValues(String name) {
         parseRequestParameters();
-        Map parameters = this.parameters;
+        Object param = null;
         if (!this.parametersStack.isEmpty()) {
-            parameters = (Map) this.parametersStack.peek();
+            param = ((Map) this.parametersStack.peek()).get(name);
         }
-        Object param = parameters.get(name);
+        if (param == null) {
+            param = this.parameters.get(name);
+        }
         if (param == null)
             return null;
         else if (param instanceof String) {
-            String arr[] = new String[1];
-            arr[0] = (String) param;
-            return arr;
+            return new String[] {(String) param};
         } else if (param instanceof String[])
             return (String[]) param;
         else

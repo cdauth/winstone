@@ -17,14 +17,18 @@
  */
 package winstone;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Map;
 
 import javax.servlet.Filter;
+import javax.servlet.FilterChain;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.UnavailableException;
 
 import org.w3c.dom.Node;
@@ -174,14 +178,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
      */
     public void destroy() {
         synchronized (this.filterSemaphore) {
-            if (this.instance != null) {
-                Logger.log(Logger.DEBUG, resources,
-                        "FilterConfiguration.destroy", this.filterName);
-                ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(this.loader);
-                this.instance.destroy();
-                Thread.currentThread().setContextClassLoader(cl);
-            }
+            setUnavailable();
         }
     }
 
@@ -194,10 +191,31 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
         return this.unavailableException;
     }
 
-    public void setUnavailable() {
+    protected void setUnavailable() {
         this.unavailableException = true;
-        if (this.instance != null)
+        if (this.instance != null) {
+            Logger.log(Logger.DEBUG, resources,
+                    "FilterConfiguration.destroy", this.filterName);
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.loader);
             this.instance.destroy();
-        this.instance = null;
+            Thread.currentThread().setContextClassLoader(cl);
+            this.instance = null;
+        }
+    }
+    
+    public void execute(ServletRequest request, ServletResponse response, FilterChain chain) 
+            throws ServletException, IOException {
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.loader);
+        try {
+            getFilter().doFilter(request, response, chain);
+        } catch (UnavailableException err) {
+            setUnavailable();
+            throw new ServletException(resources
+                    .getString("RequestDispatcher.FilterError"), err);
+        } finally {
+            Thread.currentThread().setContextClassLoader(cl);
+        }
     }
 }

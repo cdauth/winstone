@@ -32,8 +32,7 @@ import winstone.WinstoneResourceBundle;
  * Models a restriction on a particular set of resources in the webapp.
  * 
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
- * @version $Id: SecurityConstraint.java,v 1.4 2004/05/22 06:53:45 rickknowles
- *          Exp $
+ * @version $Id$
  */
 public class SecurityConstraint {
     final String ELEM_DISPLAY_NAME = "display-name";

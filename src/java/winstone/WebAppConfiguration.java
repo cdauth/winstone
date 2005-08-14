@@ -171,6 +171,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         return (String) (args.get(name) == null ? defaultValue : args.get(name));
     }
 
+    public static int intArg(Map args, String name, int defaultValue) {
+        return Integer.parseInt(stringArg(args, name, "" + defaultValue));
+    }
+
     /**
      * Constructor. This parses the xml and sets up for basic routing
      */
@@ -860,7 +864,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             Object autoStarters[] = startupServlets.toArray();
             Arrays.sort(autoStarters);
             for (int n = 0; n < autoStarters.length; n++) {
-                ((ServletConfiguration) autoStarters[n]).getRequestDispatcher(this.filterInstances, null);
+                ((ServletConfiguration) autoStarters[n]).ensureInitialization();
             }
         }
     }
@@ -943,20 +947,25 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * Iterates through each of the servlets/filters and calls destroy on them
      */
     public void destroy() {
-        for (Iterator i = this.filterInstances.values().iterator(); i.hasNext();) {
+        Collection filterInstances = new ArrayList(this.filterInstances.values());
+        for (Iterator i = filterInstances.iterator(); i.hasNext();) {
             try {
                 ((FilterConfiguration) i.next()).destroy();
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
             }
         }
-        for (Iterator i = this.servletInstances.values().iterator(); i.hasNext();) {
+        this.filterInstances.clear();
+        
+        Collection servletInstances = new ArrayList(this.servletInstances.values());
+        for (Iterator i = servletInstances.iterator(); i.hasNext();) {
             try {
                 ((ServletConfiguration) i.next()).destroy();
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
             }
         }
+        this.servletInstances.clear();
 
         // Drop all sessions
         Collection sessions = new ArrayList(this.sessions.values());
@@ -967,23 +976,30 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
             }
         }
+        this.sessions.clear();
 
         // Send destroy notifies - backwards
         for (int n = this.contextListeners.length - 1; n >= 0; n--) {
             try {
                 this.contextListeners[n].contextDestroyed(new ServletContextEvent(this));
+                this.contextListeners[n] = null;
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
             }
         }
+        this.contextListeners = null;
         
         // Terminate class loader reloading thread if running
-        if (this.loader instanceof WinstoneClassLoader)
+        if (this.loader instanceof WinstoneClassLoader) {
             ((WinstoneClassLoader) this.loader).destroy();
+            this.loader = null;
+        }
 
         // Kill JNDI manager if we have one
-        if (this.jndiManager != null)
+        if (this.jndiManager != null) {
             this.jndiManager.tearDown();
+            this.jndiManager = null;
+        }
     }
 
     /**
@@ -1044,12 +1060,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Check exact matches first
         String exact = (String) this.exactServletMatchMounts.get(path);
         if (exact != null) {
-            if (this.servletInstances.get(exact) == null)
-                throw new WinstoneException(resources.getString(
-                        "WebAppConfig.MatchedNonExistServlet", exact));
-            servletPath.append(path);
-            // pathInfo.append(""); // a hack - empty becomes null later
-            return (ServletConfiguration) this.servletInstances.get(exact);
+            if (this.servletInstances.get(exact) != null) {
+                servletPath.append(path);
+                // pathInfo.append(""); // a hack - empty becomes null later
+                return (ServletConfiguration) this.servletInstances.get(exact);
+            }
         }
 
         // Inexact mount check
@@ -1069,8 +1084,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     "WebAppConfig.MatchedNonExistServlet",
                     this.defaultServletName));
         pathInfo.append(path);
-        return (ServletConfiguration) this.servletInstances
-                .get(this.defaultServletName);
+        return (ServletConfiguration) this.servletInstances.get(this.defaultServletName);
     }
 
     /**
@@ -1230,11 +1244,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
     // Context level log statements
     public void log(String message) {
-        Logger.log(Logger.INFO, this.contextName, message, null);
+        Logger.logDirectMessage(Logger.INFO, this.contextName, message, null);
     }
 
     public void log(String message, Throwable throwable) {
-        Logger.log(Logger.ERROR, this.contextName, message, throwable);
+        Logger.logDirectMessage(Logger.ERROR, this.contextName, message, throwable);
     }
 
     /**
@@ -1305,7 +1319,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             throws IOException {
         if (!uriInsideWebapp.equals("") && !uriInsideWebapp.startsWith("/")) {
             return this.getErrorDispatcherByCode(
-                    new Integer(HttpServletResponse.SC_BAD_REQUEST),
+                    HttpServletResponse.SC_BAD_REQUEST,
                     resources.getString("WebAppConfig.InvalidURI", uriInsideWebapp),
                     null, null, uriInsideWebapp);
         } else if (this.contextStartupError != null) {
@@ -1317,7 +1331,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 //                            .toString()));
 //            return null;
             return this.getErrorDispatcherByCode(
-                    new Integer(HttpServletResponse.SC_INTERNAL_SERVER_ERROR),
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     resources.getString("WebAppConfig.ErrorDuringStartup", sw.toString()), 
                     this.contextStartupError, null, uriInsideWebapp);
         }
@@ -1398,8 +1412,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         }
         
         // If we are here, return a 404
-        return this.getErrorDispatcherByCode(
-                new Integer(HttpServletResponse.SC_NOT_FOUND),
+        return this.getErrorDispatcherByCode(HttpServletResponse.SC_NOT_FOUND,
                 resources.getString("StaticResourceServlet.PathNotFound", 
                         uriInsideWebapp), null, null, uriInsideWebapp);
     }
@@ -1408,7 +1421,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * Gets a dispatcher, set up for error dispatch.
      */
     public RequestDispatcher getErrorDispatcherByClass(
-            Integer statusCode, String summaryMessage, Throwable exception,
+            int statusCode, String summaryMessage, Throwable exception,
             String throwingServletName, String originalURI) {
 
         // Check for exception match
@@ -1446,7 +1459,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     }
     
     public RequestDispatcher getErrorDispatcherByCode(
-            Integer statusCode, String summaryMessage, Throwable exception,
+            int statusCode, String summaryMessage, Throwable exception,
             String throwingServletName, String originalURI) {
         // Check for status code match
         String errorURI = (String) getErrorPagesByCode().get("" + statusCode);
@@ -1479,7 +1492,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * Build a dispatcher to the error handler if it's available. If it fails, return null.
      */
     private RequestDispatcher buildErrorDispatcher(String errorURI, String originalURI, 
-            Integer statusCode, String summaryMessage, Throwable exception, String throwingServletName) {
+            int statusCode, String summaryMessage, Throwable exception, String throwingServletName) {
         // Parse the url for query string, etc 
         String queryString = "";
         int questionPos = errorURI.indexOf('?');

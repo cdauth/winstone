@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -59,6 +58,7 @@ public class WinstoneResponse implements HttpServletResponse {
     static final String CONTENT_TYPE_HEADER = "Content-Type";
 
     // Response header constants
+    static final String CONTENT_LANGUAGE_HEADER = "Content-Language";
     static final String KEEP_ALIVE_HEADER = "Connection";
     static final String ENCODING_HEADER = "Transfer-Encoding";
     static final String KEEP_ALIVE_OPEN = "Keep-Alive";
@@ -82,7 +82,7 @@ public class WinstoneResponse implements HttpServletResponse {
     private String encoding;
     private List cookies;
     
-    private Map outWriters;
+    private Map outPrintWriters;
     private Locale locale;
     private String protocol;
     private String reqKeepAliveHeader;
@@ -98,7 +98,7 @@ public class WinstoneResponse implements HttpServletResponse {
         this.cookies = new ArrayList();
         this.includeByteArrays = new Stack();
         this.includeOutputStreams = new Stack();
-        this.outWriters = new Hashtable();
+        this.outPrintWriters = new Hashtable();
 
         this.statusCode = SC_OK;
         this.locale = Locale.getDefault();
@@ -116,10 +116,9 @@ public class WinstoneResponse implements HttpServletResponse {
         this.outputStream = null;
         this.includeByteArrays.clear();
         this.includeOutputStreams.clear();
-        this.outWriters.clear();
+        this.outPrintWriters.clear();
         this.headers.clear();
         this.cookies.clear();
-        this.outWriters.clear();
         this.protocol = null;
         this.reqKeepAliveHeader = null;
 
@@ -188,6 +187,8 @@ public class WinstoneResponse implements HttpServletResponse {
         }
         ByteArrayOutputStream body = (ByteArrayOutputStream) this.includeByteArrays.pop();
         WinstoneOutputStream included = (WinstoneOutputStream) this.includeOutputStreams.pop();
+        PrintWriter includedWriter = (PrintWriter) this.outPrintWriters.get(included);
+        includedWriter.flush();
         included.commit();
         included.close();
         body.flush();
@@ -198,9 +199,9 @@ public class WinstoneResponse implements HttpServletResponse {
 
         // Try to write the body in
         WinstoneOutputStream including = getTopOutputStream();
-        Writer out = (Writer) this.outWriters.get(including);
+        PrintWriter out = (PrintWriter) this.outPrintWriters.get(including);
         if (out == null) {
-            out = new OutputStreamWriter(getOutputStream(), underlyingEncoding);
+            out = new PrintWriter(new OutputStreamWriter(getOutputStream(), underlyingEncoding), false);
         }
         out.write(bodyBlock);
         out.flush();
@@ -212,10 +213,10 @@ public class WinstoneResponse implements HttpServletResponse {
         }
         this.includeOutputStreams.clear();
         this.includeByteArrays.clear();
-        Writer mainOutWriter = (Writer) this.outWriters.get(this.outputStream);
-        this.outWriters.clear();
+        PrintWriter mainOutWriter = (PrintWriter) this.outPrintWriters.get(this.outputStream);
+        this.outPrintWriters.clear();
         if (mainOutWriter != null) {
-            this.outWriters.put(this.outputStream, mainOutWriter);
+            this.outPrintWriters.put(this.outputStream, mainOutWriter);
         }
     }
 
@@ -268,7 +269,11 @@ public class WinstoneResponse implements HttpServletResponse {
             this.setDateHeader(DATE_HEADER, System.currentTimeMillis());
         if (this.getHeader(X_POWERED_BY_HEADER) == null)
             this.setHeader(X_POWERED_BY_HEADER, POWERED_BY_WINSTONE);
-
+        if (this.locale != null) {
+            this.setHeader(CONTENT_LANGUAGE_HEADER, this.locale.getLanguage() + 
+                    (this.locale.getCountry() != null ? "-" + this.locale.getCountry() : ""));
+        }
+        
         // If we don't have a webappConfig, exit here, cause we definitely don't
         // have a session
         WinstoneRequest req = this.getRequest();
@@ -402,7 +407,7 @@ public class WinstoneResponse implements HttpServletResponse {
     // ServletResponse interface methods
     public void flushBuffer() throws IOException {
         WinstoneOutputStream outStream = getTopOutputStream();
-        Writer outWriter = (Writer) this.outWriters.get(outStream);
+        PrintWriter outWriter = (PrintWriter) this.outPrintWriters.get(outStream);
         if (outWriter != null) {
             try {
                 outWriter.flush();
@@ -449,10 +454,10 @@ public class WinstoneResponse implements HttpServletResponse {
             return;
         }
         
-        Writer outWriter = (Writer) this.outWriters.get(this.outputStream);
-        if (outWriter == null) {
-            // Logger.log(Logger.DEBUG, "Response.setLocale()");
-            this.locale = loc;
+        if (isCommitted()) {
+            Logger.log(Logger.WARNING, resources,
+                    "WinstoneResponse.SetLocaleTooLate");
+        } else if (this.outPrintWriters.get(this.outputStream) == null) {
             String ct = getHeader(CONTENT_TYPE_HEADER);
             String charset = getEncodingFromLocale(this.locale);
             if (ct == null)
@@ -462,10 +467,12 @@ public class WinstoneResponse implements HttpServletResponse {
             else
                 updateContentTypeHeader(ct.substring(0, ct.indexOf(';'))
                         + ";charset=" + charset);
-
-        } else
-            Logger.log(Logger.WARNING, resources,
-                    "WinstoneResponse.SetLocaleTooLate");
+        }
+        
+        // Logger.log(Logger.DEBUG, "Response.setLocale()");
+        if (!isCommitted()) {
+            this.locale = loc;
+        }
     }
 
     public ServletOutputStream getOutputStream() throws IOException {
@@ -475,19 +482,15 @@ public class WinstoneResponse implements HttpServletResponse {
     public PrintWriter getWriter() throws IOException {
         String encoding = getCharacterEncoding();
         ServletOutputStream outStream = getTopOutputStream();
-        Writer outWriter = (Writer) this.outWriters.get(outStream);
+        PrintWriter outWriter = (PrintWriter) this.outPrintWriters.get(outStream);
         if (outWriter != null)
-            return new PrintWriter(outWriter, true);
-        else
-            try {
-                outWriter = new OutputStreamWriter(outStream, encoding);
-                this.outWriters.put(outStream, outWriter);
-                return new PrintWriter(outWriter, true);
-            } catch (UnsupportedEncodingException err) {
-                throw new WinstoneException(resources
-                        .getString("WinstoneResponse.WriterError")
-                        + encoding, err);
-            }
+            return outWriter;
+        else {
+            Writer outStreamWriter = new OutputStreamWriter(outStream, encoding);
+            outWriter = new PrintWriter(outStreamWriter, false); 
+            this.outPrintWriters.put(outStream, outWriter);
+            return outWriter;
+        }
     }
 
     public boolean isCommitted() {
@@ -508,7 +511,7 @@ public class WinstoneResponse implements HttpServletResponse {
             if (isCommitted())
                 throw new IllegalStateException(resources
                         .getString("WinstoneResponse.ResponseCommitted"));
-            this.outWriters.remove(this.outputStream);
+            this.outPrintWriters.remove(this.outputStream);
             this.outputStream.reset();
         }
     }
@@ -667,7 +670,7 @@ public class WinstoneResponse implements HttpServletResponse {
 //            String errorPage = (String) this.webAppConfig.getErrorPagesByCode().get("" + sc);
             
             RequestDispatcher rd = this.webAppConfig
-                    .getErrorDispatcherByCode(new Integer(sc), msg, null, null,
+                    .getErrorDispatcherByCode(sc, msg, null, null,
                             getRequest().getRequestURI());
             if (rd != null) {
                 try {

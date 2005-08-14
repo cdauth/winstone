@@ -61,13 +61,14 @@ public class InvokerServlet extends HttpServlet {
      * Destroy any mounted instances we might be holding, then destroy myself
      */
     public void destroy() {
-        if (this.mountedInstances != null)
+        if (this.mountedInstances != null) {
             synchronized (this.mountedInstances) {
                 for (Iterator i = this.mountedInstances.values().iterator(); i
                         .hasNext();)
                     ((ServletConfiguration) i.next()).destroy();
+                this.mountedInstances.clear();
             }
-        super.destroy();
+        }
     }
 
     /**

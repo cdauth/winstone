@@ -245,8 +245,9 @@ public class RequestHandlerThread implements Runnable {
             Logger.log(Logger.WARNING, resources,
                     "RequestHandlerThread.UntrappedError", err);
             rdError = webAppConfig.getErrorDispatcherByClass(
-                    new Integer(WinstoneResponse.SC_INTERNAL_SERVER_ERROR), 
-                    err.toString(), err, rd.getName(), path);
+                    WinstoneResponse.SC_INTERNAL_SERVER_ERROR, 
+                    err.toString(), err, 
+                    rd != null ? rd.getName() : null, path);
         }
 
         // If there was any kind of error, execute the error dispatcher here

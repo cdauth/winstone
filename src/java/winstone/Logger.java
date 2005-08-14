@@ -54,23 +54,25 @@ public class Logger {
     protected static int currentDebugLevel;
     protected static DateFormat sdfLog = new SimpleDateFormat(
             "yyyy/MM/dd HH:mm:ss");
+    protected static boolean showThrowingLineNo;
 
     /**
      * Initialises default streams
      */
     public static void init(int level) {
-        init(level, System.out);
+        init(level, System.out, false);
     }
 
     /**
      * Initialises default streams
      */
-    public static void init(int level, OutputStream defaultStream) {
+    public static void init(int level, OutputStream defaultStream, boolean showThrowingLineNoArg) {
         currentDebugLevel = level;
         streams = new Hashtable();
         nullStreams = new ArrayList();
         initialised = true;
         setStream(DEFAULT_STREAM, defaultStream);
+        showThrowingLineNo = showThrowingLineNoArg;
     }
 
     /**
@@ -134,81 +136,107 @@ public class Logger {
      * /** Writes a log message to the requested stream, and immediately flushes
      * the contents of the stream.
      */
-    public static void log(int level, String streamName, String message,
-            Throwable error) {
-        if (currentDebugLevel < level)
-            return;
-        else // synchronized (semaphore)
-        {
-            if (!initialised)
-                init(INFO);
-            PrintWriter stream = (PrintWriter) streams.get(streamName);
-            boolean nullStream = nullStreams.contains(streamName);
-            if ((stream == null) && !nullStream)
-                stream = (PrintWriter) streams.get(DEFAULT_STREAM);
-
-            if (stream != null) {
-                StringBuffer fullMessage = new StringBuffer();
-                fullMessage.append("[").append(streamName).append(" ").append(
-                        sdfLog.format(new Date())).append("] - ").append(
-                        message);
-                if (error != null) {
-                    StringWriter sw = new StringWriter();
-                    PrintWriter pw = new PrintWriter(sw);
-                    error.printStackTrace(pw);
-                    pw.flush();
-                    fullMessage.append('\n').append(sw.toString());
-                }
-                stream.println(fullMessage.toString());
-                stream.flush();
+    private static void logInternal(String streamName, String message, Throwable error) {
+        
+        if (!initialised) {
+            init(INFO);
+        }
+        
+        String lineNoText = "";
+        if (showThrowingLineNo) {
+            Throwable dummyError = new RuntimeException();
+            StackTraceElement[] elements = dummyError.getStackTrace();
+            int elemNumber = Math.min(2, elements.length);
+            String errorClass = elements[elemNumber].getClassName();
+            if (errorClass.lastIndexOf('.') != -1) {
+                errorClass = errorClass.substring(errorClass.lastIndexOf('.') + 1);
             }
+            lineNoText = "[" + errorClass + ":" + elements[elemNumber].getLineNumber() + "] - "; 
+        }
+
+        PrintWriter stream = (PrintWriter) streams.get(streamName);
+        boolean nullStream = nullStreams.contains(streamName);
+        if ((stream == null) && !nullStream)
+            stream = (PrintWriter) streams.get(DEFAULT_STREAM);
+
+        if (stream != null) {
+            StringBuffer fullMessage = new StringBuffer();
+            fullMessage.append("[").append(streamName).append(" ").append(
+                    sdfLog.format(new Date())).append("] - ").append(
+                            lineNoText).append(message);
+            if (error != null) {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                error.printStackTrace(pw);
+                pw.flush();
+                fullMessage.append('\n').append(sw.toString());
+            }
+            stream.println(fullMessage.toString());
+            stream.flush();
         }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey) {
-        log(level, resources, DEFAULT_STREAM, messageKey, (String[]) null, null);
+        if (currentDebugLevel < level)
+            return;
+        else
+            logInternal(DEFAULT_STREAM, resources.getString(messageKey), null);
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, Throwable error) {
-        log(level, resources, DEFAULT_STREAM, messageKey, (String[]) null,
-                error);
+        if (currentDebugLevel < level)
+            return;
+        else
+            logInternal(DEFAULT_STREAM, resources.getString(messageKey), error);
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String param) {
-        log(level, resources, DEFAULT_STREAM, messageKey,
-                new String[] { param }, null);
+        if (currentDebugLevel < level)
+            return;
+        else
+            logInternal(DEFAULT_STREAM, resources.getString(messageKey, param), null);
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String params[]) {
-        log(level, resources, DEFAULT_STREAM, messageKey, params, null);
+        if (currentDebugLevel < level)
+            return;
+        else
+            logInternal(DEFAULT_STREAM, resources.getString(messageKey, params), null);
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String param, Throwable error) {
-        log(level, resources, DEFAULT_STREAM, messageKey,
-                new String[] { param }, error);
+        if (currentDebugLevel < level)
+            return;
+        else
+            logInternal(DEFAULT_STREAM, resources.getString(messageKey, param), error);
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String params[], Throwable error) {
-        log(level, resources, DEFAULT_STREAM, messageKey, params, error);
+        if (currentDebugLevel < level)
+            return;
+        else
+            logInternal(DEFAULT_STREAM, resources.getString(messageKey, params), error);
     }
 
-    /**
-     * Writes a log message to the requested stream, and immediately flushes
-     * the contents of the stream.
-     */
     public static void log(int level, WinstoneResourceBundle resources,
-            String streamName, String messageKey, String params[],
+            String streamName, String messageKey, String params[], Throwable error) {
+        if (currentDebugLevel < level)
+            return;
+        else
+            logInternal(streamName, resources.getString(messageKey, params), error);
+    }
+
+    public static void logDirectMessage(int level, String streamName, String message, 
             Throwable error) {
         if (currentDebugLevel < level)
             return;
         else
-            log(level, streamName, resources.getString(messageKey, params),
-                    error);
+            logInternal(streamName, message, error);
     }
 }

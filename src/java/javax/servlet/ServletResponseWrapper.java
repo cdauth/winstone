@@ -37,6 +37,9 @@ public class ServletResponseWrapper implements ServletResponse {
     }
 
     public void setResponse(ServletResponse response) {
+        if (response == null) {
+            throw new IllegalArgumentException("Response was null");
+        }
         this.response = response;
     }
 

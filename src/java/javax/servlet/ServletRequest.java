@@ -17,11 +17,12 @@
  */
 package javax.servlet;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Map;
-import java.io.BufferedReader;
-import java.io.IOException;
 
 /**
  * Base request object interface definition.
@@ -83,7 +84,7 @@ public interface ServletRequest {
 
     public void setAttribute(String name, Object o);
 
-    public void setCharacterEncoding(String env);
+    public void setCharacterEncoding(String enc) throws UnsupportedEncodingException;
 
     /**
      * @deprecated As of Version 2.1 of the Java Servlet API, use

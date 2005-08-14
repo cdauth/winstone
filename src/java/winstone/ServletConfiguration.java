@@ -17,6 +17,7 @@
  */
 package winstone;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -25,6 +26,10 @@ import java.util.Map;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.UnavailableException;
+import javax.servlet.http.HttpServletResponse;
 
 import org.w3c.dom.Node;
 
@@ -37,6 +42,7 @@ import org.w3c.dom.Node;
  */
 public class ServletConfiguration implements javax.servlet.ServletConfig,
         Comparable {
+    
     static final String ELEM_NAME = "servlet-name";
     static final String ELEM_DISPLAY_NAME = "display-name";
     static final String ELEM_CLASS = "servlet-class";
@@ -51,6 +57,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     static final String ELEM_ROLE_NAME = "role-name";
     static final String ELEM_ROLE_LINK = "role-link";
     
+    final String JSP_FILE = "org.apache.catalina.jsp_file";
+
     private String servletName;
     private String classFile;
     private Servlet instance;
@@ -64,6 +72,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     private Map securityRoleRefs;
     private WinstoneResourceBundle resources;
     private Object servletSemaphore = new Boolean(true);
+    private boolean isSingleThreadModel = false;
     private boolean unavailable = false;
     
     protected ServletConfiguration(WebAppConfiguration webAppConfig,
@@ -173,69 +182,102 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
      */
     public RequestDispatcher getRequestDispatcher(Map filters, String originalURI) {
         
-        boolean failed = false;
+        // Build filter chain
+        if (this.unavailable) {
+            return null;
+        } else {
+            return new RequestDispatcher(this, this.servletName,
+                    this.loader, this.prefix, this.jspFile,
+                    filters, this.resources);
+        }
+    }
+    
+    protected ServletException ensureInitialization() {
+        
+        if (this.instance != null) {
+            return null; // already init'd
+        }
         
         synchronized (this.servletSemaphore) {
             // Check if we were decommissioned while blocking
             if (this.unavailable) {
-                // Return the 404-dispatcher
-                failed = true;
-            } 
+                return null; 
+            }
             
             // If no instance, class load, then call init()
-            else if ((this.instance == null)) {
-                ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(this.loader);
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.loader);
+            
+            try {
+                Class servletClass = Class.forName(classFile, true, this.loader);
+                this.instance = (Servlet) servletClass.newInstance();
+                this.isSingleThreadModel = Class.forName(
+                        "javax.servlet.SingleThreadModel").isInstance(this.instance);
                 
-                try {
-                    Class servletClass = Class.forName(classFile, true, this.loader);
-                    this.instance = (Servlet) servletClass.newInstance();
-                } catch (ClassNotFoundException err) {
-                    Logger.log(Logger.WARNING, resources, 
-                            "ServletConfiguration.ClassLoadError", this.classFile, err);
-                    setUnavailable();
-                    failed = true;
-                } catch (IllegalAccessException err) {
-                    Logger.log(Logger.WARNING, resources, 
-                            "ServletConfiguration.ClassLoadError", this.classFile, err);
-                    setUnavailable();
-                    failed = true;
-                } catch (InstantiationException err) {
-                    Logger.log(Logger.WARNING, resources, 
-                            "ServletConfiguration.ClassLoadError", this.classFile, err);
-                    setUnavailable();
-                    failed = true;
-                }
-                
-                if (!failed) {
-                    try {
-                        // Initialise with the correct classloader
-                        Logger.log(Logger.DEBUG, resources, "ServletConfiguration.init", this.servletName);
-                        this.instance.init(this);
-                        Thread.currentThread().setContextClassLoader(cl);
-                    } catch (ServletException err) {
-                        Logger.log(Logger.WARNING, resources, 
-                                "ServletConfiguration.InitError", this.servletName, err);
-                        setUnavailable();
-                        failed = true;
-                    }
-                }
+                // Initialise with the correct classloader
+                Logger.log(Logger.DEBUG, resources, "ServletConfiguration.init", this.servletName);
+                this.instance.init(this);
+            } catch (ClassNotFoundException err) {
+                Logger.log(Logger.WARNING, resources, 
+                        "ServletConfiguration.ClassLoadError", this.classFile, err);
+                setUnavailable();
+            } catch (IllegalAccessException err) {
+                Logger.log(Logger.WARNING, resources, 
+                        "ServletConfiguration.ClassLoadError", this.classFile, err);
+                setUnavailable();
+            } catch (InstantiationException err) {
+                Logger.log(Logger.WARNING, resources, 
+                        "ServletConfiguration.ClassLoadError", this.classFile, err);
+                setUnavailable();
+            } catch (ServletException err) {
+                Logger.log(Logger.WARNING, resources, 
+                        "ServletConfiguration.InitError", this.servletName, err);
+                this.instance = null; // so that we don't call the destroy method
+                setUnavailable();
+                return err;
+            } finally {
+                Thread.currentThread().setContextClassLoader(cl);
             }
         }
-
-        // Build filter chain
-        if (failed) {
-//            return this.webAppConfig.getErrorDispatcherByCode(
-//                    new Integer(HttpServletResponse.SC_NOT_FOUND), null, 
-//                    getServletName(), originalURI);
-            return null;
-        } else {
-            return new RequestDispatcher(this, this.instance, this.servletName,
-                    this.loader, this.servletSemaphore, this.prefix, this.jspFile,
-                    filters, this.resources);
-        }
+        return null;
     }
 
+    public void execute(ServletRequest request, ServletResponse response)
+            throws ServletException, IOException {
+        
+        ensureInitialization();
+        
+        // If init failed, return 500 error
+        if (this.unavailable) {
+            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                    resources.getString("ServletConfiguration.InitError", this.servletName));
+            return;
+        }
+        
+        if (this.jspFile != null)
+            request.setAttribute(JSP_FILE, this.jspFile);
+
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.loader);
+
+        try {
+            if (this.isSingleThreadModel) {
+                synchronized (this) {
+                    this.instance.service(request, response);
+                }
+            } else
+                this.instance.service(request, response);
+        } catch (UnavailableException err) {
+            // catch locally and rethrow as a new ServletException, so 
+            // we only invalidate the throwing servlet
+            setUnavailable();
+            throw new ServletException(resources.getString(
+                    "RequestDispatcher.ForwardError"), err);
+        } finally {
+            Thread.currentThread().setContextClassLoader(cl);
+        }
+    }
+    
     public int getLoadOnStartup() {
         return this.loadOnStartup;
     }
@@ -275,25 +317,24 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
      */
     public void destroy() {
         synchronized (this.servletSemaphore) {
-            if (this.instance != null) {
-                Logger.log(Logger.DEBUG, resources,
-                        "ServletConfiguration.destroy", this.servletName);
-                ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(this.loader);
-                try {
-                    this.instance.destroy();
-                } finally {
-                    Thread.currentThread().setContextClassLoader(cl);
-                }
-            }
+            setUnavailable();
         }
     }
 
-    public void setUnavailable() {
+    protected void setUnavailable() {
         this.unavailable = true;
-        if (this.instance != null)
-            this.instance.destroy();
-        this.instance = null;
+        if (this.instance != null) {
+            Logger.log(Logger.DEBUG, resources,
+                    "ServletConfiguration.destroy", this.servletName);
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.loader);
+            try {
+                this.instance.destroy();
+            } finally {
+                Thread.currentThread().setContextClassLoader(cl);
+                this.instance = null;
+            }
+        }
         
         // remove from webapp
         this.webAppConfig.removeServletConfigurationAndMappings(this);

@@ -51,7 +51,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         this.resources = resources;
         this.outStream = out;
         this.bodyOnly = bodyOnly;
-        setBufferSize(DEFAULT_BUFFER_SIZE);
+        this.bufferSize = DEFAULT_BUFFER_SIZE;
         this.committed = false;
         // this.headersWritten = false;
         this.buffer = new ByteArrayOutputStream();
@@ -66,6 +66,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     }
 
     public void setBufferSize(int bufferSize) {
+        if (this.owner.isCommitted()) {
+            throw new IllegalStateException(resources.getString(
+                    "WinstoneOutputStream.AlreadyCommitted"));
+        }
         this.bufferSize = bufferSize;
     }
 
@@ -96,6 +100,8 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             this.owner.validateHeaders();
             this.owner.verifyContentLength();
 
+            Logger.log(Logger.DEBUG, resources, "WinstoneOutputStream.CommittingOutputStream");
+            
             PrintStream headerStream = new PrintStream(this.outStream, true);
             String statusLine = this.owner.getProtocol() + " "
                     + this.owner.getStatus();

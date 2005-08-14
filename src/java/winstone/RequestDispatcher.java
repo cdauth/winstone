@@ -20,13 +20,11 @@ package winstone;
 import java.io.IOException;
 import java.util.Map;
 
-import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestWrapper;
 import javax.servlet.ServletResponse;
 import javax.servlet.ServletResponseWrapper;
-import javax.servlet.UnavailableException;
 
 /**
  * This class implements both the RequestDispatcher and FilterChain components. On 
@@ -59,14 +57,11 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
     static final String ERROR_REQUEST_URI = "javax.servlet.error.request_uri";
     static final String ERROR_SERVLET_NAME = "javax.servlet.error.servlet_name";
     
-    final String JSP_FILE = "org.apache.catalina.jsp_file";
-    
     private ServletConfiguration config;
-    private Servlet instance;
     private String name;
     private String prefix;
-    private ClassLoader loader;
-    private Object semaphore;
+//    private ClassLoader loader;
+//    private Object semaphore;
     private WinstoneResourceBundle resources;
     
     private Map filters;
@@ -98,15 +93,13 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
      * needed to handle a servlet excecution, such as security constraints,
      * filters, etc.
      */
-    public RequestDispatcher(ServletConfiguration config, Servlet instance,
-            String name, ClassLoader loader, Object semaphore, String prefix,
+    public RequestDispatcher(ServletConfiguration config, String name, 
+            ClassLoader loader, String prefix,
             String jspFile, Map filters, WinstoneResourceBundle resources) {
         this.config = config;
         this.resources = resources;
-        this.instance = instance;
         this.name = name;
-        this.loader = loader;
-        this.semaphore = semaphore;
+//        this.loader = loader;
         this.prefix = prefix;
         this.jspFile = jspFile;
         this.filters = filters;
@@ -139,7 +132,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
     }
 
     public void setForErrorDispatcher(String servletPath, String pathInfo,
-            String queryString, String requestURI, Integer statusCode,
+            String queryString, String requestURI, int statusCode,
             String summaryMessage, Throwable exception, String originalErrorURI,
             String errorServletName, Mapping errorFilterPatterns[]) {
         this.servletPath = servletPath;
@@ -147,7 +140,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         this.queryString = queryString;
         this.requestURI = requestURI;
 
-        this.errorStatusCode = statusCode;
+        this.errorStatusCode = new Integer(statusCode);
         this.errorException = exception;
         this.errorURI = originalErrorURI;
         this.errorServletName = errorServletName;
@@ -224,26 +217,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             }
             else {
 
-                ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(this.loader);
-                if (this.jspFile != null)
-                    request.setAttribute(JSP_FILE, this.jspFile);
-
                 try {
-                    if (this.instance instanceof javax.servlet.SingleThreadModel)
-                        synchronized (this.semaphore) {
-                            this.instance.service(request, response);
-                        }
-                    else
-                        this.instance.service(request, response);
-                } catch (UnavailableException err) {
-                    // catch locally and rethrow as a new ServletException, so 
-                    // we only invalidate the throwing servlet
-                    this.config.setUnavailable();
-                    throw new ServletException(resources
-                            .getString("RequestDispatcher.IncludeError"), err);
+                    this.config.execute(request, response);
                 } finally {
-                    Thread.currentThread().setContextClassLoader(cl);
                     if (this.filterPatterns.length == 0) {
                         finishInclude(request, response);
                     }
@@ -376,33 +352,10 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         }
 
         // Make sure the filter chain is exhausted first
-        if ((this.filterPatterns.length > 0)
-                && (this.filterPatternsEvaluated < this.filterPatterns.length))
+        if (this.filterPatternsEvaluated < this.filterPatterns.length)
             doFilter(request, response);
-        else {
-            // Execute
-            ClassLoader cl = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(this.loader);
-            if (this.jspFile != null)
-                request.setAttribute(JSP_FILE, this.jspFile);
-
-            try {
-                if (this.instance instanceof javax.servlet.SingleThreadModel)
-                    synchronized (this.semaphore) {
-                        this.instance.service(request, response);
-                    }
-                else
-                    this.instance.service(request, response);
-            } catch (UnavailableException err) {
-                // catch locally and rethrow as a new ServletException, so 
-                // we only invalidate the throwing servlet
-                this.config.setUnavailable();
-                throw new ServletException(resources.getString(
-                        "RequestDispatcher.ForwardError"), err);
-            }
-
-            Thread.currentThread().setContextClassLoader(cl);
-        }
+        else
+            this.config.execute(request, response);
     }
 
     private boolean continueAfterSecurityCheck(ServletRequest request,
@@ -426,8 +379,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         while (this.filterPatternsEvaluated < this.filterPatterns.length) {
             // Get the pattern and eval it, bumping up the eval'd count
             Mapping filterPattern = this.filterPatterns[this.filterPatternsEvaluated++];
-            String fullPath = this.servletPath
-                    + (this.pathInfo == null ? "" : this.pathInfo);
+            String fullPath = this.servletPath + (this.pathInfo == null ? "" : this.pathInfo);
 
             // If the servlet name matches this name, execute it
             if ((filterPattern.getLinkName() != null)
@@ -435,37 +387,19 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                 FilterConfiguration filter = (FilterConfiguration) this.filters
                         .get(filterPattern.getMappedTo());
                 Logger.log(Logger.DEBUG, this.resources,
-                        "RequestDispatcher.ExecutingFilter", filterPattern
-                                .getMappedTo());
-                ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(this.loader);
-                try {
-                    filter.getFilter().doFilter(request, response, this);
-                } catch (UnavailableException err) {
-                    filter.setUnavailable();
-                    throw new ServletException(resources
-                            .getString("RequestDispatcher.FilterError"), err);
-                }
-                Thread.currentThread().setContextClassLoader(cl);
+                        "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
+                filter.execute(request, response, this);
                 return;
-            } else if ((filterPattern.getLinkName() == null)
+            }
+            // If the url path matches this filters mappings
+            else if ((filterPattern.getLinkName() == null)
                     && (this.servletPath != null)
                     && filterPattern.match(fullPath, null, null)) {
                 FilterConfiguration filter = (FilterConfiguration) this.filters
                         .get(filterPattern.getMappedTo());
-                Logger.log(Logger.DEBUG, this.resources,
-                        "RequestDispatcher.ExecutingFilter", filterPattern
-                                .getMappedTo());
-                ClassLoader cl = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(this.loader);
-                try {
-                    filter.getFilter().doFilter(request, response, this);
-                } catch (UnavailableException err) {
-                    filter.setUnavailable();
-                    throw new ServletException(resources
-                            .getString("RequestDispatcher.FilterError"), err);
-                }
-                Thread.currentThread().setContextClassLoader(cl);
+                Logger.log(Logger.DEBUG, this.resources, 
+                        "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
+                filter.execute(request, response, this);
                 return;
             } else {
                 Logger.log(Logger.FULL_DEBUG, this.resources, "RequestDispatcher.BypassingFilter",

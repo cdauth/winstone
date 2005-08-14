@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Wraps a servlet request object using the decorator pattern.
@@ -40,7 +41,11 @@ public class ServletRequestWrapper implements ServletRequest {
     }
 
     public void setRequest(ServletRequest request) {
-        this.request = request;
+        if (request == null) {
+            throw new IllegalArgumentException("Request was null");
+        } else {
+            this.request = request;
+        }
     }
 
     public Object getAttribute(String name) {
@@ -63,7 +68,7 @@ public class ServletRequestWrapper implements ServletRequest {
         return this.request.getCharacterEncoding();
     }
 
-    public void setCharacterEncoding(String enc) {
+    public void setCharacterEncoding(String enc) throws UnsupportedEncodingException {
         this.request.setCharacterEncoding(enc);
     }
 
