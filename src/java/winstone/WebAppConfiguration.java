@@ -1115,6 +1115,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * @return A valid session instance
      */
     public WinstoneSession getSessionById(String sessionId, boolean localOnly) {
+        if (sessionId == null) {
+            return null;
+        }
         WinstoneSession session = (WinstoneSession) this.sessions.get(sessionId);
         if (session != null) {
             return session;

@@ -123,7 +123,7 @@ public class WinstoneResponse implements HttpServletResponse {
         this.reqKeepAliveHeader = null;
 
         this.statusCode = SC_OK;
-        this.locale = Locale.getDefault();
+        this.locale = null; //Locale.getDefault();
         this.encoding = null;
     }
 
@@ -188,7 +188,9 @@ public class WinstoneResponse implements HttpServletResponse {
         ByteArrayOutputStream body = (ByteArrayOutputStream) this.includeByteArrays.pop();
         WinstoneOutputStream included = (WinstoneOutputStream) this.includeOutputStreams.pop();
         PrintWriter includedWriter = (PrintWriter) this.outPrintWriters.get(included);
-        includedWriter.flush();
+        if (includedWriter != null) {
+            includedWriter.flush();
+        }
         included.commit();
         included.close();
         body.flush();
@@ -240,7 +242,7 @@ public class WinstoneResponse implements HttpServletResponse {
     /**
      * A check to ensure correct content length values
      */
-    public void verifyContentLength() {
+    public void verifyContentLength() throws IOException {
         String length = getHeader(CONTENT_LENGTH_HEADER);
         if (length != null) {
             int contentLength = 0;
@@ -409,10 +411,7 @@ public class WinstoneResponse implements HttpServletResponse {
         WinstoneOutputStream outStream = getTopOutputStream();
         PrintWriter outWriter = (PrintWriter) this.outPrintWriters.get(outStream);
         if (outWriter != null) {
-            try {
-                outWriter.flush();
-            } catch (Throwable err) {
-            }
+            outWriter.flush();
         }
         outStream.flush();
     }
@@ -446,7 +445,7 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public Locale getLocale() {
-        return this.locale;
+        return this.locale == null ? Locale.getDefault() : this.locale;
     }
 
     public void setLocale(Locale loc) {
@@ -459,7 +458,7 @@ public class WinstoneResponse implements HttpServletResponse {
                     "WinstoneResponse.SetLocaleTooLate");
         } else if (this.outPrintWriters.get(this.outputStream) == null) {
             String ct = getHeader(CONTENT_TYPE_HEADER);
-            String charset = getEncodingFromLocale(this.locale);
+            String charset = getEncodingFromLocale(getLocale());
             if (ct == null)
                 updateContentTypeHeader("text/html;charset=" + charset);
             else if (ct.indexOf(';') == -1)
@@ -469,7 +468,6 @@ public class WinstoneResponse implements HttpServletResponse {
                         + ";charset=" + charset);
         }
         
-        // Logger.log(Logger.DEBUG, "Response.setLocale()");
         if (!isCommitted()) {
             this.locale = loc;
         }
@@ -480,13 +478,12 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public PrintWriter getWriter() throws IOException {
-        String encoding = getCharacterEncoding();
         ServletOutputStream outStream = getTopOutputStream();
         PrintWriter outWriter = (PrintWriter) this.outPrintWriters.get(outStream);
         if (outWriter != null)
             return outWriter;
         else {
-            Writer outStreamWriter = new OutputStreamWriter(outStream, encoding);
+            Writer outStreamWriter = new OutputStreamWriter(outStream, getCharacterEncoding());
             outWriter = new PrintWriter(outStreamWriter, false); 
             this.outPrintWriters.put(outStream, outWriter);
             return outWriter;
@@ -511,7 +508,16 @@ public class WinstoneResponse implements HttpServletResponse {
             if (isCommitted())
                 throw new IllegalStateException(resources
                         .getString("WinstoneResponse.ResponseCommitted"));
-            this.outPrintWriters.remove(this.outputStream);
+            
+            // Disregard any output temporarily while we flush
+            this.outputStream.setDisregardMode(true);
+            PrintWriter mainOutWriter = (PrintWriter) this.outPrintWriters.get(this.outputStream);
+            this.outPrintWriters.clear();
+            if (mainOutWriter != null) {
+                mainOutWriter.flush();
+                this.outPrintWriters.put(this.outputStream, mainOutWriter);
+            }
+            this.outputStream.setDisregardMode(false);
             this.outputStream.reset();
         }
     }

@@ -63,7 +63,7 @@ public interface ServletContext {
     /**
      * @deprecated As of Java Servlet API 2.1, with no direct replacement.
      */
-    public Servlet getServlet(String name);
+    public Servlet getServlet(String name) throws ServletException;
 
     /**
      * @deprecated As of Java Servlet API 2.1, with no replacement.

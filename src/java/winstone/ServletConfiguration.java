@@ -242,15 +242,15 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         return null;
     }
 
-    public void execute(ServletRequest request, ServletResponse response)
+    public void execute(ServletRequest request, ServletResponse response, String requestURI)
             throws ServletException, IOException {
         
         ensureInitialization();
         
         // If init failed, return 500 error
         if (this.unavailable) {
-            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                    resources.getString("ServletConfiguration.InitError", this.servletName));
+            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_NOT_FOUND, 
+                    resources.getString("StaticResourceServlet.PathNotFound", requestURI));
             return;
         }
         
@@ -271,8 +271,10 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             // catch locally and rethrow as a new ServletException, so 
             // we only invalidate the throwing servlet
             setUnavailable();
-            throw new ServletException(resources.getString(
-                    "RequestDispatcher.ForwardError"), err);
+            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_NOT_FOUND, 
+                    resources.getString("StaticResourceServlet.PathNotFound", requestURI));
+//            throw new ServletException(resources.getString(
+//                    "RequestDispatcher.ForwardError"), err);
         } finally {
             Thread.currentThread().setContextClassLoader(cl);
         }

@@ -23,19 +23,15 @@ package javax.servlet.http;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @deprecated
  */
-public class HttpSessionContext {
+public abstract interface HttpSessionContext {
     /**
      * @deprecated
      */
-    public java.util.Enumeration getIds() {
-        return java.util.Collections.enumeration(new java.util.ArrayList());
-    }
+    public abstract java.util.Enumeration getIds();
 
     /**
      * @deprecated
      */
-    public HttpSession getSession(String sessionId) {
-        return null;
-    }
+    public abstract HttpSession getSession(String sessionId);
 
 }

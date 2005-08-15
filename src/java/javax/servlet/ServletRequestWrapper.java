@@ -33,7 +33,7 @@ public class ServletRequestWrapper implements ServletRequest {
     private ServletRequest request;
 
     public ServletRequestWrapper(ServletRequest request) {
-        this.request = request;
+        setRequest(request);
     }
 
     public ServletRequest getRequest() {

@@ -42,15 +42,16 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     protected boolean bodyOnly;
     protected WinstoneResourceBundle resources;
     protected WinstoneResponse owner;
-
+    protected boolean disregardMode = false;
+    
     /**
      * Constructor
      */
-    public WinstoneOutputStream(OutputStream out, boolean bodyOnly,
+    public WinstoneOutputStream(OutputStream out, boolean bodyOnlyForInclude,
             WinstoneResourceBundle resources) {
         this.resources = resources;
         this.outStream = out;
-        this.bodyOnly = bodyOnly;
+        this.bodyOnly = bodyOnlyForInclude;
         this.bufferSize = DEFAULT_BUFFER_SIZE;
         this.committed = false;
         // this.headersWritten = false;
@@ -80,10 +81,16 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     public int getBytesWritten() {
         return this.bytesWritten;
     }
+    
+    public void setDisregardMode(boolean disregard) {
+        this.disregardMode = disregard;
+    }
 
     public void write(int oneChar) throws IOException {
-        // System.out.println("Out: " + this.bufferPosition + " char=" +
-        // (char)oneChar);
+        if (this.disregardMode) {
+            return;
+        }
+//        System.out.println("Out: " + this.bufferPosition + " char=" + (char)oneChar);
         this.buffer.write(oneChar);
         this.bufferPosition++;
         // if (this.headersWritten)
@@ -97,6 +104,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
 
         // If we haven't written the headers yet, write them out
         if (!this.committed && !this.bodyOnly) {
+            this.committed = true;
             this.owner.validateHeaders();
             this.owner.verifyContentLength();
 
@@ -140,7 +148,6 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         Logger.log(Logger.FULL_DEBUG, resources,
                 "WinstoneOutputStream.CommittedBytes", "" + this.bytesWritten);
 
-        this.committed = true;
         this.buffer.reset();
         this.bufferPosition = 0;
     }
@@ -165,6 +172,9 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     }
 
     public void flush() throws IOException {
+        if (this.disregardMode) {
+            return;
+        }
         super.flush();
         this.commit();
     }

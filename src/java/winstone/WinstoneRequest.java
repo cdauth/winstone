@@ -480,9 +480,6 @@ public class WinstoneRequest implements HttpServletRequest {
                 // Parse query string from request
                 if ((method.equals(METHOD_GET) || method.equals(METHOD_POST))
                         && (this.queryString != null)) {
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParsingParameters", new String[] {
-                                    this.queryString, this.encoding });
                     extractParameters(this.queryString, this.encoding, workingParameters, resources);
                     Logger.log(Logger.FULL_DEBUG, resources,
                             "WinstoneRequest.ParamLine", "" + workingParameters);
@@ -1122,8 +1119,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public boolean isRequestedSessionIdValid() {
-        WinstoneSession ws = this.webappConfig.getSessionById(getSessionId(),
-                false);
+        WinstoneSession ws = this.webappConfig.getSessionById(getSessionId(), false);
         if (ws == null)
             return false;
         else

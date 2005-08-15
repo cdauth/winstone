@@ -218,7 +218,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             else {
 
                 try {
-                    this.config.execute(request, response);
+                    this.config.execute(request, response, this.prefix + this.requestURI);
                 } finally {
                     if (this.filterPatterns.length == 0) {
                         finishInclude(request, response);
@@ -355,7 +355,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         if (this.filterPatternsEvaluated < this.filterPatterns.length)
             doFilter(request, response);
         else
-            this.config.execute(request, response);
+            this.config.execute(request, response, this.prefix + this.requestURI);
     }
 
     private boolean continueAfterSecurityCheck(ServletRequest request,

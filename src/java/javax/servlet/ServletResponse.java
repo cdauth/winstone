@@ -31,9 +31,9 @@ public interface ServletResponse {
 
     public int getBufferSize();
 
-    public void reset() throws IllegalStateException;
+    public void reset();
 
-    public void resetBuffer() throws IllegalStateException;
+    public void resetBuffer();
 
     public void setBufferSize(int size);
 

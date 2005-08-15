@@ -29,7 +29,7 @@ public class ServletResponseWrapper implements ServletResponse {
     private ServletResponse response;
 
     public ServletResponseWrapper(ServletResponse response) {
-        this.response = response;
+        setResponse(response);
     }
 
     public ServletResponse getResponse() {
@@ -71,11 +71,11 @@ public class ServletResponseWrapper implements ServletResponse {
         this.response.setBufferSize(size);
     }
 
-    public void reset() throws IllegalStateException {
+    public void reset() {
         this.response.reset();
     }
 
-    public void resetBuffer() throws IllegalStateException {
+    public void resetBuffer() {
         this.response.resetBuffer();
     }
 
