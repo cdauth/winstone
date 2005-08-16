@@ -33,8 +33,9 @@ public class Cookie implements Cloneable {
     private int version;
 
     public Cookie(String name, String value) {
-        this.name = name;
-        this.value = value;
+        setName(name);
+        setValue(value);
+        setMaxAge(-1);
     }
 
     public Object clone() {
@@ -44,6 +45,7 @@ public class Cookie implements Cloneable {
         clone.setMaxAge(this.maxAge);
         clone.setSecure(this.secure);
         clone.setVersion(this.version);
+        clone.setPath(this.path);
         return clone;
     }
 
@@ -79,6 +81,26 @@ public class Cookie implements Cloneable {
         return this.version;
     }
 
+    private void setName(String name) {
+        if (name == null) {
+            throw new IllegalArgumentException("Cookie name was null");
+        } else if (name.indexOf(";") != -1) {
+            throw new IllegalArgumentException("Cookie name contains a semicolon");
+        } else if (name.indexOf(",") != -1) {
+            throw new IllegalArgumentException("Cookie name contains a comma");
+        } else {
+            // Check for white space, comma, semicolon
+            for (int n = 0; n < name.length(); n++) {
+                if (Character.isWhitespace(name.charAt(n))) {
+                    throw new IllegalArgumentException("Cookie name contains whitespace");
+                } else if (!Character.isLetterOrDigit(name.charAt(n))) {
+                    throw new IllegalArgumentException("Cookie name contains a non-alphanumeric character");
+                }
+            }
+            this.name = name;
+        }
+    }
+    
     public void setComment(String purpose) {
         this.comment = purpose;
     }
@@ -105,5 +127,11 @@ public class Cookie implements Cloneable {
 
     public void setVersion(int v) {
         this.version = v;
+    }
+    
+    public String toString() {
+        return "[Cookie: name=" + this.name + " value=" + this.value + " version=" + 
+                this.version + " path=" + this.path + " domain=" + this.domain + " comment=" +
+                this.comment + " maxAge=" + this.maxAge + " secure=" + this.secure + "]";
     }
 }

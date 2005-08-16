@@ -228,7 +228,7 @@ public class WinstoneResponse implements HttpServletResponse {
         }
     }
 
-    public void updateContentTypeHeader(String type) {
+    protected String updatedContentTypeHeader(String type) {
         // Parse type to set encoding if needed
         StringBuffer sb = new StringBuffer();
         StringTokenizer st = new StringTokenizer(type, ";");
@@ -242,7 +242,7 @@ public class WinstoneResponse implements HttpServletResponse {
         String header = sb.toString().substring(0, sb.length() - 1);
         if (header.startsWith("text/"))
             header += ";charset=" + getCharacterEncoding();
-        setHeader(CONTENT_TYPE_HEADER, header);
+        return header;
     }
 
     /**
@@ -270,21 +270,24 @@ public class WinstoneResponse implements HttpServletResponse {
      */
     public void validateHeaders() {
         // rsp.setHeader(ENCODING_HEADER, "chunked");
-        String contentLength = this.getHeader(CONTENT_LENGTH_HEADER);
+        String contentLength = getHeader(CONTENT_LENGTH_HEADER);
         this.setHeader(KEEP_ALIVE_HEADER, (contentLength != null)
                 && !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
-        if (this.getHeader(DATE_HEADER) == null)
-            this.setDateHeader(DATE_HEADER, System.currentTimeMillis());
-        if (this.getHeader(X_POWERED_BY_HEADER) == null)
-            this.setHeader(X_POWERED_BY_HEADER, POWERED_BY_WINSTONE);
+        String contentType = getHeader(CONTENT_TYPE_HEADER);
+        if ((contentType == null) && (this.statusCode != SC_MOVED_TEMPORARILY)) {
+            setHeader(CONTENT_TYPE_HEADER, updatedContentTypeHeader("text/html"));
+        }
+        if (getHeader(DATE_HEADER) == null)
+            setDateHeader(DATE_HEADER, System.currentTimeMillis());
+        if (getHeader(X_POWERED_BY_HEADER) == null)
+            setHeader(X_POWERED_BY_HEADER, POWERED_BY_WINSTONE);
         if (this.locale != null) {
-            this.setHeader(CONTENT_LANGUAGE_HEADER, this.locale.getLanguage() + 
+            setHeader(CONTENT_LANGUAGE_HEADER, this.locale.getLanguage() + 
                     (this.locale.getCountry() != null ? "-" + this.locale.getCountry() : ""));
         }
         
         // If we don't have a webappConfig, exit here, cause we definitely don't
         // have a session
-        WinstoneRequest req = this.getRequest();
         if (req.getWebAppConfig() == null)
             return;
 
@@ -308,11 +311,13 @@ public class WinstoneResponse implements HttpServletResponse {
      * Writes out the http header for a single cookie
      */
     public String writeCookie(Cookie cookie) throws IOException {
+        
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.WritingCookie", cookie + "");
         StringBuffer out = new StringBuffer();
 
         // Set-Cookie or Set-Cookie2
         if (cookie.getVersion() >= 1)
-            out.append(OUT_COOKIE_HEADER2).append(": ");
+            out.append(OUT_COOKIE_HEADER1).append(": "); // TCK doesn't like set-cookie2
         else
             out.append(OUT_COOKIE_HEADER1).append(": ");
 
@@ -346,7 +351,7 @@ public class WinstoneResponse implements HttpServletResponse {
                 out.append("; Domain=");
                 out.append(cookie.getDomain());
             }
-            if (cookie.getMaxAge() >= 0) {
+            if (cookie.getMaxAge() > 0) {
                 long expiryMS = System.currentTimeMillis()
                         + (1000 * (long) cookie.getMaxAge());
                 Date expiryDate = new Date(expiryMS);
@@ -365,19 +370,23 @@ public class WinstoneResponse implements HttpServletResponse {
      * applied if the string contains special characters.
      */
     protected void quote(String value, StringBuffer out) {
-        boolean containsSpecial = false;
-        for (int n = 0; n < value.length(); n++) {
-            char thisChar = value.charAt(n);
-            if ((thisChar < 32) || (thisChar >= 127)
-                    || (specialCharacters.indexOf(thisChar) != -1)) {
-                containsSpecial = true;
-                break;
-            }
-        }
-        if (containsSpecial)
-            out.append('"').append(value).append('"');
-        else
+        if (value.startsWith("\"") && value.endsWith("\"")) {
             out.append(value);
+        } else {
+            boolean containsSpecial = false;
+            for (int n = 0; n < value.length(); n++) {
+                char thisChar = value.charAt(n);
+                if ((thisChar < 32) || (thisChar >= 127)
+                        || (specialCharacters.indexOf(thisChar) != -1)) {
+                    containsSpecial = true;
+                    break;
+                }
+            }
+            if (containsSpecial)
+                out.append('"').append(value).append('"');
+            else
+                out.append(value);
+        }
     }
 
     final String specialCharacters = "()<>@,;:\\\"/[]?={} \t";
@@ -443,7 +452,7 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void setContentType(String type) {
         if (this.includeOutputStreams.isEmpty()) {
-            updateContentTypeHeader(type);
+            setHeader(CONTENT_TYPE_HEADER, type);
         }
     }
 
@@ -463,11 +472,11 @@ public class WinstoneResponse implements HttpServletResponse {
             String ct = getHeader(CONTENT_TYPE_HEADER);
             String charset = getEncodingFromLocale(getLocale());
             if (ct == null)
-                updateContentTypeHeader("text/html;charset=" + charset);
+                setHeader(CONTENT_TYPE_HEADER, "text/html;charset=" + charset);
             else if (ct.indexOf(';') == -1)
-                updateContentTypeHeader(ct + ";charset=" + charset);
+                setHeader(CONTENT_TYPE_HEADER, ct + ";charset=" + charset);
             else
-                updateContentTypeHeader(ct.substring(0, ct.indexOf(';'))
+                setHeader(CONTENT_TYPE_HEADER, ct.substring(0, ct.indexOf(';'))
                         + ";charset=" + charset);
         }
         
@@ -553,6 +562,9 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void addHeader(String name, String value) {
         if (this.includeOutputStreams.isEmpty()) {
+            if (name.equals(CONTENT_TYPE_HEADER)) {
+                value = updatedContentTypeHeader(value);
+            }
             this.headers.add(name + ": " + value);
         }
     }
@@ -567,6 +579,9 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void setHeader(String name, String value) {
         if (this.includeOutputStreams.isEmpty()) {
+            if (name.equals(CONTENT_TYPE_HEADER)) {
+                value = updatedContentTypeHeader(value);
+            }
             boolean found = false;
             for (int n = 0; (n < this.headers.size()) && !found; n++) {
                 String header = (String) this.headers.get(n);
@@ -612,6 +627,8 @@ public class WinstoneResponse implements HttpServletResponse {
             Logger.log(Logger.ERROR, resources, "IncludeResponse.Redirect",
                     location);
             return;
+        } else if (isCommitted()) {
+            throw new IllegalStateException(resources.getString("WinstoneOutputStream.AlreadyCommitted"));
         }
         
         // Build location
@@ -627,9 +644,6 @@ public class WinstoneResponse implements HttpServletResponse {
                             .getScheme().equals("https")))
                 fullLocation.append(':').append(this.req.getServerPort());
             if (location.startsWith("/")) {
-                if (!this.webAppConfig.getPrefix().equals("")
-                        && !location.startsWith(this.webAppConfig.getPrefix()))
-                    fullLocation.append(this.webAppConfig.getPrefix());
                 fullLocation.append(location);
             } else {
                 fullLocation.append(this.req.getRequestURI());

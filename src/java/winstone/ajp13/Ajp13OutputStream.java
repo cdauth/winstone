@@ -86,6 +86,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
         // If we haven't written the headers yet, write them out
         if (!this.committed) {
             this.owner.validateHeaders();
+            this.committed = true;
 
             ByteArrayOutputStream headerArrayStream = new ByteArrayOutputStream();
             for (Iterator i = this.owner.getHeaders().iterator(); i.hasNext();) {
@@ -162,7 +163,6 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
             this.outStream.write(responsePacket);
         }
 
-        this.committed = true;
         this.buffer.reset();
         this.bufferPosition = 0;
     }

@@ -568,39 +568,43 @@ public class WinstoneRequest implements HttpServletRequest {
     private void parseCookieLine(String headerValue, List cookieList) {
         StringTokenizer st = new StringTokenizer(headerValue, ";", false);
         int version = 0;
-        String cookieLine = st.nextToken().trim();
+        String cookieLine = st.nextToken();
 
         // check cookie version flag
-        if (cookieLine.startsWith("$Version")) {
+        if (cookieLine.startsWith("$Version=")) {
             int equalPos = cookieLine.indexOf('=');
             try {
-                version = Integer.parseInt(cookieLine.substring(equalPos).trim());
+                version = Integer.parseInt(extractFromQuotes(
+                        cookieLine.substring(equalPos + 1).trim()));
             } catch (NumberFormatException err) {
                 version = 0;
             }
+            cookieLine = st.nextToken();
         }
 
         // process remainder - parameters
         while (cookieLine != null) {
+            cookieLine = cookieLine.trim();
             int equalPos = cookieLine.indexOf('=');
             if (equalPos == -1) {
                 // next token
                 if (st.hasMoreTokens())
-                    cookieLine = st.nextToken().trim();
+                    cookieLine = st.nextToken();
                 else
                     cookieLine = null;
             } else {
-                Cookie thisCookie = new Cookie(cookieLine
-                        .substring(0, equalPos), cookieLine
-                        .substring(equalPos + 1));
+                String name = cookieLine.substring(0, equalPos);
+                String value = extractFromQuotes(cookieLine.substring(equalPos + 1));
+                Cookie thisCookie = new Cookie(name, value);
                 thisCookie.setVersion(version);
                 thisCookie.setSecure(isSecure());
                 cookieList.add(thisCookie);
 
                 // check for path / domain / port
                 if (st.hasMoreTokens()) {
-                    cookieLine = st.nextToken().trim();
-                    while ((cookieLine != null) && cookieLine.startsWith("$")) {
+                    cookieLine = st.nextToken();
+                    while ((cookieLine != null) && cookieLine.trim().startsWith("$")) {
+                        cookieLine = cookieLine.trim();
                         equalPos = cookieLine.indexOf('=');
                         String attrValue = equalPos == -1 ? "" : cookieLine
                                 .substring(equalPos + 1).trim();
@@ -611,7 +615,7 @@ public class WinstoneRequest implements HttpServletRequest {
 
                         // next part
                         if (st.hasMoreTokens())
-                            cookieLine = st.nextToken().trim();
+                            cookieLine = st.nextToken();
                         else
                             cookieLine = null;
                     }
@@ -619,8 +623,7 @@ public class WinstoneRequest implements HttpServletRequest {
                     cookieLine = null;
 
                 Logger.log(Logger.FULL_DEBUG, resources,
-                        "WinstoneRequest.CookieFound", new String[] {
-                                thisCookie.getName(), thisCookie.getValue() });
+                        "WinstoneRequest.CookieFound", thisCookie.toString());
                 if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME)) {
                     this.requestedSessionId = thisCookie.getValue();
                     this.currentSessionId = thisCookie.getValue();
