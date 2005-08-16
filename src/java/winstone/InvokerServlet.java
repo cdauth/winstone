@@ -18,7 +18,6 @@
 package winstone;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
@@ -89,8 +88,7 @@ public class InvokerServlet extends HttpServlet {
                 // Class servletClass = Class.forName(servletName, true,
                 // Thread.currentThread().getContextClassLoader());
                 sc = new ServletConfiguration((WebAppConfiguration) this.getServletContext(), 
-                        Thread.currentThread().getContextClassLoader(),
-                        this.resources, this.prefix, getServletConfig().getServletName()
+                        this.resources,  getServletConfig().getServletName()
                                 + ":" + servletName, servletName,
                         new Hashtable(), -1);
                 this.mountedInstances.put(servletName, sc);
@@ -99,7 +97,7 @@ public class InvokerServlet extends HttpServlet {
                                 servletName,
                                 getServletConfig().getServletName() });
                 // just to trigger the servlet.init()
-                sc.getRequestDispatcher(new HashMap(), null); 
+                sc.ensureInitialization(); 
             } catch (Throwable err) {
                 sc = null;
             }
@@ -132,8 +130,9 @@ public class InvokerServlet extends HttpServlet {
                     .getString("InvokerServlet.NoMatchingServletFound",
                             servletName));
         } else {
-            RequestDispatcher rd = invokedServlet
-                    .getRequestDispatcher(new HashMap(), "/" + servletName);
+            RequestDispatcher rd = new RequestDispatcher(
+                    (WebAppConfiguration) getServletContext(), 
+                    invokedServlet, this.resources);
             rd.setForNamedDispatcher(new Mapping[0], new Mapping[0]);
             rd.forward(req, rsp);
         }

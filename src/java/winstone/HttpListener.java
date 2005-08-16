@@ -187,7 +187,6 @@ public class HttpListener implements Listener, Runnable {
         WinstoneResponse rsp = this.objectPool.getResponseFromPool();
         outData.setResponse(rsp);
         req.setInputStream(inData);
-        req.setListener(this);
         rsp.setOutputStream(outData);
         rsp.setRequest(req);
         // rsp.updateContentTypeHeader("text/html");
@@ -303,6 +302,8 @@ public class HttpListener implements Listener, Runnable {
      */
     private String parseURILine(String uriLine, WinstoneRequest req,
             WinstoneResponse rsp) {
+        Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.UriLine", uriLine);
+        
         // Method
         int spacePos = uriLine.indexOf(' ');
         if (spacePos == -1)

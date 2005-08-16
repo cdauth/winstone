@@ -53,6 +53,7 @@ public class WinstoneSession implements HttpSession, Serializable {
     private long lastAccessedTime;
     private int maxInactivePeriod;
     private boolean isNew;
+    private boolean isInvalidated;
     private HttpSessionAttributeListener sessionAttributeListeners[];
     private HttpSessionListener sessionListeners[];
     private HttpSessionActivationListener sessionActivationListeners[];
@@ -72,6 +73,7 @@ public class WinstoneSession implements HttpSession, Serializable {
         this.sessionData = new Hashtable();
         this.createTime = System.currentTimeMillis();
         this.isNew = true;
+        this.isInvalidated = false;
         this.distributable = distributable;
     }
 
@@ -109,6 +111,9 @@ public class WinstoneSession implements HttpSession, Serializable {
 
     // Implementation methods
     public Object getAttribute(String name) {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         Object att = null;
         synchronized (this.sessionMonitor) {
             att = this.sessionData.get(name);
@@ -117,6 +122,9 @@ public class WinstoneSession implements HttpSession, Serializable {
     }
 
     public Enumeration getAttributeNames() {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         Enumeration names = null;
         synchronized (this.sessionMonitor) {
             names = Collections.enumeration(this.sessionData.keySet());
@@ -125,6 +133,9 @@ public class WinstoneSession implements HttpSession, Serializable {
     }
 
     public void setAttribute(String name, Object value) {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         // Check for serializability if distributable
         if (this.distributable && (value != null)
                 && !(value instanceof java.io.Serializable))
@@ -141,14 +152,17 @@ public class WinstoneSession implements HttpSession, Serializable {
         Object oldValue = null;
         synchronized (this.sessionMonitor) {
             oldValue = this.sessionData.get(name);
-            this.sessionData.put(name, value);
+            if (value == null) {
+                this.sessionData.remove(name);
+            } else {
+                this.sessionData.put(name, value);
+            }
         }
 
         // valueUnbound must be after unbinding
         if (oldValue instanceof HttpSessionBindingListener) {
             HttpSessionBindingListener hsbl = (HttpSessionBindingListener) oldValue;
-            hsbl
-                    .valueUnbound(new HttpSessionBindingEvent(this, name,
+            hsbl.valueUnbound(new HttpSessionBindingEvent(this, name,
                             oldValue));
         }
 
@@ -166,6 +180,9 @@ public class WinstoneSession implements HttpSession, Serializable {
     }
 
     public void removeAttribute(String name) {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         Object value = null;
         synchronized (this.sessionMonitor) {
             value = this.sessionData.get(name);
@@ -185,10 +202,16 @@ public class WinstoneSession implements HttpSession, Serializable {
     }
 
     public long getCreationTime() {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         return this.createTime;
     }
 
     public long getLastAccessedTime() {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         return this.lastAccessedTime;
     }
 
@@ -221,6 +244,9 @@ public class WinstoneSession implements HttpSession, Serializable {
     }
 
     public boolean isNew() {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         return this.isNew;
     }
 
@@ -229,6 +255,9 @@ public class WinstoneSession implements HttpSession, Serializable {
     }
 
     public void invalidate() {
+        if (this.isInvalidated) {
+            throw new IllegalStateException(resources.getString("WinstoneSession.InvalidatedSession"));
+        }
         // Notify session listeners of invalidated session -- backwards
         for (int n = this.sessionListeners.length - 1; n >= 0; n--)
             this.sessionListeners[n]
@@ -240,6 +269,7 @@ public class WinstoneSession implements HttpSession, Serializable {
         synchronized (this.sessionMonitor) {
             this.sessionData.clear();
         }
+        this.isInvalidated = true;
         this.webAppConfig.removeSessionById(this.sessionId);
     }
 

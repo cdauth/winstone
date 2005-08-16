@@ -64,9 +64,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     private Servlet instance;
     private Map initParameters;
     private WebAppConfiguration webAppConfig;
-    private ClassLoader loader;
     private int loadOnStartup;
-    private String prefix;
     private String jspFile;
     private String runAsRole;
     private Map securityRoleRefs;
@@ -75,22 +73,19 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     private boolean isSingleThreadModel = false;
     private boolean unavailable = false;
     
-    protected ServletConfiguration(WebAppConfiguration webAppConfig,
-            ClassLoader loader, WinstoneResourceBundle resources, String prefix) {
+    protected ServletConfiguration(WebAppConfiguration webAppConfig, 
+            WinstoneResourceBundle resources) {
         this.webAppConfig = webAppConfig;
-        this.loader = loader;
         this.initParameters = new Hashtable();
         this.loadOnStartup = -1;
         this.resources = resources;
-        this.prefix = prefix;
         this.securityRoleRefs = new Hashtable();
     }
 
     public ServletConfiguration(WebAppConfiguration webAppConfig,
-            ClassLoader loader, WinstoneResourceBundle resources,
-            String prefix, String servletName, String className,
+            WinstoneResourceBundle resources, String servletName, String className,
             Map initParams, int loadOnStartup) {
-        this(webAppConfig, loader, resources, prefix);
+        this(webAppConfig, resources);
         if (initParams != null)
             this.initParameters.putAll(initParams);
         this.servletName = servletName;
@@ -99,10 +94,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         this.loadOnStartup = loadOnStartup;
     }
 
-    public ServletConfiguration(WebAppConfiguration webAppConfig,
-            ClassLoader loader, WinstoneResourceBundle resources,
-            String prefix, Node elm) {
-        this(webAppConfig, loader, resources, prefix);
+    public ServletConfiguration(WebAppConfiguration webAppConfig, 
+            WinstoneResourceBundle resources, Node elm) {
+        this(webAppConfig, resources);
 
         // Parse the web.xml file entry
         for (int n = 0; n < elm.getChildNodes().getLength(); n++) {
@@ -175,22 +169,6 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                 "ServletConfiguration.DeployedInstance", new String[] {
                         this.servletName, this.classFile });
     }
-
-    /**
-     * Implements the first-time-init of an instance, and wraps it in a
-     * dispatcher.
-     */
-    public RequestDispatcher getRequestDispatcher(Map filters, String originalURI) {
-        
-        // Build filter chain
-        if (this.unavailable) {
-            return null;
-        } else {
-            return new RequestDispatcher(this, this.servletName,
-                    this.loader, this.prefix, this.jspFile,
-                    filters, this.resources);
-        }
-    }
     
     protected ServletException ensureInitialization() {
         
@@ -206,10 +184,10 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             
             // If no instance, class load, then call init()
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(this.loader);
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
             
             try {
-                Class servletClass = Class.forName(classFile, true, this.loader);
+                Class servletClass = Class.forName(classFile, true, this.webAppConfig.getLoader());
                 this.instance = (Servlet) servletClass.newInstance();
                 this.isSingleThreadModel = Class.forName(
                         "javax.servlet.SingleThreadModel").isInstance(this.instance);
@@ -258,7 +236,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             request.setAttribute(JSP_FILE, this.jspFile);
 
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(this.loader);
+        Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
 
         try {
             if (this.isSingleThreadModel) {
@@ -329,7 +307,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             Logger.log(Logger.DEBUG, resources,
                     "ServletConfiguration.destroy", this.servletName);
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(this.loader);
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
             try {
                 this.instance.destroy();
             } finally {

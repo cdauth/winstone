@@ -55,6 +55,7 @@ public class CachedRequest extends WinstoneRequest {
         this.parametersStack.addAll(request.getParametersStack());
         this.attributes.putAll(request.getAttributes());
         this.parameters.putAll(request.getParameters());
+        this.forwardedParameters.putAll(request.getForwardedParameters());
         this.locales = request.getListLocales();
         this.method = request.getMethod();
         this.scheme = request.getScheme();
@@ -67,7 +68,8 @@ public class CachedRequest extends WinstoneRequest {
         this.contentLength = request.getContentLength();
         this.contentType = request.getContentType();
         this.serverPort = request.getServerPort();
-        this.sessionCookie = request.getSessionCookie();
+        this.requestedSessionId = request.getRequestedSessionId();
+        this.currentSessionId = request.getCurrentSessionId();
         this.encoding = request.getEncoding();
         this.parsedParameters = request.getParsedParameters();
         InputStream in = request.getInputStream();
@@ -98,6 +100,8 @@ public class CachedRequest extends WinstoneRequest {
         request.getParametersStack().addAll(this.parametersStack);
         request.getParameters().clear();
         request.getParameters().putAll(this.parameters);
+        request.getForwardedParameters().clear();
+        request.getForwardedParameters().putAll(this.forwardedParameters);
         request.getAttributes().clear();
         request.getAttributes().putAll(this.attributes);
         request.setLocales(this.locales);
@@ -112,7 +116,8 @@ public class CachedRequest extends WinstoneRequest {
         request.setContentLength(this.contentLength);
         request.setContentType(this.contentType);
         request.setServerPort(this.serverPort);
-        request.setSessionCookie(this.sessionCookie);
+        request.setRequestedSessionId(this.requestedSessionId);
+        request.setCurrentSessionId(this.currentSessionId);
         request.setEncoding(this.encoding);
         request.setParsedParameters(this.parsedParameters);
         request.setInputStream(this.inputData);

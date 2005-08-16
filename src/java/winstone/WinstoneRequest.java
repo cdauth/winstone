@@ -81,8 +81,13 @@ public class WinstoneRequest implements HttpServletRequest {
 
     protected Map attributes;
     protected Map parameters;
+    protected Stack attributesStack;
+    protected Stack parametersStack;
+    protected Map forwardedParameters;
+
     protected String headers[];
     protected Cookie cookies[];
+    
     protected String method;
     protected String scheme;
     protected String serverName;
@@ -94,11 +99,7 @@ public class WinstoneRequest implements HttpServletRequest {
     protected int contentLength;
     protected String contentType;
     protected String encoding;
-    protected WinstoneInputStream inputData;
-    protected BufferedReader inputReader;
-    protected ServletConfiguration servletConfig;
-    protected WebAppConfiguration webappConfig;
-    protected Listener listener;
+    
     protected int serverPort;
     protected String remoteIP;
     protected String remoteName;
@@ -107,18 +108,23 @@ public class WinstoneRequest implements HttpServletRequest {
     protected String localName;
     protected int localPort;
     protected Boolean parsedParameters;
-    protected String sessionCookie;
+    protected String requestedSessionId;
+    protected String currentSessionId;
     protected List locales;
     protected String authorization;
     protected boolean isSecure;
+    
+    protected WinstoneInputStream inputData;
+    protected BufferedReader inputReader;
+    protected ServletConfiguration servletConfig;
+    protected WebAppConfiguration webappConfig;
+
     protected AuthenticationPrincipal authenticatedUser;
     protected ServletRequestAttributeListener requestAttributeListeners[];
     protected ServletRequestListener requestListeners[];
-    protected Map securityRoleRefs;
+    
     private WinstoneResourceBundle resources;
     private MessageDigest md5Digester;
-    protected Stack attributesStack;
-    protected Stack parametersStack;
     
     /**
      * InputStream factory method.
@@ -130,6 +136,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.locales = new ArrayList();
         this.attributesStack = new Stack();
         this.parametersStack = new Stack();
+        this.forwardedParameters = new Hashtable();
         this.contentLength = -1;
         this.isSecure = false;
         try {
@@ -146,12 +153,11 @@ public class WinstoneRequest implements HttpServletRequest {
     public void cleanUp() {
         this.requestListeners = null;
         this.requestAttributeListeners = null;
-        this.securityRoleRefs = null;
-        this.listener = null;
         this.attributes.clear();
         this.parameters.clear();
         this.attributesStack.clear();
         this.parametersStack.clear();
+        this.forwardedParameters.clear();
         this.headers = null;
         this.cookies = null;
         this.method = null;
@@ -177,7 +183,8 @@ public class WinstoneRequest implements HttpServletRequest {
         this.localName = null;
         this.localPort = -1;
         this.parsedParameters = null;
-        this.sessionCookie = null;
+        this.requestedSessionId = null;
+        this.currentSessionId = null;
         this.locales.clear();
         this.authorization = null;
         this.isSecure = false;
@@ -214,6 +221,10 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.parameters;
     }
 
+    public Map getForwardedParameters() {
+        return this.forwardedParameters;
+    }
+
     public Stack getAttributesStack() {
         return this.attributesStack;
     }
@@ -222,12 +233,16 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.parametersStack;
     }
     
-    public String getSessionCookie() {
-        return this.sessionCookie;
+    public String getCurrentSessionId() {
+        return this.currentSessionId;
     }
 
     public WebAppConfiguration getWebAppConfig() {
         return this.webappConfig;
+    }
+
+    public ServletConfiguration getServletConfig() {
+        return this.servletConfig;
     }
 
     public String getEncoding() {
@@ -250,8 +265,8 @@ public class WinstoneRequest implements HttpServletRequest {
         this.webappConfig = webappConfig;
     }
 
-    public void setListener(Listener listener) {
-        this.listener = listener;
+    public void setServletConfig(ServletConfiguration servletConfig) {
+        this.servletConfig = servletConfig;
     }
 
     public void setServerPort(int port) {
@@ -338,8 +353,12 @@ public class WinstoneRequest implements HttpServletRequest {
         this.locales = locales;
     }
 
-    public void setSessionCookie(String sc) {
-        this.sessionCookie = sc;
+    public void setRequestedSessionId(String sc) {
+        this.requestedSessionId = sc;
+    }
+
+    public void setCurrentSessionId(String sc) {
+        this.currentSessionId = sc;
     }
 
     public void setEncoding(String encoding) {
@@ -349,10 +368,10 @@ public class WinstoneRequest implements HttpServletRequest {
     public void setParsedParameters(Boolean parsed) {
         this.parsedParameters = parsed;
     }
-
-    public void setSecurityRoleRefsMap(Map refs) {
-        this.securityRoleRefs = refs;
-    }
+//
+//    public void setSecurityRoleRefsMap(Map refs) {
+//        this.securityRoleRefs = refs;
+//    }
 
     public void setRequestListeners(ServletRequestListener rl[]) {
         this.requestListeners = rl;
@@ -456,10 +475,18 @@ public class WinstoneRequest implements HttpServletRequest {
         } else if (parsedParameters == null) {
             Map workingParameters = new HashMap();
             try {
-                Logger.log(Logger.FULL_DEBUG, resources,
-                        "WinstoneRequest.ParsingBodyParameters");
+                // Parse query string from request
+                if ((method.equals(METHOD_GET) || method.equals(METHOD_POST))
+                        && (this.queryString != null)) {
+                    extractParameters(this.queryString, this.encoding, workingParameters, resources);
+                    Logger.log(Logger.FULL_DEBUG, resources,
+                            "WinstoneRequest.ParamLine", "" + workingParameters);
+                }
+                
                 if (method.equals(METHOD_POST) && (contentType != null)
                         && contentType.equals(POST_PARAMETERS)) {
+                    Logger.log(Logger.FULL_DEBUG, resources,
+                            "WinstoneRequest.ParsingBodyParameters");
 
                     // Parse params
                     byte paramBuffer[] = new byte[contentLength];
@@ -476,25 +503,6 @@ public class WinstoneRequest implements HttpServletRequest {
                     Logger.log(Logger.FULL_DEBUG, resources,
                             "WinstoneRequest.ParamLine", "" + workingParameters);
                 } 
-                
-                // Parse query string from request
-                if ((method.equals(METHOD_GET) || method.equals(METHOD_POST))
-                        && (this.queryString != null)) {
-                    extractParameters(this.queryString, this.encoding, workingParameters, resources);
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParamLine", "" + workingParameters);
-                }
-                
-                // Parse query string from include / forward
-                String forwardQueryString = (String) getAttribute(RequestDispatcher.FORWARD_QUERY_STRING);
-                if (forwardQueryString != null) {
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParsingParameters", new String[] {
-                            forwardQueryString, this.encoding });
-                    extractParameters(forwardQueryString, this.encoding, workingParameters, resources);
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.ParamLine", "" + workingParameters);
-                }
                 
                 this.parameters.putAll(workingParameters);
                 this.parsedParameters = new Boolean(true);
@@ -550,8 +558,11 @@ public class WinstoneRequest implements HttpServletRequest {
         }
         this.headers = (String[]) outHeaderList
                 .toArray(new String[outHeaderList.size()]);
-        this.cookies = (Cookie[]) cookieList.toArray(new Cookie[cookieList
-                .size()]);
+        if (cookieList.isEmpty()) {
+            this.cookies = null;
+        } else {
+            this.cookies = (Cookie[]) cookieList.toArray(new Cookie[cookieList.size()]);
+        }
     }
 
     private void parseCookieLine(String headerValue, List cookieList) {
@@ -611,7 +622,8 @@ public class WinstoneRequest implements HttpServletRequest {
                         "WinstoneRequest.CookieFound", new String[] {
                                 thisCookie.getName(), thisCookie.getValue() });
                 if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME)) {
-                    this.sessionCookie = thisCookie.getValue();
+                    this.requestedSessionId = thisCookie.getValue();
+                    this.currentSessionId = thisCookie.getValue();
                     Logger.log(Logger.FULL_DEBUG, resources,
                             "WinstoneRequest.SessionCookieFound", thisCookie.getValue());
                 }
@@ -745,6 +757,21 @@ public class WinstoneRequest implements HttpServletRequest {
     public void clearIncludeStackForForward() {
         this.parametersStack.clear();
         this.attributesStack.clear();
+    }
+    
+    public void setForwardQueryString(String forwardQueryString) {
+        this.forwardedParameters.clear();
+        
+        // Parse query string from include / forward
+        if (forwardQueryString != null) {
+            Logger.log(Logger.FULL_DEBUG, resources,
+                    "WinstoneRequest.ParsingParameters", new String[] {
+                    forwardQueryString, this.encoding });
+            extractParameters(forwardQueryString, this.encoding, this.forwardedParameters, resources);
+            Logger.log(Logger.FULL_DEBUG, resources,
+                    "WinstoneRequest.ParamLine", "" + this.forwardedParameters);
+        }
+
     }
     
     public void removeIncludeAttributes() {
@@ -897,6 +924,9 @@ public class WinstoneRequest implements HttpServletRequest {
         if (!this.parametersStack.isEmpty()) {
             param = ((Map) this.parametersStack.peek()).get(name);
         }
+        if ((param == null) && this.forwardedParameters.get(name) != null) {
+            param = this.forwardedParameters.get(name);
+        }
         if (param == null) {
             param = this.parameters.get(name);
         }
@@ -913,6 +943,7 @@ public class WinstoneRequest implements HttpServletRequest {
     public Enumeration getParameterNames() {
         parseRequestParameters();
         Set parameterKeys = new HashSet(this.parameters.keySet());
+        parameterKeys.addAll(this.forwardedParameters.keySet());
         if (!this.parametersStack.isEmpty()) {
             parameterKeys.addAll(((Map) this.parametersStack.peek()).keySet());
         }
@@ -924,6 +955,9 @@ public class WinstoneRequest implements HttpServletRequest {
         Object param = null;
         if (!this.parametersStack.isEmpty()) {
             param = ((Map) this.parametersStack.peek()).get(name);
+        }
+        if ((param == null) && this.forwardedParameters.get(name) != null) {
+            param = this.forwardedParameters.get(name);
         }
         if (param == null) {
             param = this.parameters.get(name);
@@ -1066,8 +1100,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public String getRequestedSessionId() {
-        HttpSession session = getSession(false);
-        return (session == null ? null : session.getId());
+        return this.requestedSessionId;
     }
 
     public StringBuffer getRequestURL() {
@@ -1091,10 +1124,10 @@ public class WinstoneRequest implements HttpServletRequest {
     public boolean isUserInRole(String role) {
         if (this.authenticatedUser == null)
             return false;
-        else if (this.securityRoleRefs == null)
+        else if (this.servletConfig.getSecurityRoleRefs() == null)
             return this.authenticatedUser.isUserIsInRole(role);
         else {
-            String replacedRole = (String) this.securityRoleRefs.get(role);
+            String replacedRole = (String) this.servletConfig.getSecurityRoleRefs().get(role);
             return this.authenticatedUser
                     .isUserIsInRole(replacedRole == null ? role : replacedRole);
         }
@@ -1119,7 +1152,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public boolean isRequestedSessionIdValid() {
-        WinstoneSession ws = this.webappConfig.getSessionById(getSessionId(), false);
+        WinstoneSession ws = this.webappConfig.getSessionById(this.requestedSessionId, false);
         if (ws == null)
             return false;
         else
@@ -1131,36 +1164,36 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public HttpSession getSession(boolean create) {
-        String cookieValue = getSessionId();
+        String cookieValue = this.currentSessionId;
 
         // Handle the null case
         if (cookieValue == null) {
-            if (this.sessionCookie != null)
-                cookieValue = this.sessionCookie;
+            if (this.currentSessionId != null)
+                cookieValue = this.currentSessionId;
             else if (!create)
                 return null;
             else
-                cookieValue = makeNewSession();
+                cookieValue = makeNewSession().getId();
         }
 
         // Now get the session object
         long nowDate = System.currentTimeMillis();
-        WinstoneSession session = this.webappConfig.getSessionById(cookieValue,
-                false);
-        if (session != null)
+        WinstoneSession session = this.webappConfig.getSessionById(cookieValue, false);
+        if (session != null) {
             session = validationCheck(session, nowDate, create);
-        else if (create)
-            session = this.webappConfig.getSessionById(makeNewSession(), false);
+            if (session == null) {
+                this.currentSessionId = null;
+            }
+        }
+        if (create && (session == null)) {
+            session = makeNewSession();
+        }
 
         // Set last accessed time
         //if (session != null)
         //  session.setLastAccessedDate(nowDate);
         return session;
 
-    }
-
-    private String getSessionId() {
-        return this.sessionCookie;
     }
 
     private WinstoneSession validationCheck(WinstoneSession session,
@@ -1174,11 +1207,12 @@ public class WinstoneRequest implements HttpServletRequest {
                     "WinstoneRequest.InvalidateSession", new String[] {
                             session.getId(),
                             "" + (nowDate - session.getLastAccessedTime()) });
-            if (create)
-                session = this.webappConfig.getSessionById(makeNewSession(),
-                        false);
-            else
+            if (create) {
+                session = makeNewSession();
+            }
+            else {
                 session = null;
+            }
         }
         return session;
     }
@@ -1186,7 +1220,7 @@ public class WinstoneRequest implements HttpServletRequest {
     /**
      * Make a new session, and return the id
      */
-    private String makeNewSession() {
+    private WinstoneSession makeNewSession() {
         String cookieValue = "Winstone_" + this.remoteIP + "_"
                 + this.serverPort + "_" + System.currentTimeMillis() + rnd.nextLong();
         byte digestBytes[] = this.md5Digester.digest(cookieValue.getBytes());
@@ -1202,9 +1236,8 @@ public class WinstoneRequest implements HttpServletRequest {
                     : (char) (loNibble + 48));
         }
 
-        this.sessionCookie = new String(outArray);
-        this.webappConfig.makeNewSession(this.sessionCookie);
-        return this.sessionCookie;
+        this.currentSessionId = new String(outArray);
+        return this.webappConfig.makeNewSession(this.currentSessionId);
     }
 
     /**

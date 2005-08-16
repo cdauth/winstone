@@ -25,7 +25,6 @@ import java.net.Socket;
 import java.net.SocketException;
 
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.ServletRequestEvent;
 import javax.servlet.ServletRequestListener;
 
@@ -134,16 +133,16 @@ public class RequestHandlerThread implements Runnable {
                         // Now we've verified it's in the right webapp, send
                         // request in scope notify
                         ServletRequestListener reqLsnrs[] = webAppConfig.getRequestListeners();
-                        ServletRequestAttributeListener reqAttLsnrs[] = webAppConfig.getRequestAttributeListeners();
+//                        ServletRequestAttributeListener reqAttLsnrs[] = webAppConfig.getRequestAttributeListeners();
                         for (int n = 0; n < reqLsnrs.length; n++) {
                             reqLsnrs[n].requestInitialized(
                                     new ServletRequestEvent(webAppConfig, req));
                         }
 
                         // Lookup a dispatcher, then process with it
-                        req.setWebAppConfig(webAppConfig);
-                        rsp.setWebAppConfig(webAppConfig);
-                        req.setRequestAttributeListeners(reqAttLsnrs);
+//                        req.setWebAppConfig(webAppConfig);
+//                        rsp.setWebAppConfig(webAppConfig);
+//                        req.setRequestAttributeListeners(reqAttLsnrs);
                         processRequest(webAppConfig, req, rsp, 
                                 webAppConfig.getServletURIFromRequestURI(servletURI));
                         this.outData.finishResponse();
@@ -244,10 +243,7 @@ public class RequestHandlerThread implements Runnable {
         } catch (Throwable err) {
             Logger.log(Logger.WARNING, resources,
                     "RequestHandlerThread.UntrappedError", err);
-            rdError = webAppConfig.getErrorDispatcherByClass(
-                    WinstoneResponse.SC_INTERNAL_SERVER_ERROR, 
-                    err.toString(), err, 
-                    rd != null ? rd.getName() : null, path);
+            rdError = webAppConfig.getErrorDispatcherByClass(err);
         }
 
         // If there was any kind of error, execute the error dispatcher here

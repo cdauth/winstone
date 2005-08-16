@@ -86,6 +86,7 @@ public class WinstoneResponse implements HttpServletResponse {
     private Locale locale;
     private String protocol;
     private String reqKeepAliveHeader;
+    private Integer errorStatusCode;
     
     private WinstoneResourceBundle resources;
     
@@ -101,7 +102,7 @@ public class WinstoneResponse implements HttpServletResponse {
         this.outPrintWriters = new Hashtable();
 
         this.statusCode = SC_OK;
-        this.locale = Locale.getDefault();
+        this.locale = null; //Locale.getDefault();
         this.encoding = null;
         this.protocol = null;
         this.reqKeepAliveHeader = null;
@@ -137,6 +138,11 @@ public class WinstoneResponse implements HttpServletResponse {
             return (String) encMap.get(loc.getLanguage());
     }
 
+    public void setErrorStatusCode(int statusCode) {
+        this.errorStatusCode = new Integer(statusCode);
+        this.statusCode = statusCode;
+    }
+    
     public void setOutputStream(WinstoneOutputStream outData) {
         this.outputStream = outData;
     }
@@ -283,22 +289,19 @@ public class WinstoneResponse implements HttpServletResponse {
             return;
 
         // Write out the new session cookie if it's present
-        String sessionCookie = req.getSessionCookie();
-        if (sessionCookie != null) {
-            WinstoneSession session = req.getWebAppConfig().getSessionById(
-                    sessionCookie, false);
-            if ((session != null) && session.isNew()) {
-                session.setIsNew(false);
-                Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME,
-                        sessionCookie);
-                cookie.setMaxAge(-1);
-                cookie.setSecure(req.isSecure());
-                cookie.setVersion(req.isSecure() ? 1 : 0);
-                cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
-                                : req.getWebAppConfig().getPrefix());
-                this.addCookie(cookie);
-            }
+        WinstoneSession session = (WinstoneSession) req.getSession(false);
+        if ((session != null) && session.isNew()) {
+            session.setIsNew(false);
+            Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, session.getId());
+            cookie.setMaxAge(-1);
+            cookie.setSecure(req.isSecure());
+            cookie.setVersion(req.isSecure() ? 1 : 0);
+            cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
+                            : req.getWebAppConfig().getPrefix());
+            this.addCookie(cookie);
         }
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.HeadersPreCommit",
+                this.headers + "");
     }
 
     /**
@@ -565,9 +568,9 @@ public class WinstoneResponse implements HttpServletResponse {
     public void setHeader(String name, String value) {
         if (this.includeOutputStreams.isEmpty()) {
             boolean found = false;
-            for (int n = 0; n < this.headers.size(); n++) {
+            for (int n = 0; (n < this.headers.size()) && !found; n++) {
                 String header = (String) this.headers.get(n);
-                if (header.startsWith(name)) {
+                if (header.startsWith(name + ": ")) {
                     this.headers.set(n, name + ": " + value);
                     found = true;
                 }
@@ -599,7 +602,7 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setStatus(int sc) {
-        if (this.includeOutputStreams.isEmpty()) {
+        if (this.includeOutputStreams.isEmpty() && (this.errorStatusCode == null)) {
             this.statusCode = sc;
         }
     }
@@ -676,8 +679,7 @@ public class WinstoneResponse implements HttpServletResponse {
 //            String errorPage = (String) this.webAppConfig.getErrorPagesByCode().get("" + sc);
             
             RequestDispatcher rd = this.webAppConfig
-                    .getErrorDispatcherByCode(sc, msg, null, null,
-                            getRequest().getRequestURI());
+                    .getErrorDispatcherByCode(sc, msg, null);
             if (rd != null) {
                 try {
                     rd.forward(this.req, this);
@@ -697,7 +699,9 @@ public class WinstoneResponse implements HttpServletResponse {
         
         // If we are here there was no webapp and/or no request object, so 
         // show the default error page
-        this.statusCode = sc;
+        if (this.errorStatusCode == null) {
+            this.statusCode = sc;
+        }
         String output = resources.getString("WinstoneResponse.ErrorPage",
                 new String[] { sc + "", (msg == null ? "" : msg), "",
                         resources.getString("ServerVersion"),

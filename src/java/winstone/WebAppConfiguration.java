@@ -356,8 +356,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 // Construct the servlet instances
                 else if (nodeName.equals(ELEM_SERVLET)) {
                     ServletConfiguration instance = new ServletConfiguration(
-                            this, this.loader, this.resources, this.prefix,
-                            child);
+                            this, this.resources, child);
                     this.servletInstances.put(instance.getServletName(),
                             instance);
                     if (instance.getLoadOnStartup() >= 0)
@@ -772,8 +771,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             staticParams.put("prefix", this.prefix);
             staticParams.put("directoryList", "" + useDirLists);
             ServletConfiguration defaultServlet = new ServletConfiguration(
-                    this, this.loader, this.resources, this.prefix,
-                    this.defaultServletName, DEFAULT_SERVLET_CLASS,
+                    this, this.resources,  this.defaultServletName, DEFAULT_SERVLET_CLASS,
                     staticParams, 0);
             // commented cause it should be called during startup servlet
 //          defaultServlet.getRequestDispatcher(this.filterInstances); 
@@ -784,8 +782,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // If we don't have an instance of the default servlet, mount the inbuilt one
         if (this.servletInstances.get(this.errorServletName) == null) {
             ServletConfiguration errorServlet = new ServletConfiguration(
-                    this, this.loader, this.resources, this.prefix,
-                    this.errorServletName, ERROR_SERVLET_CLASS,
+                    this, this.resources,  this.errorServletName, ERROR_SERVLET_CLASS,
                     new HashMap(), 0);
             // commented cause it should be called during startup servlet
 //          errorServlet.getRequestDispatcher(this.filterInstances); 
@@ -805,8 +802,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             Map jspParams = new HashMap();
             addJspServletParams(jspParams);
             ServletConfiguration sc = new ServletConfiguration(this,
-                    this.loader, this.resources, this.prefix, JSP_SERVLET_NAME,
-                    JSP_SERVLET_CLASS, jspParams, 3);
+                    this.resources, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
             this.servletInstances.put(JSP_SERVLET_NAME, sc);
             startupServlets.add(sc);
             processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING,
@@ -823,9 +819,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             invokerParams.put("prefix", this.prefix);
             invokerParams.put("invokerPrefix", invokerPrefix);
             ServletConfiguration sc = new ServletConfiguration(this,
-                    this.loader, this.resources, this.prefix,
-                    INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, invokerParams,
-                    3);
+                    this.resources,  INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, 
+                    invokerParams, 3);
             this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
             processMapping(INVOKER_SERVLET_NAME, invokerPrefix + Mapping.STAR,
                     this.exactServletMatchMounts, localFolderPatterns,
@@ -875,6 +870,14 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
     public String getWebroot() {
         return this.webRoot;
+    }
+
+    public ClassLoader getLoader() {
+        return this.loader;
+    }
+
+    public Map getFilters() {
+        return this.filterInstances;
     }
     
     public String getContextName() {
@@ -1261,7 +1264,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     public javax.servlet.RequestDispatcher getNamedDispatcher(String name) {
         ServletConfiguration servlet = (ServletConfiguration) this.servletInstances.get(name);
         if (servlet != null) {
-            RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances, null);
+            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
             if (rd != null) {
                 rd.setForNamedDispatcher(this.filterPatternsForward, this.filterPatternsInclude);
                 return rd;
@@ -1296,7 +1299,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         StringBuffer pathInfo = new StringBuffer();
         ServletConfiguration servlet = urlMatch(uriInsideWebapp, servletPath, pathInfo);
         if (servlet != null) {
-            RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances, uriInsideWebapp);
+            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
             if (rd != null) {
                 rd.setForURLDispatcher(servletPath.toString(), pathInfo.toString()
                         .equals("") ? null : pathInfo.toString(), queryString,
@@ -1324,7 +1327,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             return this.getErrorDispatcherByCode(
                     HttpServletResponse.SC_BAD_REQUEST,
                     resources.getString("WebAppConfig.InvalidURI", uriInsideWebapp),
-                    null, null, uriInsideWebapp);
+                    null);
         } else if (this.contextStartupError != null) {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw, true);
@@ -1336,7 +1339,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             return this.getErrorDispatcherByCode(
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     resources.getString("WebAppConfig.ErrorDuringStartup", sw.toString()), 
-                    this.contextStartupError, null, uriInsideWebapp);
+                    this.contextStartupError);
         }
 
         // Parse the url for query string, etc 
@@ -1399,50 +1402,42 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 }
             }
 
-            RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances, uriInsideWebapp);
-            if (rd != null) {
-                // Otherwise process as normal
-                request.setQueryString(queryString);
-                // no param parse, because we need lazy parsing
-                request.setServletPath(servletPath.toString());
-                request.setPathInfo(pathInfo.toString().equals("") ? null : pathInfo.toString());
-                request.setRequestURI(this.prefix + uriInsideWebapp);
-                
-                rd.setForInitialDispatcher(request.getServletPath(), request.getPathInfo(), 
-                        uriInsideWebapp, this.filterPatternsRequest, this.authenticationHandler);
-                return rd;
-            }
+            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
+            rd.setForInitialDispatcher(servletPath.toString(), 
+                    pathInfo.toString().equals("") ? null : pathInfo.toString(), queryString,
+                    uriInsideWebapp, this.filterPatternsRequest, this.authenticationHandler);
+            return rd;
         }
         
         // If we are here, return a 404
         return this.getErrorDispatcherByCode(HttpServletResponse.SC_NOT_FOUND,
                 resources.getString("StaticResourceServlet.PathNotFound", 
-                        uriInsideWebapp), null, null, uriInsideWebapp);
+                        uriInsideWebapp), null);
     }
 
     /**
      * Gets a dispatcher, set up for error dispatch.
      */
     public RequestDispatcher getErrorDispatcherByClass(
-            int statusCode, String summaryMessage, Throwable exception,
-            String throwingServletName, String originalURI) {
+            Throwable exception) {
 
-        // Check for exception match
-        boolean found = false;
+        // Check for exception class match
         Class exceptionClasses[] = this.errorPagesByExceptionKeysSorted;
         Throwable errWrapper = new ServletException("For loop condition's sake only", exception);
-        while (!found && (errWrapper instanceof ServletException)) {
+        while (errWrapper instanceof ServletException) {
             errWrapper = ((ServletException) errWrapper).getRootCause();
-            for (int n = 0; n < exceptionClasses.length && !found; n++) {
+            for (int n = 0; n < exceptionClasses.length; n++) {
 
                 Logger.log(Logger.FULL_DEBUG, resources,
                         "WinstoneResponse.TestingException",
-                        this.errorPagesByExceptionKeysSorted[n] + "");
+                        new String[] {this.errorPagesByExceptionKeysSorted[n].getName(),
+                            errWrapper.getClass().getName()});
                 if (exceptionClasses[n].isInstance(errWrapper)) {
                     String errorURI = (String) this.errorPagesByException.get(exceptionClasses[n]);
                     if (errorURI != null) {
-                        RequestDispatcher rd = buildErrorDispatcher(errorURI, originalURI, statusCode, 
-                                summaryMessage, exception, throwingServletName);
+                        RequestDispatcher rd = buildErrorDispatcher(errorURI, 
+                                HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                                errWrapper.getMessage(), errWrapper);
                         if (rd != null) {
                             return rd;
                         }
@@ -1452,23 +1447,26 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                                 new String[] {exceptionClasses[n].getName(),
                                     (String) this.errorPagesByException.get(exceptionClasses[n]) });
                     }
+                } else {
+                    Logger.log(Logger.WARNING, resources, 
+                            "WinstoneResponse.ExceptionNotMatched", 
+                            exceptionClasses[n].getName());
                 }
             }
         }
         
         // Otherwise throw a code error
-        return getErrorDispatcherByCode(statusCode, summaryMessage, exception, 
-                throwingServletName, originalURI);
+        return getErrorDispatcherByCode(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                exception.getMessage(), exception);
     }
     
     public RequestDispatcher getErrorDispatcherByCode(
-            int statusCode, String summaryMessage, Throwable exception,
-            String throwingServletName, String originalURI) {
+            int statusCode, String summaryMessage, Throwable exception) {
         // Check for status code match
         String errorURI = (String) getErrorPagesByCode().get("" + statusCode);
         if (errorURI != null) {
-            RequestDispatcher rd = buildErrorDispatcher(errorURI, originalURI, statusCode, 
-                    summaryMessage, exception, throwingServletName);
+            RequestDispatcher rd = buildErrorDispatcher(errorURI, statusCode, 
+                    summaryMessage, exception);
             if (rd != null) {
                 return rd;
             }
@@ -1478,10 +1476,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         ServletConfiguration errorServlet = (ServletConfiguration) 
                     this.servletInstances.get(this.errorServletName);
         if (errorServlet != null) {
-            RequestDispatcher rd = errorServlet.getRequestDispatcher(this.filterInstances, null);
+            RequestDispatcher rd = new RequestDispatcher(this, errorServlet, this.resources);
             if (rd != null) {
-                rd.setForErrorDispatcher(null, null, null, originalURI, statusCode, 
-                        summaryMessage, exception, null, throwingServletName, this.filterPatternsError);
+                rd.setForErrorDispatcher(null, null, null, statusCode, 
+                        summaryMessage, exception, null, this.filterPatternsError);
                 return rd;
             }
         }
@@ -1494,8 +1492,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     /**
      * Build a dispatcher to the error handler if it's available. If it fails, return null.
      */
-    private RequestDispatcher buildErrorDispatcher(String errorURI, String originalURI, 
-            int statusCode, String summaryMessage, Throwable exception, String throwingServletName) {
+    private RequestDispatcher buildErrorDispatcher(String errorURI, int statusCode, 
+            String summaryMessage, Throwable exception) {
         // Parse the url for query string, etc 
         String queryString = "";
         int questionPos = errorURI.indexOf('?');
@@ -1511,12 +1509,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         StringBuffer pathInfo = new StringBuffer();
         ServletConfiguration servlet = urlMatch(errorURI, servletPath, pathInfo);
         if (servlet != null) {
-            RequestDispatcher rd = servlet.getRequestDispatcher(this.filterInstances, errorURI);
+            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
             if (rd != null) {
                 rd.setForErrorDispatcher(servletPath.toString(), 
                         pathInfo.toString().equals("") ? null : pathInfo.toString(), 
-                                queryString, originalURI, statusCode, summaryMessage, 
-                                exception, errorURI, throwingServletName, this.filterPatternsError);
+                                queryString, statusCode, summaryMessage, 
+                                exception, errorURI, this.filterPatternsError);
                 return rd;
             }
         }

@@ -162,7 +162,6 @@ public class Ajp13Listener implements Listener, Runnable {
             boolean iAmFirst) throws SocketException, IOException {
         WinstoneRequest req = this.objectPool.getRequestFromPool();
         WinstoneResponse rsp = this.objectPool.getResponseFromPool();
-        req.setListener(this);
         rsp.setRequest(req);
         // rsp.updateContentTypeHeader("text/html");
 
