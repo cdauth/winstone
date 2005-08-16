@@ -226,8 +226,8 @@ public class RequestHandlerThread implements Runnable {
      * them to the desired servlet, which then processes them or throws them off to
      * another servlet.
      */
-    private void processRequest(WebAppConfiguration webAppConfig, WinstoneRequest req, WinstoneResponse rsp,
-            String path) throws IOException, ServletException {
+    private void processRequest(WebAppConfiguration webAppConfig, WinstoneRequest req, 
+            WinstoneResponse rsp, String path) throws IOException, ServletException {
         RequestDispatcher rd = null;
         javax.servlet.RequestDispatcher rdError = null;
         try {

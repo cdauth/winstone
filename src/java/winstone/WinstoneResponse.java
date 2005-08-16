@@ -96,6 +96,7 @@ public class WinstoneResponse implements HttpServletResponse {
      */
     public WinstoneResponse(WinstoneResourceBundle resources) {
         this.resources = resources;
+        
         this.headers = new ArrayList();
         this.cookies = new ArrayList();
         this.includeByteArrays = new Stack();
@@ -125,6 +126,7 @@ public class WinstoneResponse implements HttpServletResponse {
         this.reqKeepAliveHeader = null;
 
         this.statusCode = SC_OK;
+        this.errorStatusCode = null;
         this.locale = null; //Locale.getDefault();
         this.explicitlySetEncoding = null;
         this.currentEncoding = null;
@@ -133,22 +135,24 @@ public class WinstoneResponse implements HttpServletResponse {
     private String getEncodingFromLocale(Locale loc) {
         String localeString = loc.getLanguage() + "_" + loc.getCountry();
         Map encMap = this.webAppConfig.getLocaleEncodingMap();
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.LookForLocaleEncoding",
+        Logger.log(Logger.FULL_DEBUG, resources, 
+                "WinstoneResponse.LookForLocaleEncoding",
                 new String[] {localeString, encMap + ""});
 
         String fullMatch = (String) encMap.get(localeString);
         if (fullMatch != null) {
-            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.FoundLocaleEncoding",
-                    fullMatch);
+            Logger.log(Logger.FULL_DEBUG, resources, 
+                    "WinstoneResponse.FoundLocaleEncoding", fullMatch);
             return fullMatch;
         } else {
             localeString = loc.getLanguage();
-            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.LookForLocaleEncoding",
+            Logger.log(Logger.FULL_DEBUG, resources, 
+                    "WinstoneResponse.LookForLocaleEncoding",
                     new String[] {localeString, encMap + ""});
             String match = (String) encMap.get(localeString);
             if (match != null) {
-                Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.FoundLocaleEncoding", 
-                        match);
+                Logger.log(Logger.FULL_DEBUG, resources, 
+                        "WinstoneResponse.FoundLocaleEncoding", match);
             }
             return match;
         }
@@ -277,7 +281,7 @@ public class WinstoneResponse implements HttpServletResponse {
             } catch (Throwable err) {
                 return;
             }
-            int bodyBytes = this.outputStream.getBytesWritten();
+            int bodyBytes = this.outputStream.getOutputStreamLength();
             if (contentLength != bodyBytes)
                 Logger.log(Logger.DEBUG, resources,
                         "WinstoneResponse.ShortOutput", new String[] {
@@ -614,6 +618,8 @@ public class WinstoneResponse implements HttpServletResponse {
                 } else {
                     value = remainderHeader.toString();
                 }
+            } else if (name.equals(CONTENT_LENGTH_HEADER)) {
+                this.outputStream.setContentLengthHeaderSize(Integer.parseInt(value));
             }
             this.headers.add(name + ": " + value);
         }
@@ -644,6 +650,8 @@ public class WinstoneResponse implements HttpServletResponse {
                         } else {
                             value = remainderHeader.toString();
                         }
+                    } else if (name.equals(CONTENT_LENGTH_HEADER)) {
+                        this.outputStream.setContentLengthHeaderSize(Integer.parseInt(value));
                     }
 
                     this.headers.set(n, name + ": " + value);

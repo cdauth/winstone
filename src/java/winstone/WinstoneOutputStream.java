@@ -36,7 +36,8 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     protected OutputStream outStream;
     protected int bufferSize;
     protected int bufferPosition;
-    protected int bytesWritten;
+    protected int bytesCommitted;
+    protected Integer contentLengthHeaderSize;
     protected ByteArrayOutputStream buffer;
     protected boolean committed;
     protected boolean bodyOnly;
@@ -73,13 +74,19 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         }
         this.bufferSize = bufferSize;
     }
+    
+    public void setContentLengthHeaderSize(int headerSize) {
+        if (!this.owner.isCommitted()) {
+            this.contentLengthHeaderSize = new Integer(headerSize); 
+        }
+    }
 
     public boolean isCommitted() {
         return this.committed;
     }
 
-    public int getBytesWritten() {
-        return this.bytesWritten;
+    public int getOutputStreamLength() {
+        return this.bytesCommitted + this.bufferPosition;
     }
     
     public void setDisregardMode(boolean disregard) {
@@ -89,14 +96,21 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     public void write(int oneChar) throws IOException {
         if (this.disregardMode) {
             return;
+        } else if ((this.contentLengthHeaderSize != null) && 
+                (this.bytesCommitted >= this.contentLengthHeaderSize.intValue())) {
+            return;
         }
 //        System.out.println("Out: " + this.bufferPosition + " char=" + (char)oneChar);
         this.buffer.write(oneChar);
         this.bufferPosition++;
         // if (this.headersWritten)
-        this.bytesWritten++;
-        if (this.bufferPosition >= this.bufferSize)
+        if (this.bufferPosition >= this.bufferSize) {
             commit();
+        } else if ((this.contentLengthHeaderSize != null) && 
+                ((this.bufferPosition + this.bytesCommitted) 
+                        >= this.contentLengthHeaderSize.intValue())) {
+            commit();
+        }
     }
 
     public void commit() throws IOException {
@@ -140,14 +154,22 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             // Logger.log(Logger.FULL_DEBUG,
             // resources.getString("HttpProtocol.OutHeaders") + out.toString());
         }
-//        byte content[] = this.buffer.toByteArray();
+        byte content[] = this.buffer.toByteArray();
 //        winstone.ajp13.Ajp13Listener.packetDump(content, content.length);
-        this.buffer.writeTo(this.outStream);
+//        this.buffer.writeTo(this.outStream);
+        int commitLength = content.length;
+        if (this.contentLengthHeaderSize != null) {
+            commitLength = Math.min(this.contentLengthHeaderSize.intValue() 
+                    - this.bytesCommitted, content.length);
+        }
+        this.outStream.write(content, 0, commitLength);
         this.outStream.flush();
 
         Logger.log(Logger.FULL_DEBUG, resources,
-                "WinstoneOutputStream.CommittedBytes", "" + this.bytesWritten);
+                "WinstoneOutputStream.CommittedBytes", 
+                "" + (this.bytesCommitted + commitLength));
 
+        this.bytesCommitted += commitLength;
         this.buffer.reset();
         this.bufferPosition = 0;
     }
@@ -162,7 +184,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
                             + "");
             this.buffer.reset();
             this.bufferPosition = 0;
-            this.bytesWritten = 0;
+            this.bytesCommitted = 0;
         }
     }
 

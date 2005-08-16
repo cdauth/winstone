@@ -264,6 +264,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                 req.setAttribute(FORWARD_SERVLET_PATH, req.getServletPath());
                 req.setAttribute(FORWARD_PATH_INFO, req.getPathInfo());
                 req.setAttribute(FORWARD_QUERY_STRING, req.getQueryString());
+                req.setForwardQueryString(this.queryString);
                 
                 if (this.isErrorDispatch) {
                     req.setAttribute(ERROR_REQUEST_URI, req.getRequestURI());
@@ -290,7 +291,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
             req.setServletPath(this.servletPath);
             req.setPathInfo(this.pathInfo);
-            req.setForwardQueryString(this.queryString);
             req.setRequestURI(this.webAppConfig.getPrefix() + this.requestURI);
             req.setQueryString(this.queryString);
             req.setWebAppConfig(this.webAppConfig);
