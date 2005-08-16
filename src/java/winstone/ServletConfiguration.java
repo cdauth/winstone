@@ -72,6 +72,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     private Object servletSemaphore = new Boolean(true);
     private boolean isSingleThreadModel = false;
     private boolean unavailable = false;
+    private Throwable unavailableException = null;
     
     protected ServletConfiguration(WebAppConfiguration webAppConfig, 
             WinstoneResourceBundle resources) {
@@ -123,14 +124,10 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     Node paramNode = child.getChildNodes().item(k);
                     if (paramNode.getNodeType() != Node.ELEMENT_NODE)
                         continue;
-                    else if (paramNode.getNodeName().equals(
-                            ELEM_INIT_PARAM_NAME))
-                        paramName = paramNode.getFirstChild().getNodeValue()
-                                .trim();
-                    else if (paramNode.getNodeName().equals(
-                            ELEM_INIT_PARAM_VALUE))
-                        paramValue = paramNode.getFirstChild().getNodeValue()
-                                .trim();
+                    else if (paramNode.getNodeName().equals(ELEM_INIT_PARAM_NAME))
+                        paramName = paramNode.getFirstChild().getNodeValue().trim();
+                    else if (paramNode.getNodeName().equals(ELEM_INIT_PARAM_VALUE))
+                        paramValue = paramNode.getFirstChild().getNodeValue().trim();
                 }
                 if ((paramName != null) && (paramValue != null))
                     this.initParameters.put(paramName, paramValue);
@@ -139,8 +136,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     Node roleElm = child.getChildNodes().item(m);
                     if ((roleElm.getNodeType() == Node.ELEMENT_NODE)
                             && (roleElm.getNodeName().equals(ELEM_ROLE_NAME)))
-                        this.runAsRole = roleElm.getFirstChild().getNodeValue()
-                                .trim();
+                        this.runAsRole = roleElm.getFirstChild().getNodeValue().trim();
                 }
             } else if (nodeName.equals(ELEM_SECURITY_ROLE_REF)) {
                 String name = null;
@@ -150,11 +146,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     if (roleRefNode.getNodeType() != Node.ELEMENT_NODE)
                         continue;
                     else if (roleRefNode.getNodeName().equals(ELEM_ROLE_NAME))
-                        name = roleRefNode.getFirstChild().getNodeValue()
-                                .trim();
+                        name = roleRefNode.getFirstChild().getNodeValue().trim();
                     else if (roleRefNode.getNodeName().equals(ELEM_ROLE_LINK))
-                        link = roleRefNode.getFirstChild().getNodeValue()
-                                .trim();
+                        link = roleRefNode.getFirstChild().getNodeValue().trim();
                 }
                 if ((name != null) && (link != null))
                     this.initParameters.put(name, link);
@@ -170,16 +164,16 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                         this.servletName, this.classFile });
     }
     
-    protected ServletException ensureInitialization() {
+    protected void ensureInitialization() {
         
         if (this.instance != null) {
-            return null; // already init'd
+            return; // already init'd
         }
         
         synchronized (this.servletSemaphore) {
             // Check if we were decommissioned while blocking
-            if (this.unavailable) {
-                return null; 
+            if (this.unavailableException != null) {
+                return; 
             }
             
             // If no instance, class load, then call init()
@@ -212,12 +206,12 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                         "ServletConfiguration.InitError", this.servletName, err);
                 this.instance = null; // so that we don't call the destroy method
                 setUnavailable();
-                return err;
+                this.unavailableException = err;
             } finally {
                 Thread.currentThread().setContextClassLoader(cl);
             }
         }
-        return null;
+        return;
     }
 
     public void execute(ServletRequest request, ServletResponse response, String requestURI)
@@ -227,8 +221,11 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         
         // If init failed, return 500 error
         if (this.unavailable) {
-            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_NOT_FOUND, 
-                    resources.getString("StaticResourceServlet.PathNotFound", requestURI));
+//            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+//                    resources.getString("StaticResourceServlet.PathNotFound", requestURI));
+            RequestDispatcher rd = this.webAppConfig.getErrorDispatcherByClass(
+                    this.unavailableException);
+            rd.forward(request, response);
             return;
         }
         

@@ -596,28 +596,20 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         Node mappingNode = child.getChildNodes().item(m);
                         if (mappingNode.getNodeType() != Node.ELEMENT_NODE)
                             continue;
-                        else if (mappingNode.getNodeName().equals(
-                                ELEM_LOCALE_ENC_MAPPING)) {
+                        else if (mappingNode.getNodeName().equals(ELEM_LOCALE_ENC_MAPPING)) {
                             String localeName = null;
                             String encoding = null;
-                            for (int l = 0; l < child.getChildNodes()
-                                    .getLength(); l++) {
-                                Node mappingChildNode = child.getChildNodes()
-                                        .item(l);
+                            for (int l = 0; l < mappingNode.getChildNodes().getLength(); l++) {
+                                Node mappingChildNode = mappingNode.getChildNodes().item(l);
                                 if (mappingChildNode.getNodeType() != Node.ELEMENT_NODE)
                                     continue;
-                                else if (mappingChildNode.getNodeName().equals(
-                                        ELEM_LOCALE))
-                                    localeName = mappingChildNode
-                                            .getFirstChild().getNodeValue();
-                                else if (mappingChildNode.getNodeName().equals(
-                                        ELEM_ENCODING))
-                                    encoding = mappingChildNode.getFirstChild()
-                                            .getNodeValue();
+                                else if (mappingChildNode.getNodeName().equals(ELEM_LOCALE))
+                                    localeName = mappingChildNode.getFirstChild().getNodeValue();
+                                else if (mappingChildNode.getNodeName().equals(ELEM_ENCODING))
+                                    encoding = mappingChildNode.getFirstChild().getNodeValue();
                             }
                             if ((encoding != null) && (localeName != null))
-                                this.localeEncodingMap
-                                        .put(localeName, encoding);
+                                this.localeEncodingMap.put(localeName, encoding);
                         }
                     }
                 }

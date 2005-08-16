@@ -79,7 +79,8 @@ public class WinstoneResponse implements HttpServletResponse {
     private Stack includeOutputStreams;
     
     private List headers;
-    private String encoding;
+    private String explicitlySetEncoding;
+    private String currentEncoding;
     private List cookies;
     
     private Map outPrintWriters;
@@ -103,7 +104,7 @@ public class WinstoneResponse implements HttpServletResponse {
 
         this.statusCode = SC_OK;
         this.locale = null; //Locale.getDefault();
-        this.encoding = null;
+        this.explicitlySetEncoding = null;
         this.protocol = null;
         this.reqKeepAliveHeader = null;
     }
@@ -125,17 +126,32 @@ public class WinstoneResponse implements HttpServletResponse {
 
         this.statusCode = SC_OK;
         this.locale = null; //Locale.getDefault();
-        this.encoding = null;
+        this.explicitlySetEncoding = null;
+        this.currentEncoding = null;
     }
 
     private String getEncodingFromLocale(Locale loc) {
+        String localeString = loc.getLanguage() + "_" + loc.getCountry();
         Map encMap = this.webAppConfig.getLocaleEncodingMap();
-        String fullMatch = (String) encMap.get(loc.getLanguage() + "_"
-                + loc.getCountry());
-        if (fullMatch != null)
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.LookForLocaleEncoding",
+                new String[] {localeString, encMap + ""});
+
+        String fullMatch = (String) encMap.get(localeString);
+        if (fullMatch != null) {
+            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.FoundLocaleEncoding",
+                    fullMatch);
             return fullMatch;
-        else
-            return (String) encMap.get(loc.getLanguage());
+        } else {
+            localeString = loc.getLanguage();
+            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.LookForLocaleEncoding",
+                    new String[] {localeString, encMap + ""});
+            String match = (String) encMap.get(localeString);
+            if (match != null) {
+                Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.FoundLocaleEncoding", 
+                        match);
+            }
+            return match;
+        }
     }
 
     public void setErrorStatusCode(int statusCode) {
@@ -228,23 +244,27 @@ public class WinstoneResponse implements HttpServletResponse {
         }
     }
 
-    protected String updatedContentTypeHeader(String type) {
+    protected static String getCharsetFromContentTypeHeader(String type, StringBuffer remainder) {
+        if (type == null) {
+            type = "text/html";
+        }
         // Parse type to set encoding if needed
-        StringBuffer sb = new StringBuffer();
         StringTokenizer st = new StringTokenizer(type, ";");
+        String localEncoding = null;
         while (st.hasMoreTokens()) {
             String clause = st.nextToken().trim();
             if (clause.startsWith("charset="))
-                this.encoding = clause.substring(8);
-            else
-                sb.append(clause).append(";");
+                localEncoding = clause.substring(8);
+            else {
+                if (remainder.length() > 0) {
+                    remainder.append(";");
+                }
+                remainder.append(clause);
+            }
         }
-        String header = sb.toString().substring(0, sb.length() - 1);
-        if (header.startsWith("text/"))
-            header += ";charset=" + getCharacterEncoding();
-        return header;
-    }
-
+        return localEncoding;
+    } 
+    
     /**
      * A check to ensure correct content length values
      */
@@ -275,7 +295,9 @@ public class WinstoneResponse implements HttpServletResponse {
                 && !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
         String contentType = getHeader(CONTENT_TYPE_HEADER);
         if ((contentType == null) && (this.statusCode != SC_MOVED_TEMPORARILY)) {
-            setHeader(CONTENT_TYPE_HEADER, updatedContentTypeHeader("text/html"));
+            // Bypass normal encoding
+            this.setHeader(CONTENT_TYPE_HEADER, "text/html" + 
+                    (this.currentEncoding == null ? "" : ";charset=" + this.currentEncoding));
         }
         if (getHeader(DATE_HEADER) == null)
             setDateHeader(DATE_HEADER, System.currentTimeMillis());
@@ -439,11 +461,16 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public String getCharacterEncoding() {
-        return this.encoding == null ? "ISO-8859-1" : this.encoding;
+        return (this.currentEncoding == null ? "ISO-8859-1" : this.currentEncoding);
     }
 
     public void setCharacterEncoding(String encoding) {
-        this.encoding = encoding;
+        if (this.outPrintWriters.get(getTopOutputStream()) == null) {
+            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.SettingEncoding", encoding);
+            StringBuffer remainderHeader = new StringBuffer();
+            getCharsetFromContentTypeHeader(getContentType(), remainderHeader);
+            setContentType(remainderHeader + ";charset=" + encoding);
+        }
     }
 
     public String getContentType() {
@@ -468,16 +495,28 @@ public class WinstoneResponse implements HttpServletResponse {
         if (isCommitted()) {
             Logger.log(Logger.WARNING, resources,
                     "WinstoneResponse.SetLocaleTooLate");
-        } else if (this.outPrintWriters.get(this.outputStream) == null) {
-            String ct = getHeader(CONTENT_TYPE_HEADER);
-            String charset = getEncodingFromLocale(getLocale());
-            if (ct == null)
-                setHeader(CONTENT_TYPE_HEADER, "text/html;charset=" + charset);
-            else if (ct.indexOf(';') == -1)
-                setHeader(CONTENT_TYPE_HEADER, ct + ";charset=" + charset);
-            else
-                setHeader(CONTENT_TYPE_HEADER, ct.substring(0, ct.indexOf(';'))
-                        + ";charset=" + charset);
+        } else if ((this.outPrintWriters.get(this.outputStream) == null)
+                && (this.explicitlySetEncoding == null)) {
+            String localeEncoding = getEncodingFromLocale(loc);
+            if (localeEncoding != null) {
+                this.currentEncoding = localeEncoding;
+                String contentTypeHeader = getContentType();
+                if (contentTypeHeader == null) {
+                    this.headers.add(CONTENT_TYPE_HEADER + ": text/html;charset=" + localeEncoding);
+                } else {
+                    StringBuffer remainderHeader = new StringBuffer();
+                    getCharsetFromContentTypeHeader(contentTypeHeader, remainderHeader);
+                    String contentHeader = remainderHeader + ";charset=" + localeEncoding;
+                    boolean found = false;
+                    for (int n = 0; (n < this.headers.size()) && !found; n++) {
+                        String header = (String) this.headers.get(n);
+                        if (header.startsWith(CONTENT_TYPE_HEADER + ": ")) {
+                            this.headers.set(n, CONTENT_TYPE_HEADER + ": " + contentHeader);
+                            found = true;
+                        }
+                    }
+                }
+            }
         }
         
         if (!isCommitted()) {
@@ -486,10 +525,12 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public ServletOutputStream getOutputStream() throws IOException {
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.GetOutputStream");
         return getTopOutputStream();
     }
 
     public PrintWriter getWriter() throws IOException {
+        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.GetWriter");
         ServletOutputStream outStream = getTopOutputStream();
         PrintWriter outWriter = (PrintWriter) this.outPrintWriters.get(outStream);
         if (outWriter != null)
@@ -563,7 +604,16 @@ public class WinstoneResponse implements HttpServletResponse {
     public void addHeader(String name, String value) {
         if (this.includeOutputStreams.isEmpty()) {
             if (name.equals(CONTENT_TYPE_HEADER)) {
-                value = updatedContentTypeHeader(value);
+                StringBuffer remainderHeader = new StringBuffer();
+                String headerEncoding = getCharsetFromContentTypeHeader(
+                        value, remainderHeader);
+                if (headerEncoding != null) {
+                    value = remainderHeader.toString() + ";charset=" + headerEncoding;
+                    this.explicitlySetEncoding = headerEncoding;
+                    this.currentEncoding = headerEncoding;
+                } else {
+                    value = remainderHeader.toString();
+                }
             }
             this.headers.add(name + ": " + value);
         }
@@ -579,13 +629,23 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void setHeader(String name, String value) {
         if (this.includeOutputStreams.isEmpty()) {
-            if (name.equals(CONTENT_TYPE_HEADER)) {
-                value = updatedContentTypeHeader(value);
-            }
             boolean found = false;
             for (int n = 0; (n < this.headers.size()) && !found; n++) {
                 String header = (String) this.headers.get(n);
                 if (header.startsWith(name + ": ")) {
+                    if (name.equals(CONTENT_TYPE_HEADER)) {
+                        StringBuffer remainderHeader = new StringBuffer();
+                        String headerEncoding = getCharsetFromContentTypeHeader(
+                                value, remainderHeader);
+                        if (headerEncoding != null) {
+                            value = remainderHeader.toString() + ";charset=" + headerEncoding;
+                            this.explicitlySetEncoding = headerEncoding;
+                            this.currentEncoding = headerEncoding;
+                        } else {
+                            value = remainderHeader.toString();
+                        }
+                    }
+
                     this.headers.set(n, name + ": " + value);
                     found = true;
                 }
