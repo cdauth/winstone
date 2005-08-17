@@ -179,7 +179,7 @@ public class RequestHandlerThread implements Runnable {
                     } catch (InterruptedIOException errIO) {
                         continueFlag = false;
                         Logger.log(Logger.FULL_DEBUG, resources,
-                                "RequestHandlerThread.SocketTimeout");
+                                "RequestHandlerThread.SocketTimeout", errIO);
                     } catch (SocketException errIO) {
                         continueFlag = false;
                     }
