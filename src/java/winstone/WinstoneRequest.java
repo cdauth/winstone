@@ -75,6 +75,7 @@ public class WinstoneRequest implements HttpServletRequest {
     static final String HOST_HEADER = "Host";
     static final String IN_COOKIE_HEADER1 = "Cookie";
     static final String IN_COOKIE_HEADER2 = "Cookie2";
+    static final String METHOD_HEAD = "HEAD";
     static final String METHOD_GET = "GET";
     static final String METHOD_POST = "POST";
     static final String POST_PARAMETERS = "application/x-www-form-urlencoded";
@@ -476,7 +477,8 @@ public class WinstoneRequest implements HttpServletRequest {
             Map workingParameters = new HashMap();
             try {
                 // Parse query string from request
-                if ((method.equals(METHOD_GET) || method.equals(METHOD_POST))
+                if ((method.equals(METHOD_GET) || method.equals(METHOD_HEAD) || 
+                        method.equals(METHOD_POST))
                         && (this.queryString != null)) {
                     extractParameters(this.queryString, this.encoding, workingParameters, resources);
                     Logger.log(Logger.FULL_DEBUG, resources,
