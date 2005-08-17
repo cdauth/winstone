@@ -26,7 +26,7 @@ DONE - Multiple webapp support
 DONE - Fix for JamVM JNDI properties bug (thanks Martin Cordova)
 DONE - SSL Key manager factory selector (thanks Martin Cordova)
      - Add session persistence across reboots (ie serialize to file)
-     - TCK compliance testing
+DONE - TCK compliance testing
 
 v0.6.4
 DONE - Added HTTPS listener class
