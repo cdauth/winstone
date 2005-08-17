@@ -111,8 +111,7 @@ public class WinstoneRequest implements HttpServletRequest {
     protected Boolean parsedParameters;
     protected Map requestedSessionIds;
     protected Map currentSessionIds;
-//    protected String requestedSessionId;
-//    protected String currentSessionId;
+    protected String deadRequestedSessionId;
     protected List locales;
     protected String authorization;
     protected boolean isSecure;
@@ -192,8 +191,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.parsedParameters = null;
         this.requestedSessionIds.clear();
         this.currentSessionIds.clear();
-//        this.requestedSessionId = null;
-//        this.currentSessionId = null;
+        this.deadRequestedSessionId = null;
         this.locales.clear();
         this.authorization = null;
         this.isSecure = false;
@@ -248,6 +246,10 @@ public class WinstoneRequest implements HttpServletRequest {
     
     public Map getRequestedSessionIds() {
         return this.requestedSessionIds;
+    }
+    
+    public String getDeadRequestedSessionId() {
+        return this.deadRequestedSessionId;
     }
 
     public WebAppGroup getWebAppGroup() {
@@ -373,10 +375,6 @@ public class WinstoneRequest implements HttpServletRequest {
     public void setLocales(List locales) {
         this.locales = locales;
     }
-//
-//    public void setRequestedSessionId(String sc) {
-//        this.requestedSessionId = sc;
-//    }
 
     public void setCurrentSessionIds(Map currentSessionIds) {
         this.currentSessionIds = currentSessionIds;
@@ -386,6 +384,10 @@ public class WinstoneRequest implements HttpServletRequest {
         this.requestedSessionIds = requestedSessionIds;
     }
 
+    public void setDeadRequestedSessionId(String deadRequestedSessionId) {
+        this.deadRequestedSessionId = deadRequestedSessionId;
+    }
+
     public void setEncoding(String encoding) {
         this.encoding = encoding;
     }
@@ -393,10 +395,6 @@ public class WinstoneRequest implements HttpServletRequest {
     public void setParsedParameters(Boolean parsed) {
         this.parsedParameters = parsed;
     }
-//
-//    public void setSecurityRoleRefsMap(Map refs) {
-//        this.securityRoleRefs = refs;
-//    }
 
     public void setRequestListeners(ServletRequestListener rl[]) {
         this.requestListeners = rl;
@@ -657,14 +655,19 @@ public class WinstoneRequest implements HttpServletRequest {
                     if (ownerContext != null) {
                         this.requestedSessionIds.put(ownerContext.getPrefix(), 
                                 thisCookie.getValue());
-                    } else {
-                        this.requestedSessionIds.put(this.webappConfig.getPrefix(), 
+                        this.currentSessionIds.put(ownerContext.getPrefix(), 
                                 thisCookie.getValue());
+                    }
+                    // If not found, it was probably dead
+                    else {
+                        this.deadRequestedSessionId = thisCookie.getValue();
                     }
 //                    this.requestedSessionId = thisCookie.getValue();
 //                    this.currentSessionId = thisCookie.getValue();
                     Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneRequest.SessionCookieFound", thisCookie.getValue());
+                            "WinstoneRequest.SessionCookieFound", 
+                            new String[] {thisCookie.getValue(), 
+                            ownerContext == null ? "" : "prefix:" + ownerContext.getPrefix()});
                 }
             }
         }
@@ -1139,7 +1142,12 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public String getRequestedSessionId() {
-        return (String) this.requestedSessionIds.get(this.webappConfig.getPrefix());
+        String actualSessionId = (String) this.requestedSessionIds.get(this.webappConfig.getPrefix());
+        if (actualSessionId != null) {
+            return actualSessionId;
+        } else {
+            return this.deadRequestedSessionId;
+        }
     }
 
     public StringBuffer getRequestURL() {
