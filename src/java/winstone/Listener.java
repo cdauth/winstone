@@ -54,8 +54,7 @@ public interface Listener {
      */
     public void deallocateRequestResponse(RequestHandlerThread handler,
             WinstoneRequest req, WinstoneResponse rsp,
-            WinstoneInputStream inData, WinstoneOutputStream outData,
-            WebAppGroup webAppGroup)
+            WinstoneInputStream inData, WinstoneOutputStream outData)
             throws IOException;
 
     /**

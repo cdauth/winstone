@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -93,7 +94,7 @@ public class WebAppGroup {
     public WebAppConfiguration getWebAppByURI(String uri) {
         if (uri == null) {
             return null;
-        } else if (uri.equals("/")) {
+        } else if (uri.equals("/") || uri.equals("")) {
             return (WebAppConfiguration) this.webapps.get("");
         } else if (uri.startsWith("/")) {
             String decoded = WinstoneRequest.decodeURLToken(uri, this.resources);
@@ -280,5 +281,17 @@ public class WebAppGroup {
                 }
             }
         }
+    }
+    
+    public WebAppConfiguration getWebAppBySessionKey(String sessionKey) {
+        List allwebapps = new ArrayList(this.webapps.values());
+        for (Iterator i = allwebapps.iterator(); i.hasNext(); ) {
+            WebAppConfiguration webapp = (WebAppConfiguration) i.next();
+            WinstoneSession session = webapp.getSessionById(sessionKey, false);
+            if (session != null) {
+                return webapp;
+            }
+        }
+        return null;
     }
 }

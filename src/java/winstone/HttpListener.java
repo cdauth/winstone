@@ -190,13 +190,13 @@ public class HttpListener implements Listener, Runnable {
         rsp.setOutputStream(outData);
         rsp.setRequest(req);
         // rsp.updateContentTypeHeader("text/html");
+        req.setWebAppGroup(this.webAppGroup);
 
         // Set the handler's member variables so it can execute the servlet
         handler.setRequest(req);
         handler.setResponse(rsp);
         handler.setInStream(inData);
         handler.setOutStream(outData);
-        handler.setWebAppGroup(this.webAppGroup);
     }
 
     /**
@@ -206,13 +206,12 @@ public class HttpListener implements Listener, Runnable {
      */
     public void deallocateRequestResponse(RequestHandlerThread handler,
             WinstoneRequest req, WinstoneResponse rsp,
-            WinstoneInputStream inData, WinstoneOutputStream outData,
-            WebAppGroup webAppGroup) throws IOException {
+            WinstoneInputStream inData, WinstoneOutputStream outData) 
+            throws IOException {
         handler.setInStream(null);
         handler.setOutStream(null);
         handler.setRequest(null);
         handler.setResponse(null);
-        handler.setWebAppGroup(null);
         if (req != null)
             this.objectPool.releaseRequestToPool(req);
         if (rsp != null)

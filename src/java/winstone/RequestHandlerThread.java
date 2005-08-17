@@ -37,7 +37,6 @@ import javax.servlet.ServletRequestListener;
 public class RequestHandlerThread implements Runnable {
     private Thread thread;
     private ObjectPool objectPool;
-    private WebAppGroup webAppGroup;
     private WinstoneInputStream inData;
     private WinstoneOutputStream outData;
     private WinstoneRequest req;
@@ -91,7 +90,7 @@ public class RequestHandlerThread implements Runnable {
                         if (this.req == null) {
                             // Dead request - happens sometimes with ajp13 - discard
                             this.listener.deallocateRequestResponse(this, req,
-                                    rsp, inData, outData, webAppGroup);
+                                    rsp, inData, outData);
                             continue;
                         }
                         String servletURI = this.listener.parseURI(this,
@@ -107,9 +106,9 @@ public class RequestHandlerThread implements Runnable {
 
                         // Get the URI from the request, check for prefix, then
                         // match it to a requestDispatcher
-                        WebAppConfiguration webAppConfig = this.webAppGroup.getWebAppByURI(servletURI);
+                        WebAppConfiguration webAppConfig = req.getWebAppGroup().getWebAppByURI(servletURI);
                         if (webAppConfig == null) {
-                            webAppConfig = this.webAppGroup.getWebAppByURI("/");    
+                            webAppConfig = req.getWebAppGroup().getWebAppByURI("/");    
                         }
                         if (webAppConfig == null) {
                             Logger.log(Logger.WARNING, resources,
@@ -122,7 +121,7 @@ public class RequestHandlerThread implements Runnable {
 
                             // Process keep-alive
                             continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
-                            this.listener.deallocateRequestResponse(this, req, rsp, inData, outData, webAppGroup);
+                            this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
                             Logger.log(Logger.FULL_DEBUG, resources, "RequestHandlerThread.FinishRequest",
                                     new String[] { "" + requestId, Thread.currentThread().getName() });
                             Logger.log(Logger.SPEED, resources, "RequestHandlerThread.RequestTime",
@@ -172,7 +171,7 @@ public class RequestHandlerThread implements Runnable {
                         rsp.setWebAppConfig(null);
                         req.setRequestAttributeListeners(null);
 
-                        this.listener.deallocateRequestResponse(this, req, rsp, inData, outData, webAppGroup);
+                        this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
                         Logger.log(Logger.SPEED, resources, "RequestHandlerThread.RequestTime",
                                 new String[] { servletURI, "" + headerParseTime, 
                                                 "" + getRequestProcessTime() });
@@ -184,12 +183,12 @@ public class RequestHandlerThread implements Runnable {
                         continueFlag = false;
                     }
                 }
-                this.listener.deallocateRequestResponse(this, req, rsp, inData, outData, webAppGroup);
+                this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
                 this.listener.releaseSocket(this.socket, inSocket, outSocket); // shut sockets
             } catch (Throwable err) {
                 try {
                     this.listener.deallocateRequestResponse(this, req, rsp,
-                            inData, outData, webAppGroup);
+                            inData, outData);
                     this.listener.releaseSocket(this.socket, inSocket,
                             outSocket); // shut sockets
                 } catch (Throwable errClose) {
@@ -292,10 +291,6 @@ public class RequestHandlerThread implements Runnable {
 
     public void setOutStream(WinstoneOutputStream outStream) {
         this.outData = outStream;
-    }
-
-    public void setWebAppGroup(WebAppGroup webAppGroup) {
-        this.webAppGroup = webAppGroup;
     }
 
     public void setRequestStartTime() {

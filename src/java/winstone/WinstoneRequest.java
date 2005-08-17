@@ -109,8 +109,10 @@ public class WinstoneRequest implements HttpServletRequest {
     protected String localName;
     protected int localPort;
     protected Boolean parsedParameters;
-    protected String requestedSessionId;
-    protected String currentSessionId;
+    protected Map requestedSessionIds;
+    protected Map currentSessionIds;
+//    protected String requestedSessionId;
+//    protected String currentSessionId;
     protected List locales;
     protected String authorization;
     protected boolean isSecure;
@@ -119,6 +121,7 @@ public class WinstoneRequest implements HttpServletRequest {
     protected BufferedReader inputReader;
     protected ServletConfiguration servletConfig;
     protected WebAppConfiguration webappConfig;
+    protected WebAppGroup webappGroup;
 
     protected AuthenticationPrincipal authenticatedUser;
     protected ServletRequestAttributeListener requestAttributeListeners[];
@@ -138,6 +141,8 @@ public class WinstoneRequest implements HttpServletRequest {
         this.attributesStack = new Stack();
         this.parametersStack = new Stack();
         this.forwardedParameters = new Hashtable();
+        this.requestedSessionIds = new Hashtable();
+        this.currentSessionIds = new Hashtable();
         this.contentLength = -1;
         this.isSecure = false;
         try {
@@ -176,6 +181,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.inputReader = null;
         this.servletConfig = null;
         this.webappConfig = null;
+        this.webappGroup = null;
         this.serverPort = -1;
         this.remoteIP = null;
         this.remoteName = null;
@@ -184,8 +190,10 @@ public class WinstoneRequest implements HttpServletRequest {
         this.localName = null;
         this.localPort = -1;
         this.parsedParameters = null;
-        this.requestedSessionId = null;
-        this.currentSessionId = null;
+        this.requestedSessionIds.clear();
+        this.currentSessionIds.clear();
+//        this.requestedSessionId = null;
+//        this.currentSessionId = null;
         this.locales.clear();
         this.authorization = null;
         this.isSecure = false;
@@ -234,8 +242,16 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.parametersStack;
     }
     
-    public String getCurrentSessionId() {
-        return this.currentSessionId;
+    public Map getCurrentSessionIds() {
+        return this.currentSessionIds;
+    }
+    
+    public Map getRequestedSessionIds() {
+        return this.requestedSessionIds;
+    }
+
+    public WebAppGroup getWebAppGroup() {
+        return this.webappGroup;
     }
 
     public WebAppConfiguration getWebAppConfig() {
@@ -260,6 +276,10 @@ public class WinstoneRequest implements HttpServletRequest {
 
     public void setInputStream(WinstoneInputStream inputData) {
         this.inputData = inputData;
+    }
+
+    public void setWebAppGroup(WebAppGroup webappGroup) {
+        this.webappGroup = webappGroup;
     }
 
     public void setWebAppConfig(WebAppConfiguration webappConfig) {
@@ -353,13 +373,17 @@ public class WinstoneRequest implements HttpServletRequest {
     public void setLocales(List locales) {
         this.locales = locales;
     }
+//
+//    public void setRequestedSessionId(String sc) {
+//        this.requestedSessionId = sc;
+//    }
 
-    public void setRequestedSessionId(String sc) {
-        this.requestedSessionId = sc;
+    public void setCurrentSessionIds(Map currentSessionIds) {
+        this.currentSessionIds = currentSessionIds;
     }
-
-    public void setCurrentSessionId(String sc) {
-        this.currentSessionId = sc;
+    
+    public void setRequestedSessionIds(Map requestedSessionIds) {
+        this.requestedSessionIds = requestedSessionIds;
     }
 
     public void setEncoding(String encoding) {
@@ -627,8 +651,18 @@ public class WinstoneRequest implements HttpServletRequest {
                 Logger.log(Logger.FULL_DEBUG, resources,
                         "WinstoneRequest.CookieFound", thisCookie.toString());
                 if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME)) {
-                    this.requestedSessionId = thisCookie.getValue();
-                    this.currentSessionId = thisCookie.getValue();
+                    // Find a context that manages this key
+                    WebAppConfiguration ownerContext = this.webappGroup.getWebAppBySessionKey(
+                            thisCookie.getValue());
+                    if (ownerContext != null) {
+                        this.requestedSessionIds.put(ownerContext.getPrefix(), 
+                                thisCookie.getValue());
+                    } else {
+                        this.requestedSessionIds.put(this.webappConfig.getPrefix(), 
+                                thisCookie.getValue());
+                    }
+//                    this.requestedSessionId = thisCookie.getValue();
+//                    this.currentSessionId = thisCookie.getValue();
                     Logger.log(Logger.FULL_DEBUG, resources,
                             "WinstoneRequest.SessionCookieFound", thisCookie.getValue());
                 }
@@ -1105,7 +1139,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public String getRequestedSessionId() {
-        return this.requestedSessionId;
+        return (String) this.requestedSessionIds.get(this.webappConfig.getPrefix());
     }
 
     public StringBuffer getRequestURL() {
@@ -1157,7 +1191,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public boolean isRequestedSessionIdValid() {
-        WinstoneSession ws = this.webappConfig.getSessionById(this.requestedSessionId, false);
+        WinstoneSession ws = this.webappConfig.getSessionById(getRequestedSessionId(), false);
         if (ws == null)
             return false;
         else
@@ -1169,13 +1203,11 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public HttpSession getSession(boolean create) {
-        String cookieValue = this.currentSessionId;
+        String cookieValue = (String) this.currentSessionIds.get(this.webappConfig.getPrefix());
 
         // Handle the null case
         if (cookieValue == null) {
-            if (this.currentSessionId != null)
-                cookieValue = this.currentSessionId;
-            else if (!create)
+            if (!create)
                 return null;
             else
                 cookieValue = makeNewSession().getId();
@@ -1187,16 +1219,13 @@ public class WinstoneRequest implements HttpServletRequest {
         if (session != null) {
             session = validationCheck(session, nowDate, create);
             if (session == null) {
-                this.currentSessionId = null;
+                this.currentSessionIds.remove(this.webappConfig.getPrefix());
             }
         }
         if (create && (session == null)) {
             session = makeNewSession();
         }
 
-        // Set last accessed time
-        //if (session != null)
-        //  session.setLastAccessedDate(nowDate);
         return session;
 
     }
@@ -1241,8 +1270,9 @@ public class WinstoneRequest implements HttpServletRequest {
                     : (char) (loNibble + 48));
         }
 
-        this.currentSessionId = new String(outArray);
-        return this.webappConfig.makeNewSession(this.currentSessionId);
+        String newSessionId = new String(outArray);
+        this.currentSessionIds.put(this.webappConfig.getPrefix(), newSessionId);
+        return this.webappConfig.makeNewSession(newSessionId);
     }
 
     /**

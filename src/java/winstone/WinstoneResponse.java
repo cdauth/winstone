@@ -320,17 +320,39 @@ public class WinstoneResponse implements HttpServletResponse {
             return;
 
         // Write out the new session cookie if it's present
-        WinstoneSession session = (WinstoneSession) req.getSession(false);
-        if ((session != null) && session.isNew()) {
-            session.setIsNew(false);
-            Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, session.getId());
-            cookie.setMaxAge(-1);
-            cookie.setSecure(req.isSecure());
-            cookie.setVersion(req.isSecure() ? 1 : 0);
-            cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
-                            : req.getWebAppConfig().getPrefix());
-            this.addCookie(cookie);
+        for (Iterator i = req.getCurrentSessionIds().keySet().iterator(); i.hasNext(); ) {
+            String prefix = (String) i.next();
+            String sessionId = (String) req.getCurrentSessionIds().get(prefix);
+            WebAppConfiguration ownerContext = req.getWebAppGroup().getWebAppByURI(prefix);
+            if (ownerContext != null) {
+                WinstoneSession session = ownerContext.getSessionById(sessionId, true);
+                if ((session != null) && session.isNew()) {
+                    session.setIsNew(false);
+                    Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, session.getId());
+                    cookie.setMaxAge(-1);
+                    cookie.setSecure(req.isSecure());
+                    cookie.setVersion(req.isSecure() ? 1 : 0);
+                    cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
+                                    : req.getWebAppConfig().getPrefix());
+                    this.addCookie(cookie);
+                }
+            }
         }
+        
+        // Look for expired sessions: ie ones where the requested and current ids are different
+        for (Iterator i = req.getRequestedSessionIds().keySet().iterator(); i.hasNext(); ) {
+            String prefix = (String) i.next();
+            String sessionId = (String) req.getRequestedSessionIds().get(prefix);
+            if (!req.getCurrentSessionIds().containsKey(prefix)) {
+                Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, sessionId);
+                cookie.setMaxAge(0); // explicitly expire this cookie
+                cookie.setSecure(req.isSecure());
+                cookie.setVersion(req.isSecure() ? 1 : 0);
+                cookie.setPath(prefix.equals("") ? "/" : prefix);
+                this.addCookie(cookie);
+            }
+        }
+        
         Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.HeadersPreCommit",
                 this.headers + "");
     }

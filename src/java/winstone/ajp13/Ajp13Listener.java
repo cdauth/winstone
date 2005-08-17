@@ -202,6 +202,7 @@ public class Ajp13Listener implements Listener, Runnable {
             } else
                 inData = new WinstoneInputStream(new byte[0], mainResources);
             req.setInputStream(inData);
+            req.setWebAppGroup(this.webAppGroup);
 
             // Build input/output streams, plus request/response
             WinstoneOutputStream outData = new Ajp13OutputStream(socket
@@ -214,7 +215,6 @@ public class Ajp13Listener implements Listener, Runnable {
             handler.setResponse(rsp);
             handler.setInStream(inData);
             handler.setOutStream(outData);
-            handler.setWebAppGroup(this.webAppGroup);
         }
     }
 
@@ -225,13 +225,12 @@ public class Ajp13Listener implements Listener, Runnable {
      */
     public void deallocateRequestResponse(RequestHandlerThread handler,
             WinstoneRequest req, WinstoneResponse rsp,
-            WinstoneInputStream inData, WinstoneOutputStream outData,
-            WebAppGroup webAppGroup) throws IOException {
+            WinstoneInputStream inData, WinstoneOutputStream outData) 
+            throws IOException {
         handler.setInStream(null);
         handler.setOutStream(null);
         handler.setRequest(null);
         handler.setResponse(null);
-        handler.setWebAppGroup(null);
         if (req != null)
             this.objectPool.releaseRequestToPool(req);
         if (rsp != null)

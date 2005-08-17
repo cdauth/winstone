@@ -68,8 +68,11 @@ public class CachedRequest extends WinstoneRequest {
         this.contentLength = request.getContentLength();
         this.contentType = request.getContentType();
         this.serverPort = request.getServerPort();
-        this.requestedSessionId = request.getRequestedSessionId();
-        this.currentSessionId = request.getCurrentSessionId();
+        this.requestedSessionIds.putAll(request.getRequestedSessionIds());
+        this.currentSessionIds.putAll(request.getCurrentSessionIds());
+        this.servletConfig = request.getServletConfig();
+        this.webappConfig = request.getWebAppConfig();
+        this.webappGroup = request.getWebAppGroup();
         this.encoding = request.getEncoding();
         this.parsedParameters = request.getParsedParameters();
         InputStream in = request.getInputStream();
@@ -116,11 +119,15 @@ public class CachedRequest extends WinstoneRequest {
         request.setContentLength(this.contentLength);
         request.setContentType(this.contentType);
         request.setServerPort(this.serverPort);
-        request.setRequestedSessionId(this.requestedSessionId);
-        request.setCurrentSessionId(this.currentSessionId);
+        request.getRequestedSessionIds().clear();
+        request.getRequestedSessionIds().putAll(this.requestedSessionIds);
+        request.getCurrentSessionIds().clear();
+        request.getCurrentSessionIds().putAll(this.currentSessionIds);
         request.setEncoding(this.encoding);
         request.setParsedParameters(this.parsedParameters);
         request.setInputStream(this.inputData);
+        request.setServletConfig(this.servletConfig);
+        request.setWebAppConfig(this.webappConfig);
+        request.setWebAppGroup(this.webappGroup);
     }
-
 }
