@@ -128,6 +128,7 @@ public class RequestHandlerThread implements Runnable {
                                     new String[] { servletURI, "" + headerParseTime, "" + getRequestProcessTime() });
                             continue;
                         }
+                        req.setWebAppConfig(webAppConfig);
 
                         // Now we've verified it's in the right webapp, send
                         // request in scope notify
@@ -189,6 +190,9 @@ public class RequestHandlerThread implements Runnable {
                 try {
                     this.listener.deallocateRequestResponse(this, req, rsp,
                             inData, outData);
+                } catch (Throwable errClose) {
+                }
+                try {
                     this.listener.releaseSocket(this.socket, inSocket,
                             outSocket); // shut sockets
                 } catch (Throwable errClose) {
