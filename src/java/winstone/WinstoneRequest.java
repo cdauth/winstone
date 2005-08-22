@@ -1241,14 +1241,13 @@ public class WinstoneRequest implements HttpServletRequest {
     private WinstoneSession validationCheck(WinstoneSession session,
             long nowDate, boolean create) {
         // check if it's expired yet
-        if ((session.getMaxInactiveInterval() > 0)
-                && (nowDate - session.getLastAccessedTime() > session
-                        .getMaxInactiveInterval() * 1000)) {
+        long lastAccessed = session.getLastAccessedTime();
+        long maxInactive = session.getMaxInactiveInterval() * 1000;
+        if ((maxInactive > 0) && (nowDate - lastAccessed > maxInactive )) {
             session.invalidate();
             Logger.log(Logger.DEBUG, resources,
                     "WinstoneRequest.InvalidateSession", new String[] {
-                            session.getId(),
-                            "" + (nowDate - session.getLastAccessedTime()) });
+                            session.getId(), "" + (nowDate - lastAccessed) });
             if (create) {
                 session = makeNewSession();
             }
