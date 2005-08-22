@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -225,10 +226,24 @@ public class HttpListener implements Listener, Runnable {
 
         // Read the header line (because this is the first line of the request,
         // apply keep-alive timeouts to it if we are not the first request)
-        if (!iAmFirst)
+        if (!iAmFirst) {
             socket.setSoTimeout(KEEP_ALIVE_TIMEOUT);
-        byte uriBuffer[] = inData.readLine();
-        socket.setSoTimeout(CONNECTION_TIMEOUT);
+        }
+        
+        byte uriBuffer[] = null;
+        try {
+            Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.WaitingForURILine");
+            uriBuffer = inData.readLine();
+        } catch (SocketTimeoutException err) {
+            // keep alive timeout ? ignore if not first
+            if (iAmFirst) {
+                throw err;
+            } else {
+                return null;
+            }
+        } finally {
+            try {socket.setSoTimeout(CONNECTION_TIMEOUT);} catch (Throwable err) {}
+        }
         handler.setRequestStartTime();
 
         // Get header data (eg protocol, method, uri, headers, etc)
@@ -262,6 +277,7 @@ public class HttpListener implements Listener, Runnable {
 
     protected void parseSocketInfo(Socket socket, WinstoneRequest req)
             throws IOException {
+        Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.ParsingSocketInfo");
         req.setScheme(getConnectorName());
         req.setServerPort(socket.getLocalPort());
         req.setLocalPort(socket.getLocalPort());

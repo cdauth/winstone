@@ -71,7 +71,7 @@ public class HttpConnectorTest extends TestCase {
         args.put("controlPort", "-1");
         args.put("debug", "8");
         args.put("logThrowingLineNo", "true");
-        Logger.init(Logger.FULL_DEBUG, System.out, true);
+        Logger.init(Logger.FULL_DEBUG, System.out, true, true);
         WinstoneResourceBundle resources = Launcher.getResourceBundle();
         Launcher winstone = new Launcher(args, resources);
 
@@ -101,7 +101,7 @@ public class HttpConnectorTest extends TestCase {
         args.put("controlPort", "-1");
         args.put("debug", "8");
         args.put("logThrowingLineNo", "true");
-        Logger.init(Logger.FULL_DEBUG, System.out, true);
+        Logger.init(Logger.FULL_DEBUG, System.out, true, true);
         WinstoneResourceBundle resources = Launcher.getResourceBundle();
         Launcher winstone = new Launcher(args, resources);
 

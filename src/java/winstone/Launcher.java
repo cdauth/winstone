@@ -400,6 +400,7 @@ public class Launcher implements Runnable {
         // Reset the log level
         int logLevel = WebAppConfiguration.intArg(args, "debug", Logger.INFO);
         boolean showThrowingLineNo = WebAppConfiguration.booleanArg(args, "logThrowingLineNo", false);
+        boolean showThrowingThread = WebAppConfiguration.booleanArg(args, "logThrowingThread", false);
         OutputStream logStream = null;
         if (args.get("logfile") != null) {
             logStream = new FileOutputStream((String) args.get("logfile"));
@@ -408,7 +409,7 @@ public class Launcher implements Runnable {
         } else {
             logStream = System.out;
         }
-        Logger.init(logLevel, logStream, showThrowingLineNo);
+        Logger.init(logLevel, logStream, showThrowingLineNo, showThrowingThread);
     }
 
     private static void printUsage(WinstoneResourceBundle resources) {

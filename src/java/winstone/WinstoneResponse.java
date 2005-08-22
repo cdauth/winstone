@@ -331,7 +331,7 @@ public class WinstoneResponse implements HttpServletResponse {
                     Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, session.getId());
                     cookie.setMaxAge(-1);
                     cookie.setSecure(req.isSecure());
-                    cookie.setVersion(req.isSecure() ? 1 : 0);
+                    cookie.setVersion(0); //req.isSecure() ? 1 : 0);
                     cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
                                     : req.getWebAppConfig().getPrefix());
                     this.addCookie(cookie);
@@ -347,7 +347,7 @@ public class WinstoneResponse implements HttpServletResponse {
                 Cookie cookie = new Cookie(WinstoneSession.SESSION_COOKIE_NAME, sessionId);
                 cookie.setMaxAge(0); // explicitly expire this cookie
                 cookie.setSecure(req.isSecure());
-                cookie.setVersion(req.isSecure() ? 1 : 0);
+                cookie.setVersion(0); //req.isSecure() ? 1 : 0);
                 cookie.setPath(prefix.equals("") ? "/" : prefix);
                 this.addCookie(cookie);
             }

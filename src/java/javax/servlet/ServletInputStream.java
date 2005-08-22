@@ -38,10 +38,11 @@ public abstract class ServletInputStream extends java.io.InputStream {
         int charRead = read();
         while (charRead != -1) {
             b[off + positionCounter++] = (byte) charRead;
-            if ((charRead == '\n') || (off + positionCounter == len))
+            if ((charRead == '\n') || (off + positionCounter == len)) {
                 return positionCounter;
-            else
+            } else {
                 charRead = read();
+            }
         }
         return -1;
     }

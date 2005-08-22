@@ -55,24 +55,27 @@ public class Logger {
     protected static DateFormat sdfLog = new SimpleDateFormat(
             "yyyy/MM/dd HH:mm:ss");
     protected static boolean showThrowingLineNo;
+    protected static boolean showThrowingThread;
 
     /**
      * Initialises default streams
      */
     public static void init(int level) {
-        init(level, System.out, false);
+        init(level, System.out, false, false);
     }
 
     /**
      * Initialises default streams
      */
-    public static void init(int level, OutputStream defaultStream, boolean showThrowingLineNoArg) {
+    public static void init(int level, OutputStream defaultStream, 
+            boolean showThrowingLineNoArg, boolean showThrowingThreadArg) {
         currentDebugLevel = level;
         streams = new Hashtable();
         nullStreams = new ArrayList();
         initialised = true;
         setStream(DEFAULT_STREAM, defaultStream);
         showThrowingLineNo = showThrowingLineNoArg;
+        showThrowingThread = showThrowingThreadArg;
     }
 
     /**
@@ -152,6 +155,9 @@ public class Logger {
                 errorClass = errorClass.substring(errorClass.lastIndexOf('.') + 1);
             }
             lineNoText = "[" + errorClass + ":" + elements[elemNumber].getLineNumber() + "] - "; 
+        }
+        if (showThrowingThread) {
+            lineNoText += "[" + Thread.currentThread().getName() + "] - ";
         }
 
         PrintWriter stream = (PrintWriter) streams.get(streamName);

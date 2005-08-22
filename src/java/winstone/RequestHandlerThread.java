@@ -96,13 +96,22 @@ public class RequestHandlerThread implements Runnable {
                         String servletURI = this.listener.parseURI(this,
                                 this.req, this.rsp, this.inData, this.socket,
                                 iAmFirst);
+                        if (servletURI == null) {
+                            Logger.log(Logger.FULL_DEBUG, resources,
+                                    "RequestHandlerThread.KeepAliveTimedOut");
+                            
+                            // Keep alive timed out - deallocate and go into wait state
+                            this.listener.deallocateRequestResponse(this, req,
+                                    rsp, inData, outData);
+                            continueFlag = false;
+                            continue;
+                        }
                         long headerParseTime = getRequestProcessTime();
                         iAmFirst = false;
 
                         Logger.log(Logger.FULL_DEBUG, resources,
                                 "RequestHandlerThread.StartRequest",
-                                new String[] { "" + requestId,
-                                        Thread.currentThread().getName() });
+                                "" + requestId);
 
                         // Get the URI from the request, check for prefix, then
                         // match it to a requestDispatcher
@@ -123,7 +132,7 @@ public class RequestHandlerThread implements Runnable {
                             continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
                             this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
                             Logger.log(Logger.FULL_DEBUG, resources, "RequestHandlerThread.FinishRequest",
-                                    new String[] { "" + requestId, Thread.currentThread().getName() });
+                                    "" + requestId);
                             Logger.log(Logger.SPEED, resources, "RequestHandlerThread.RequestTime",
                                     new String[] { servletURI, "" + headerParseTime, "" + getRequestProcessTime() });
                             continue;
@@ -133,16 +142,12 @@ public class RequestHandlerThread implements Runnable {
                         // Now we've verified it's in the right webapp, send
                         // request in scope notify
                         ServletRequestListener reqLsnrs[] = webAppConfig.getRequestListeners();
-//                        ServletRequestAttributeListener reqAttLsnrs[] = webAppConfig.getRequestAttributeListeners();
                         for (int n = 0; n < reqLsnrs.length; n++) {
                             reqLsnrs[n].requestInitialized(
                                     new ServletRequestEvent(webAppConfig, req));
                         }
 
                         // Lookup a dispatcher, then process with it
-//                        req.setWebAppConfig(webAppConfig);
-//                        rsp.setWebAppConfig(webAppConfig);
-//                        req.setRequestAttributeListeners(reqAttLsnrs);
                         processRequest(webAppConfig, req, rsp, 
                                 webAppConfig.getServletURIFromRequestURI(servletURI));
                         this.outData.finishResponse();
@@ -150,8 +155,7 @@ public class RequestHandlerThread implements Runnable {
 
                         Logger.log(Logger.FULL_DEBUG, resources,
                                 "RequestHandlerThread.FinishRequest",
-                                new String[] { "" + requestId,
-                                        Thread.currentThread().getName() });
+                                "" + requestId);
 
                         // Process keep-alive
                         continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
@@ -188,8 +192,7 @@ public class RequestHandlerThread implements Runnable {
                 this.listener.releaseSocket(this.socket, inSocket, outSocket); // shut sockets
             } catch (Throwable err) {
                 try {
-                    this.listener.deallocateRequestResponse(this, req, rsp,
-                            inData, outData);
+                    this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
                 } catch (Throwable errClose) {
                 }
                 try {
@@ -206,8 +209,7 @@ public class RequestHandlerThread implements Runnable {
             if (!interrupted) {
                 // Suspend this thread until we get assigned and woken up
                 Logger.log(Logger.FULL_DEBUG, this.resources,
-                        "RequestHandlerThread.EnterWaitState", 
-                                Thread.currentThread().getName());
+                        "RequestHandlerThread.EnterWaitState");
                 try {
                     synchronized (this) {
                         this.wait();
@@ -216,12 +218,10 @@ public class RequestHandlerThread implements Runnable {
                     interrupted = true;
                 }
                 Logger.log(Logger.FULL_DEBUG, this.resources,
-                        "RequestHandlerThread.WakingUp", Thread.currentThread().getName());
+                        "RequestHandlerThread.WakingUp");
             }
         }
-        Logger.log(Logger.FULL_DEBUG, this.resources,
-                "RequestHandlerThread.ThreadExit", Thread.currentThread()
-                        .getName());
+        Logger.log(Logger.FULL_DEBUG, this.resources, "RequestHandlerThread.ThreadExit");
     }
 
     /**
