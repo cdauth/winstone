@@ -118,7 +118,7 @@ public class StaticResourceServlet extends HttpServlet {
         }
 
         // Check we are not below the web-inf
-        else if (!isInclude && !isForward && !isDescendant(new File(this.webRoot, "WEB-INF"), res, this.webRoot)) 
+        else if (!isInclude && !isForward && isDescendant(new File(this.webRoot, "WEB-INF"), res, this.webRoot)) 
             response.sendError(HttpServletResponse.SC_NOT_FOUND, this.resources
                     .getString("StaticResourceServlet.PathInvalid", path));
 
