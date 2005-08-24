@@ -275,8 +275,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                     }
                     
                     if (this.errorException != null) {
-                        req.setAttribute(ERROR_EXCEPTION_TYPE, errorException.getClass());
-                        req.setAttribute(ERROR_EXCEPTION, errorException);
+                        req.setAttribute(ERROR_EXCEPTION_TYPE, this.errorException.getClass());
+                        req.setAttribute(ERROR_EXCEPTION, this.errorException);
                     }
                     
                     // Revert back to the original request and response
