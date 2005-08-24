@@ -91,6 +91,9 @@ public class WinstoneDataSource implements DataSource, Runnable {
             START_CONNECTIONS = Integer.parseInt((String) args
                     .get("startConnections"));
 
+        Logger.log(Logger.MAX, this.resources, "WinstoneDataSource.UsingClassLoader",
+                loader.toString());
+        
         if (this.url == null)
             throw new SQLException(this.resources
                     .getString("WinstoneDataSource.NoUrlSupplied"));

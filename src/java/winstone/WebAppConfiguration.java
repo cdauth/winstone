@@ -223,6 +223,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             }
         }
 
+        Logger.log(Logger.MAX, resources, "WebAppConfig.WebInfClassLoader",
+                this.loader.toString());
+        
         // Check jasper is available
         if (useJasper) {
             try {

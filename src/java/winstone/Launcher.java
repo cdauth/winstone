@@ -82,6 +82,8 @@ public class Launcher implements Runnable {
             System.setProperty("java.naming.factory.url.pkgs", "winstone.jndi");
         }
         
+        Logger.log(Logger.MAX, resources, "Launcher.StartupArgs", args + "");
+        
         // Load resources
         this.resources = resources;
         this.args = args;
@@ -143,7 +145,10 @@ public class Launcher implements Runnable {
         }
         ClassLoader commonLibCL = new URLClassLoader((URL[]) jars.toArray(new URL[jars.size()]), 
                 getClass().getClassLoader());
-
+        
+        Logger.log(Logger.MAX, resources, "Launcher.CLClassLoader",
+                commonLibCL.toString());
+                                        
         this.objectPool = new ObjectPool(args, resources);
 
         // Optionally set up clustering if enabled and libraries are available
@@ -359,8 +364,12 @@ public class Launcher implements Runnable {
             Properties props = new Properties();
             props.load(inConfig);
             inConfig.close();
-            props.putAll(args);
-            args = props;
+            for (Iterator i = props.keySet().iterator(); i.hasNext(); ) {
+                String key = (String) i.next();
+                if (!args.containsKey(key.trim())) {
+                    args.put(key.trim(), props.getProperty(key).trim());
+                }
+            }
             initLogger(args);
             Logger.log(Logger.DEBUG, resources, "Launcher.UsingPropertyFile",
                     configFilename);

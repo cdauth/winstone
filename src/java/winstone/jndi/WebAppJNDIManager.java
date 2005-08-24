@@ -66,6 +66,9 @@ public class WebAppJNDIManager implements JNDIManager {
         this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
         this.objectsToCreate = new HashMap();
         this.loader = loader;
+        
+        Logger.log(Logger.MAX, resources, "WebAppJNDIManager.UsingClassLoader",
+                this.loader.toString());
 
         Collection keys = new ArrayList(args.keySet());
         for (Iterator i = keys.iterator(); i.hasNext();) {
@@ -218,51 +221,63 @@ public class WebAppJNDIManager implements JNDIManager {
      */
     private Object createObject(String name, String className, String value,
             Map args) {
+        
         if ((className == null) || (name == null))
             return null;
-
-        // If we are working with a datasource
-        if (className.equals("javax.sql.DataSource")) {
-            try {
-                return new WinstoneDataSource(name, extractRelevantArgs(args,
-                        name), this.loader, this.resources);
-            } catch (Throwable err) {
-                Logger.log(Logger.ERROR, this.resources,
-                        "WebAppJNDIManager.ErrorBuildingDatasource", name, err);
+        
+        // Set context class loader
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.loader);
+        
+        try {
+            // If we are working with a datasource
+            if (className.equals("javax.sql.DataSource")) {
+                try {
+                    return new WinstoneDataSource(name, extractRelevantArgs(args,
+                            name), this.loader, this.resources);
+                } catch (Throwable err) {
+                    Logger.log(Logger.ERROR, this.resources,
+                            "WebAppJNDIManager.ErrorBuildingDatasource", name, err);
+                }
             }
+
+            // If we are working with a mail session
+            else if (className.equals("javax.mail.Session")) {
+                try {
+                    Class smtpClass = Class.forName(className, true, this.loader);
+                    Method smtpMethod = smtpClass.getMethod("getInstance",
+                            new Class[] { Properties.class,
+                                    Class.forName("javax.mail.Authenticator") });
+                    return smtpMethod.invoke(null, new Object[] {
+                            extractRelevantArgs(args, name), null });
+                    //return Session.getInstance(extractRelevantArgs(args, name), null);
+                } catch (Throwable err) {
+                    Logger
+                            .log(Logger.ERROR, this.resources,
+                                    "WebAppJNDIManager.ErrorBuildingMailSession",
+                                    name, err);
+                }
+            }
+
+            // If unknown type, try to instantiate with the string constructor
+            else if (value != null) {
+                try {
+                    Class objClass = Class.forName(className, true, this.loader);
+                    Constructor objConstr = objClass
+                            .getConstructor(new Class[] { String.class });
+                    return objConstr.newInstance(new Object[] { value });
+                } catch (Throwable err) {
+                    Logger.log(Logger.ERROR, this.resources,
+                            "WebAppJNDIManager.ErrorBuildingObject", new String[] {
+                                    name, className }, err);
+                }
+            }
+                
+            return null;
+            
+        } finally {
+            Thread.currentThread().setContextClassLoader(cl);
         }
-
-        // If we are working with a mail session
-        else if (className.equals("javax.mail.Session")) {
-            try {
-                Class smtpClass = Class.forName(className, true, this.loader);
-                Method smtpMethod = smtpClass.getMethod("getInstance",
-                        new Class[] { Properties.class,
-                                Class.forName("javax.mail.Authenticator") });
-                return smtpMethod.invoke(null, new Object[] {
-                        extractRelevantArgs(args, name), null });
-                //return Session.getInstance(extractRelevantArgs(args, name), null);
-            } catch (Throwable err) {
-                Logger
-                        .log(Logger.ERROR, this.resources,
-                                "WebAppJNDIManager.ErrorBuildingMailSession",
-                                name, err);
-            }
-        }
-
-        // If unknown type, try to instantiate with the string constructor
-        else if (value != null)
-            try {
-                Class objClass = Class.forName(className, true, this.loader);
-                Constructor objConstr = objClass
-                        .getConstructor(new Class[] { String.class });
-                return objConstr.newInstance(new Object[] { value });
-            } catch (Throwable err) {
-                Logger.log(Logger.ERROR, this.resources,
-                        "WebAppJNDIManager.ErrorBuildingObject", new String[] {
-                                name, className }, err);
-            }
-        return null;
     }
 
     /**
