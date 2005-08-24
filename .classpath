@@ -7,5 +7,7 @@
 	<classpathentry kind="var" path="MAVEN_REPO/httpunit/jars/httpunit-1.6.jar"/>
 	<classpathentry kind="var" path="MAVEN_REPO/junit/jars/junit-3.8.1.jar"/>
 	<classpathentry kind="var" path="MAVEN_REPO/nekohtml/jars/nekohtml-0.9.4.jar"/>
+	<classpathentry kind="var" path="MAVEN_REPO/sunmicrosystems/jars/activation-1.0.2.jar"/>
+	<classpathentry kind="var" path="MAVEN_REPO/sunmicrosystems/jars/javamail-1.3.2.jar"/>
 	<classpathentry kind="output" path="build-eclipse"/>
 </classpath>
