@@ -103,7 +103,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
         else
             try {
                 Class driverClass = Class
-                        .forName(driverClassName, true, loader);
+                        .forName(driverClassName.trim(), true, loader);
                 this.driver = (Driver) driverClass.newInstance();
 
                 // Get a test connection, and exit if it fails

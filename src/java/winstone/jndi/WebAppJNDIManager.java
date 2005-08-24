@@ -262,7 +262,7 @@ public class WebAppJNDIManager implements JNDIManager {
             // If unknown type, try to instantiate with the string constructor
             else if (value != null) {
                 try {
-                    Class objClass = Class.forName(className, true, this.loader);
+                    Class objClass = Class.forName(className.trim(), true, this.loader);
                     Constructor objConstr = objClass
                             .getConstructor(new Class[] { String.class });
                     return objConstr.newInstance(new Object[] { value });

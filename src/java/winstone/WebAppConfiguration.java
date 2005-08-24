@@ -643,7 +643,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 authMethod = WinstoneResourceBundle.globalReplace(authMethod,
                         "-", "");
             String realmClassName = stringArg(startupArgs, "realmClass",
-                    DEFAULT_REALM_CLASS);
+                    DEFAULT_REALM_CLASS).trim();
             String authClassName = "winstone.auth."
                     + authMethod.substring(0, 1).toUpperCase()
                     + authMethod.substring(1).toLowerCase()
@@ -681,7 +681,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // Instantiate the JNDI manager
         String jndiMgrClassName = stringArg(startupArgs, "jndiClassName",
-                DEFAULT_JNDI_MGR_CLASS);
+                DEFAULT_JNDI_MGR_CLASS).trim();
         if (useJNDI)
             try {
                 // Build the realm
