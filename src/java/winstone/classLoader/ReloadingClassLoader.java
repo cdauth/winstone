@@ -44,12 +44,10 @@ import winstone.WinstoneResourceBundle;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class ReloadingClassLoader extends WinstoneClassLoader implements
-        Runnable {
+public class ReloadingClassLoader extends WinstoneClassLoader implements Runnable {
     final int RELOAD_SEARCH_SLEEP = 50;
     private static final String LOCAL_RESOURCE_FILE = "winstone.classLoader.LocalStrings";
     private boolean interrupted;
-    private boolean reloadable;
     private Set loadedClasses;
     private WinstoneResourceBundle localResources;
 
@@ -83,30 +81,26 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements
 
         Map classDateTable = new HashMap();
         Map classLocationTable = new HashMap();
+        Set lostClasses = new HashSet();
         while (!interrupted) {
             try {
                 Thread.sleep(RELOAD_SEARCH_SLEEP);
                 Set loadedClassesCopy = new HashSet(this.loadedClasses);
 
-                for (Iterator i = loadedClassesCopy.iterator(); i.hasNext()
-                        && !interrupted;) {
+                for (Iterator i = loadedClassesCopy.iterator(); i.hasNext() && !interrupted;) {
                     String className = transformToFileFormat((String) i.next());
                     File location = (File) classLocationTable.get(className);
                     Long classDate = null;
                     if ((location == null) || !location.exists()) {
-                        for (Iterator j = this.classPaths.iterator(); j
-                                .hasNext()
-                                && (classDate == null);) {
+                        for (Iterator j = this.classPaths.iterator(); j.hasNext() && (classDate == null);) {
                             File path = (File) j.next();
-                            if (!path.exists())
+                            if (!path.exists()) {
                                 continue;
-                            else if (path.isDirectory()) {
+                            } else if (path.isDirectory()) {
                                 File classLocation = new File(path, className);
                                 if (classLocation.exists()) {
-                                    classDate = new Long(classLocation
-                                            .lastModified());
-                                    classLocationTable.put(className,
-                                            classLocation);
+                                    classDate = new Long(classLocation.lastModified());
+                                    classLocationTable.put(className, classLocation);
                                 }
                             } else if (path.isFile()) {
                                 classDate = searchJarPath(className, path);
@@ -119,18 +113,24 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements
 
                     // Has class vanished ? Leave a note and skip over it
                     if (classDate == null) {
-                        Logger.log(Logger.WARNING, localResources,
-                                "ReloadingClassLoader.ClassLost", className);
+                        if (!lostClasses.contains(className)) {
+                            lostClasses.add(className);
+                            Logger.log(Logger.WARNING, localResources,
+                                    "ReloadingClassLoader.ClassLost", className);
+                        }
                         continue;
+                    }
+                    if ((classDate != null) && lostClasses.contains(className)) {
+                        lostClasses.remove(className);
                     }
 
                     // Stash date of loaded files, and compare with last
                     // iteration
                     Long oldClassDate = (Long) classDateTable.get(className);
-                    if (oldClassDate == null)
+                    if (oldClassDate == null) {
                         classDateTable.put(className, classDate);
-                    // Trigger reset of webAppConfig
-                    else if (oldClassDate.compareTo(classDate) != 0) {
+                    } else if (oldClassDate.compareTo(classDate) != 0) {
+                        // Trigger reset of webAppConfig
                         Logger.log(Logger.INFO, localResources, 
                                 "ReloadingClassLoader.ReloadRequired",
                                 new String[] {className, 
@@ -138,7 +138,6 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements
                                         "" + new Date(oldClassDate.longValue()) });
                         this.webAppConfig.resetClassLoader();
                     }
-                    Thread.sleep(RELOAD_SEARCH_SLEEP);
                 }
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, localResources,
@@ -150,14 +149,12 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements
     }
 
     protected Class findClass(String name) throws ClassNotFoundException {
-        if (this.reloadable)
-            this.loadedClasses.add("Class:" + name);
+        this.loadedClasses.add("Class:" + name);
         return super.findClass(name);
     }
 
     public URL findResource(String name) {
-        if (this.reloadable)
-            this.loadedClasses.add(name);
+        this.loadedClasses.add(name);
         return super.findResource(name);
     }
 
@@ -179,8 +176,6 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements
         if (!name.startsWith("Class:"))
             return name;
         else
-            return WinstoneResourceBundle.globalReplace(name.substring(6), ".",
-                    "/")
-                    + ".class";
+            return WinstoneResourceBundle.globalReplace(name.substring(6), ".", "/") + ".class";
     }
 }

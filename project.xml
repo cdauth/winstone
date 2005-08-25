@@ -54,7 +54,7 @@
       <version>1.6R1</version>
     </dependency>
 
-    <!--dependency>
+    <dependency>
       <groupId>sunmicrosystems</groupId>
       <artifactId>activation</artifactId>
       <version>1.0.2</version>
@@ -64,7 +64,7 @@
       <groupId>sunmicrosystems</groupId>
       <artifactId>javamail</artifactId>
       <version>1.3.2</version>
-    </dependency-->
+    </dependency>
     
     <!--dependency>
       <groupId>xerces</groupId>
@@ -85,16 +85,15 @@
     <sourceDirectory>src/java</sourceDirectory>
     <unitTestSourceDirectory>src/test</unitTestSourceDirectory>
     
-    <sourceModifications>
+    <!--sourceModifications>
       <sourceModification>
         <className>javax.mail.internet.MimeMultipart</className>
-        <directory>src/java</directory>
         <excludes>
           <exclude>winstone/filters/multipart/MultipartRequestFilter.java</exclude>
           <exclude>winstone/filters/multipart/MultipartRequestWrapper.java</exclude>
         </excludes>
       </sourceModification>
-    </sourceModifications>
+    </sourceModifications-->
 
     <unitTest>
       <includes>
