@@ -1419,13 +1419,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Check for exception class match
         Class exceptionClasses[] = this.errorPagesByExceptionKeysSorted;
         Throwable errWrapper = new ServletException(exception);
-        String highestNonNullMessage = null;
         
         while (errWrapper instanceof ServletException) {
             errWrapper = ((ServletException) errWrapper).getRootCause();
-            if (highestNonNullMessage == null) {
-                highestNonNullMessage = errWrapper.getMessage();
-            }
             for (int n = 0; n < exceptionClasses.length; n++) {
 
                 Logger.log(Logger.FULL_DEBUG, resources,
@@ -1456,8 +1452,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         }
         
         // Otherwise throw a code error
+        Throwable errPassDown = exception;
+        while ((errPassDown instanceof ServletException) && 
+                (((ServletException) errPassDown).getRootCause() != null)) {
+            errPassDown = ((ServletException) errPassDown).getRootCause();
+        }
         return getErrorDispatcherByCode(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                highestNonNullMessage, exception);
+                errPassDown.getMessage(), errPassDown);
     }
     
     public RequestDispatcher getErrorDispatcherByCode(
