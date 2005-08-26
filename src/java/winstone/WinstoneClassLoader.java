@@ -59,13 +59,12 @@ public class WinstoneClassLoader extends URLClassLoader {
             if (classesFolder.exists()) {
                 Logger.log(Logger.DEBUG, resources,
                         "WinstoneClassLoader.WebAppClasses");
-                addURL(new URL("file", "", classesFolder.getCanonicalPath()
-                        + "/"));
+                addURL(new URL("file", "", classesFolder.getCanonicalPath() + "/"));
                 classPaths.add(classesFolder);
             } else
                 Logger.log(Logger.WARNING, resources,
-                        "WinstoneClassLoader.NoWebAppClasses", classesFolder
-                                .toString());
+                        "WinstoneClassLoader.NoWebAppClasses", 
+                        classesFolder.toString());
 
             // Lib folder's jar files
             File libFolder = new File(webInfFolder, LIB);
@@ -75,15 +74,13 @@ public class WinstoneClassLoader extends URLClassLoader {
                     String jarName = jars[n].getCanonicalPath().toLowerCase();
                     if (jarName.endsWith(".jar") || jarName.endsWith(".zip")) {
                         Logger.log(Logger.DEBUG, resources,
-                                "WinstoneClassLoader.WebAppLib", jars[n]
-                                        .getName());
+                                "WinstoneClassLoader.WebAppLib", jars[n].getName());
                         addURL(jars[n].toURL());
                         classPaths.add(jars[n]);
                     }
                 }
             } else
-                Logger
-                        .log(Logger.WARNING, resources,
+                Logger.log(Logger.WARNING, resources,
                                 "WinstoneClassLoader.NoWebAppLib", libFolder
                                         .toString());
         } catch (MalformedURLException err) {
