@@ -55,11 +55,11 @@ public class WebAppGroup {
     private Cluster cluster;
     private ObjectPool objectPool;
     private ClassLoader commonLibCL;
-    private List commonLibCLPaths;
+    private File commonLibCLPaths[];
     
     public WebAppGroup(WinstoneResourceBundle resources, Cluster cluster,
             ObjectPool objectPool, ClassLoader commonLibCL, 
-            List commonLibCLPaths, Map args) throws IOException {
+            File commonLibCLPaths[], Map args) throws IOException {
         this.args = args;
         this.resources = resources;
         this.webapps = new Hashtable();
@@ -111,7 +111,8 @@ public class WebAppGroup {
         }
     }
     
-    protected WebAppConfiguration initWebApp(String prefix, File webRoot, String contextName) throws IOException {
+    protected WebAppConfiguration initWebApp(String prefix, File webRoot, 
+            String contextName) throws IOException {
         Node webXMLParentNode = null;
         File webInfFolder = new File(webRoot, WEB_INF);
         if (webInfFolder.exists()) {

@@ -58,10 +58,6 @@
     <li><a href="#jndi">JNDIの設定</a></li>
     <li><a href="#https">HTTPSの設定</a></li>
   </ul>
-  <h3>更に:</h3>
-  <ul>
-    <li><a href="#gcj">GCJでコンパイルする</a></li>
-  </ul>
 
 <h2><a name="whatIs">Winstoneとは ?</a></h2>
 
@@ -179,7 +175,6 @@ Other options:
 
    --directoryListings      = enable directory lists (true/false). Default is true
    --useJasper              = enable jasper JSP handling (true/false). Default is false
-   --useWinstoneClassLoader = enable WebApp classLoader (true/false). Default is true
    --useServletReloading    = enable servlet reloading (true/false). Default is false
    --useInvoker             = enable the servlet invoker (true/false). Default is true
    --invokerPrefix          = set the invoker prefix. Default is /servlet/
@@ -656,37 +651,6 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
       point the name on your certificate to 127.0.0.1), then try to browse to 
       https://hostname/</li>
   </ol>
-
-<h2><a name="gcj">GCJでコンパイルする</a></h2>
-
-  <p>I've had a little bit of success with this recently. Under the gcj folder in the source
-    distribution there is a Makefile that I used to build Winstone to a native binary. It worked
-    quite well - and to my naked eye, looked like lightning for static pages - except for 
-    one problem: class loading.</p>
-
-  <p>The problem is this: When you call "Class.forName(className)", the effect should be the 
-    same as calling "Class.forName(className, true, Thread.currentThread().getContextClassLoader())", and 
-    the short answer is that in recent GCJ versions, it's not.</p>
-
-  <p>Recent GCJ versions use a "bogus" method to find the current class loader (their words 
-    not mine). Basically GCJ generates a stack trace and walks back over it, trying to find a 
-    class loader within recent memory. If none is found, it uses the system class loader.</p>
-
-  <p>In most cases this is fine, but in a servlet container this is no good, because unless you
-    have a webapp that has no WEB-INF/lib and WEB-INF/classes folders, you need to use a class
-    loader other than the system classloader.</p>
-
-  <p>One possible solution is to compile the webapp classes and Winstone into native binary format.
-    This works except that if the servlet container tries to use another class loader anyway, you
-    still have problems with which loader loaded which classes.</p>
-
-  <p>To get around this, I have included an option "--useWinstoneClassLoader=false". This allows
-    you to disable the webapp class loader, and operate entirely with a single class loader. This
-    works ok for servlet-only environments, but it seems Jasper uses it's own classloader, so 
-    you may still have problems in jsp + GCJ-compiled-Winstone environments.</p>
-
-  <p>NOTE: The Makefile included uses Crimson as an XML parser, which has since been replaced 
-    with the GNU XML parser due to License conflicts.</p>
       </td>
     </tr>
   </table>

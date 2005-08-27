@@ -25,6 +25,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -117,6 +118,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private static final String ERROR_SERVLET_NAME = "winstoneErrorServlet";
     private static final String ERROR_SERVLET_CLASS = "winstone.ErrorServlet";
     
+    private static final String WEB_INF = "WEB-INF";
+    private static final String CLASSES = "classes/";
+    private static final String LIB = "lib";
+    
     static final String JSP_SERVLET_CLASS = "org.apache.jasper.servlet.JspServlet";
     
     private WinstoneResourceBundle resources;
@@ -181,50 +186,21 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     public WebAppConfiguration(WebAppGroup ownerWebappGroup, Cluster cluster, String webRoot,
             String prefix, ObjectPool objectPool, Map startupArgs, Node elm,
             WinstoneResourceBundle resources, ClassLoader parentClassLoader,
-            List parentClassPaths, String contextName) {
+            File parentClassPaths[], String contextName) {
         this.ownerWebappGroup = ownerWebappGroup;
         this.resources = resources;
         this.webRoot = webRoot;
         this.prefix = prefix;
         this.contextName = contextName;
 
+        List localLoaderClassPathFiles = new ArrayList();
+        this.loader = buildWebAppClassLoader(startupArgs, parentClassLoader, 
+                webRoot, localLoaderClassPathFiles);
+        
         // Build switch values
-        boolean useDirLists = booleanArg(startupArgs, "directoryListings", true);
         boolean useJasper = booleanArg(startupArgs, "useJasper", false);
-        boolean useWCL = booleanArg(startupArgs, "useWinstoneClassLoader", true);
-        boolean useReloading = booleanArg(startupArgs, "useServletReloading",
-                false);
         boolean useInvoker = booleanArg(startupArgs, "useInvoker", true);
         boolean useJNDI = booleanArg(startupArgs, "useJNDI", false);
-
-        // Try to set up the reloading class loader, and if we fail, use the
-        // normal one
-        if (useWCL && useReloading) {
-            try {
-                Class reloaderClass = Class.forName(RELOADING_CL_CLASS);
-                Constructor reloadConstr = reloaderClass
-                        .getConstructor(new Class[] { this.getClass(),
-                                ClassLoader.class, List.class, String.class,
-                                WinstoneResourceBundle.class });
-                this.loader = (ClassLoader) reloadConstr
-                        .newInstance(new Object[] { this, parentClassLoader,
-                                parentClassPaths, webRoot, this.resources });
-            } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources, "WebAppConfig.CLError", err);
-            }
-        }
-
-        if (this.loader == null) {
-            if (useWCL) {
-                this.loader = new WinstoneClassLoader(this, parentClassLoader, 
-                        parentClassPaths, webRoot, this.resources);
-            } else {
-                this.loader = parentClassLoader;
-            }
-        }
-
-        Logger.log(Logger.MAX, resources, "WebAppConfig.WebInfClassLoader",
-                this.loader.toString());
         
         // Check jasper is available
         if (useJasper) {
@@ -277,6 +253,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         Node loginConfigNode = null;
 
+        // Add the class loader as an implicit context listener if it implements the interface
+        addListenerInstance(this.loader, contextAttributeListeners,
+                contextListeners, requestAttributeListeners, requestListeners,
+                sessionActivationListeners, sessionAttributeListeners, 
+                sessionListeners);
+         
         // init mimeTypes set
         this.mimeTypes = new Hashtable();
         String allTypes = this.resources.getString("WebAppConfig.DefaultMimeTypes");
@@ -390,21 +372,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             Class listener = Class.forName(listenerClass, true,
                                     this.loader);
                             Object listenerInstance = listener.newInstance();
-                            if (listenerInstance instanceof ServletContextAttributeListener)
-                                contextAttributeListeners.add(listenerInstance);
-                            if (listenerInstance instanceof ServletContextListener)
-                                contextListeners.add(listenerInstance);
-                            if (listenerInstance instanceof ServletRequestAttributeListener)
-                                requestAttributeListeners.add(listenerInstance);
-                            if (listenerInstance instanceof ServletRequestListener)
-                                requestListeners.add(listenerInstance);
-                            if (listenerInstance instanceof HttpSessionActivationListener)
-                                sessionActivationListeners
-                                        .add(listenerInstance);
-                            if (listenerInstance instanceof HttpSessionAttributeListener)
-                                sessionAttributeListeners.add(listenerInstance);
-                            if (listenerInstance instanceof HttpSessionListener)
-                                sessionListeners.add(listenerInstance);
+                            addListenerInstance(listenerInstance, contextAttributeListeners,
+                                    contextListeners, requestAttributeListeners, requestListeners,
+                                    sessionActivationListeners, sessionAttributeListeners, 
+                                    sessionListeners);
                             Logger.log(Logger.DEBUG, this.resources,
                                     "WebAppConfig.AddListener", listenerClass);
                         } catch (Throwable err) {
@@ -761,6 +732,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // If we don't have an instance of the default servlet, mount the inbuilt one
         if (this.servletInstances.get(this.defaultServletName) == null) {
+            boolean useDirLists = booleanArg(startupArgs, "directoryListings", true);
+            
             Map staticParams = new Hashtable();
             staticParams.put("webRoot", webRoot);
             staticParams.put("prefix", this.prefix);
@@ -790,9 +763,21 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             setAttribute("org.apache.catalina.classloader", this.loader);
             // Logger.log(Logger.DEBUG, "Setting JSP classpath: " +
             // this.loader.getClasspath());
-            if (useWCL)
+            try {
+                StringBuffer cp = new StringBuffer();
+                for (Iterator i = localLoaderClassPathFiles.iterator(); i.hasNext(); ) {
+                    cp.append(((File) i.next()).getCanonicalPath()).append(
+                            File.pathSeparatorChar);
+                }
+                for (int n = 0; n < parentClassPaths.length; n++) {
+                    cp.append(parentClassPaths[n].getCanonicalPath()).append(
+                            File.pathSeparatorChar);
+                }
                 setAttribute("org.apache.catalina.jsp_classpath",
-                        ((WinstoneClassLoader) this.loader).getClasspath());
+                        (cp.length() > 0 ? cp.substring(0, cp.length() - 1) : ""));
+            } catch (IOException err) {
+                Logger.log(Logger.ERROR, resources, "WebAppConfig.ErrorSettingJSPPaths", err);
+            }
 
             Map jspParams = new HashMap();
             addJspServletParams(jspParams);
@@ -859,6 +844,107 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         }
     }
 
+    /**
+     * Build the web-app classloader. This tries to load the preferred classloader first, 
+     * but if it fails, falls back to a simple URLClassLoader.
+     */
+    private ClassLoader buildWebAppClassLoader(Map startupArgs, ClassLoader parentClassLoader,
+            String webRoot, List classPathFileList) {
+        List urlList = new ArrayList();
+        
+        try {
+            // Web-inf folder
+            File webInfFolder = new File(webRoot, WEB_INF);
+
+            // Classes folder
+            File classesFolder = new File(webInfFolder, CLASSES);
+            if (classesFolder.exists()) {
+                Logger.log(Logger.DEBUG, resources,
+                        "WinstoneClassLoader.WebAppClasses");
+                urlList.add(new URL("file", "", classesFolder.getCanonicalPath() + "/"));
+                classPathFileList.add(classesFolder);
+            } else {
+                Logger.log(Logger.WARNING, resources,
+                        "WinstoneClassLoader.NoWebAppClasses", 
+                        classesFolder.toString());
+            }
+
+            // Lib folder's jar files
+            File libFolder = new File(webInfFolder, LIB);
+            if (libFolder.exists()) {
+                File jars[] = libFolder.listFiles();
+                for (int n = 0; n < jars.length; n++) {
+                    String jarName = jars[n].getCanonicalPath().toLowerCase();
+                    if (jarName.endsWith(".jar") || jarName.endsWith(".zip")) {
+                        Logger.log(Logger.DEBUG, resources,
+                                "WinstoneClassLoader.WebAppLib", jars[n].getName());
+                        urlList.add(jars[n].toURL());
+                        classPathFileList.add(jars[n]);
+                    }
+                }
+            } else {
+                Logger.log(Logger.WARNING, resources,
+                        "WinstoneClassLoader.NoWebAppLib", libFolder
+                                .toString());
+            }
+        } catch (MalformedURLException err) {
+            throw new WinstoneException(resources
+                    .getString("WinstoneClassLoader.BadURL"), err);
+        } catch (IOException err) {
+            throw new WinstoneException(resources
+                    .getString("WinstoneClassLoader.IOException"), err);
+        }
+
+        URL jarURLs[] = (URL []) urlList.toArray(new URL[0]);
+        
+        boolean useReloading = booleanArg(startupArgs, "useServletReloading", false);
+        String preferredClassLoader = stringArg(startupArgs, "preferredClassLoader", "");
+        if (preferredClassLoader.equals("") && useReloading) {
+            preferredClassLoader = RELOADING_CL_CLASS;
+        }
+        
+        // Try to set up the preferred class loader, and if we fail, use the normal one
+        ClassLoader outputCL = null;
+        if (!preferredClassLoader.equals("")) {
+            try {
+                Class preferredCL = Class.forName(preferredClassLoader, true, parentClassLoader);
+                Constructor reloadConstr = preferredCL.getConstructor(new Class[] { 
+                        (new URL[0]).getClass(), ClassLoader.class});
+                outputCL = (ClassLoader) reloadConstr.newInstance(new Object[] { 
+                        jarURLs, parentClassLoader});
+            } catch (Throwable err) {
+                Logger.log(Logger.ERROR, resources, "WebAppConfig.CLError", err);
+            }
+        }
+
+        if (outputCL == null) {
+            outputCL = new URLClassLoader(jarURLs, parentClassLoader);
+        }
+
+        Logger.log(Logger.MAX, resources, "WebAppConfig.WebInfClassLoader", outputCL.toString());
+        return outputCL;
+    }
+    
+    private void addListenerInstance(Object listenerInstance, List contextAttributeListeners,
+            List contextListeners, List requestAttributeListeners, List requestListeners,
+            List sessionActivationListeners, List sessionAttributeListeners, 
+            List sessionListeners) {
+        if (listenerInstance instanceof ServletContextAttributeListener)
+            contextAttributeListeners.add(listenerInstance);
+        if (listenerInstance instanceof ServletContextListener)
+            contextListeners.add(listenerInstance);
+        if (listenerInstance instanceof ServletRequestAttributeListener)
+            requestAttributeListeners.add(listenerInstance);
+        if (listenerInstance instanceof ServletRequestListener)
+            requestListeners.add(listenerInstance);
+        if (listenerInstance instanceof HttpSessionActivationListener)
+            sessionActivationListeners.add(listenerInstance);
+        if (listenerInstance instanceof HttpSessionAttributeListener)
+            sessionAttributeListeners.add(listenerInstance);
+        if (listenerInstance instanceof HttpSessionListener)
+            sessionListeners.add(listenerInstance);
+    }
+    
     public String getPrefix() {
         return this.prefix;
     }
@@ -988,8 +1074,14 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         this.contextListeners = null;
         
         // Terminate class loader reloading thread if running
-        if (this.loader instanceof WinstoneClassLoader) {
-            ((WinstoneClassLoader) this.loader).destroy();
+        if (this.loader != null) {
+            // already shutdown/handled by the servlet context listeners
+//            try {
+//                Method methDestroy = this.loader.getClass().getMethod("destroy", new Class[0]);
+//                methDestroy.invoke(this.loader, new Object[0]);
+//            } catch (Throwable err) {
+//                Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
+//            }
             this.loader = null;
         }
 

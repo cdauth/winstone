@@ -172,14 +172,15 @@ public class Launcher implements Runnable {
                 } catch (ClassNotFoundException err) {
                     Logger.log(Logger.DEBUG, this.resources, "Launcher.ClusterNotFound");
                 } catch (Throwable err) {
-                    Logger.log(Logger.WARNING, this.resources, ("Launcher.ClusterStartupError"), err);
+                    Logger.log(Logger.WARNING, this.resources, "Launcher.ClusterStartupError", err);
                 }
             }
         }
         
         // Open the web apps
         this.webAppGroup = new WebAppGroup(this.resources, this.cluster, 
-                this.objectPool, commonLibCL, commonLibCLPaths, args);
+                this.objectPool, commonLibCL, 
+                (File []) commonLibCLPaths.toArray(new File[0]), args);
 
         // Create connectors (http, https and ajp)
         this.listeners = new ArrayList();

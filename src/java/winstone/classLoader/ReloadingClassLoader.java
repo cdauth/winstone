@@ -20,20 +20,22 @@ package winstone.classLoader;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+
 import winstone.Logger;
 import winstone.WebAppConfiguration;
-import winstone.WinstoneClassLoader;
 import winstone.WinstoneResourceBundle;
 
 /**
@@ -44,31 +46,40 @@ import winstone.WinstoneResourceBundle;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class ReloadingClassLoader extends WinstoneClassLoader implements Runnable {
+public class ReloadingClassLoader extends URLClassLoader implements ServletContextListener, Runnable {
     final int RELOAD_SEARCH_SLEEP = 50;
     private static final String LOCAL_RESOURCE_FILE = "winstone.classLoader.LocalStrings";
     private boolean interrupted;
+    private WebAppConfiguration webAppConfig;
     private Set loadedClasses;
-    private WinstoneResourceBundle localResources;
-
-    public ReloadingClassLoader(WebAppConfiguration webAppConfig,
-            ClassLoader parent, List parentClassPaths, String webroot,
-            WinstoneResourceBundle resources) {
-        super(webAppConfig, parent, parentClassPaths, webroot, resources);
-        this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
+    private WinstoneResourceBundle resources;
+    private File classPaths[];
+    
+    public ReloadingClassLoader(URL urls[], ClassLoader parent) {
+        super(urls, parent);
+        this.classPaths = new File[urls.length];
+        for (int n = 0; n < urls.length; n++) {
+            this.classPaths[n] = new File(urls[n].getFile());
+        }
+        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
 
         // Start the file date changed monitoring thread
-        this.interrupted = false;
         this.loadedClasses = new HashSet();
-        Thread thread = new Thread(this, localResources
+    }
+    
+    public void contextInitialized(ServletContextEvent sce) {
+        this.webAppConfig = (WebAppConfiguration) sce.getServletContext();
+        this.interrupted = false;
+        Thread thread = new Thread(this, resources
                 .getString("ReloadingClassLoader.ThreadName"));
         thread.setDaemon(true);
         thread.setPriority(Thread.MIN_PRIORITY);
         thread.start();
     }
 
-    public void destroy() {
+    public void contextDestroyed(ServletContextEvent sce) {
         this.interrupted = true;
+        this.webAppConfig = null;
     }
 
     /**
@@ -76,7 +87,7 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
      * the classpath trigger a classLoader self destruct and recreate.
      */
     public void run() {
-        Logger.log(Logger.FULL_DEBUG, localResources,
+        Logger.log(Logger.FULL_DEBUG, resources,
                 "ReloadingClassLoader.MaintenanceThreadStarted");
 
         Map classDateTable = new HashMap();
@@ -92,8 +103,8 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
                     File location = (File) classLocationTable.get(className);
                     Long classDate = null;
                     if ((location == null) || !location.exists()) {
-                        for (Iterator j = this.classPaths.iterator(); j.hasNext() && (classDate == null);) {
-                            File path = (File) j.next();
+                        for (int j = 0; (j < this.classPaths.length) && (classDate == null); j++) {
+                            File path = this.classPaths[j];
                             if (!path.exists()) {
                                 continue;
                             } else if (path.isDirectory()) {
@@ -115,7 +126,7 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
                     if (classDate == null) {
                         if (!lostClasses.contains(className)) {
                             lostClasses.add(className);
-                            Logger.log(Logger.WARNING, localResources,
+                            Logger.log(Logger.DEBUG, resources,
                                     "ReloadingClassLoader.ClassLost", className);
                         }
                         continue;
@@ -131,7 +142,7 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
                         classDateTable.put(className, classDate);
                     } else if (oldClassDate.compareTo(classDate) != 0) {
                         // Trigger reset of webAppConfig
-                        Logger.log(Logger.INFO, localResources, 
+                        Logger.log(Logger.INFO, resources, 
                                 "ReloadingClassLoader.ReloadRequired",
                                 new String[] {className, 
                                         "" + new Date(classDate.longValue()),
@@ -140,11 +151,11 @@ public class ReloadingClassLoader extends WinstoneClassLoader implements Runnabl
                     }
                 }
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, localResources,
+                Logger.log(Logger.ERROR, resources,
                         "ReloadingClassLoader.MaintenanceThreadError", err);
             }
         }
-        Logger.log(Logger.FULL_DEBUG, localResources,
+        Logger.log(Logger.FULL_DEBUG, resources,
                 "ReloadingClassLoader.MaintenanceThreadFinished");
     }
 
