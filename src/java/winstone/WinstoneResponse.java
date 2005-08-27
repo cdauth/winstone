@@ -636,7 +636,9 @@ public class WinstoneResponse implements HttpServletResponse {
                     this.explicitlySetEncoding = headerEncoding;
                     this.currentEncoding = headerEncoding;
                 } else {
-                    value = remainderHeader.toString();
+                    value = remainderHeader.toString() + 
+                        (this.currentEncoding == null ? "" : 
+                            ";charset=" + this.currentEncoding);
                 }
             }
             this.headers.add(name + ": " + value);
@@ -667,7 +669,9 @@ public class WinstoneResponse implements HttpServletResponse {
                             this.explicitlySetEncoding = headerEncoding;
                             this.currentEncoding = headerEncoding;
                         } else {
-                            value = remainderHeader.toString();
+                            value = remainderHeader.toString() + 
+                                (this.currentEncoding == null ? "" : 
+                                    ";charset=" + this.currentEncoding); 
                         }
                     }
 
