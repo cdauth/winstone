@@ -62,9 +62,9 @@ public abstract class PageContext extends JspContext {
         return new ErrorData(error, code.intValue(), uri, name);
     }
 
-    public abstract void forward(String relativeUrlPath) throws IOException;
+    public abstract void forward(String relativeUrlPath) throws ServletException, IOException;
 
-    public abstract void include(String relativeUrlPath) throws IOException;
+    public abstract void include(String relativeUrlPath) throws ServletException, IOException;
 
     public abstract void include(String relativeUrlPath, boolean flush)
             throws ServletException, IOException;

@@ -28,9 +28,9 @@ public abstract class JspWriter extends Writer {
     protected boolean autoFlush;
     protected int bufferSize;
 
-    public static int DEFAULT_BUFFER = -1;
-    public static int NO_BUFFER = 0;
-    public static int UNBOUNDED_BUFFER = -2;
+    public static final int DEFAULT_BUFFER = -1;
+    public static final int NO_BUFFER = 0;
+    public static final int UNBOUNDED_BUFFER = -2;
 
     protected JspWriter(int bufferSize, boolean autoFlush) {
         super();

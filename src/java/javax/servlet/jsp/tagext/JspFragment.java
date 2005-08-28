@@ -17,7 +17,10 @@
  */
 package javax.servlet.jsp.tagext;
 
+import java.io.IOException;
+
 import javax.servlet.jsp.JspContext;
+import javax.servlet.jsp.JspException;
 
 /**
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
@@ -26,5 +29,5 @@ import javax.servlet.jsp.JspContext;
 public abstract class JspFragment {
     public abstract JspContext getJspContext();
 
-    public abstract void invoke(java.io.Writer out);
+    public abstract void invoke(java.io.Writer out) throws JspException, IOException;
 }

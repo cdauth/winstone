@@ -82,4 +82,20 @@
       <ant:jvmArg  line="-Djava.endorsed.dirs=${tck.endorsed.dir}" />
     </ant:java>
   </goal>
+  
+  <goal name="tcktestjsp" prereqs="jar">
+    <ant:property environment="env"/>
+    <ant:java fork="true" classname="winstone.Launcher" classpath="target/${pom.artifactId}-${pom.currentVersion}.jar">
+      <ant:arg value="--webappsDir=${tck.jsp.webapp.dir}" />
+      <ant:arg value="--commonLibFolder=${tck.commonLib.dir}" />
+      <ant:arg value="--javaHome=${env.JAVA_HOME}"/>
+      <ant:arg value="--useJasper=true"/>
+      <ant:arg value="--useJNDI=true"/>
+      <ant:arg value="--ajp13Port=-1"/>
+      <ant:arg value="--httpPort=9080"/>
+      <ant:arg value="--debug=8"/>
+      <ant:arg value="--logThrowingLineNo=true"/>
+      <ant:jvmArg  line="-Djava.endorsed.dirs=${tck.endorsed.dir}" />
+    </ant:java>
+  </goal>
 </project>

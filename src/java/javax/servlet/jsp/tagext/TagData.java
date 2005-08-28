@@ -27,7 +27,7 @@ import java.util.Map;
  * @version $Id$
  */
 public class TagData implements Cloneable {
-    public static Object REQUEST_TIME_VALUE = new Object();
+    public static final Object REQUEST_TIME_VALUE = new Object();
 
     private Map attributes;
 

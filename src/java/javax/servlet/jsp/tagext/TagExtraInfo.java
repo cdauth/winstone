@@ -24,7 +24,7 @@ package javax.servlet.jsp.tagext;
 public abstract class TagExtraInfo {
     private TagInfo tagInfo;
 
-    public TagInfo getTagInfo() {
+    public final TagInfo getTagInfo() {
         return this.tagInfo;
     }
 
@@ -36,7 +36,7 @@ public abstract class TagExtraInfo {
         return true;
     }
 
-    public void setTagInfo(TagInfo tagInfo) {
+    public final void setTagInfo(TagInfo tagInfo) {
         this.tagInfo = tagInfo;
     }
 
