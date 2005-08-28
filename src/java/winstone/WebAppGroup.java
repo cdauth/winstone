@@ -119,7 +119,8 @@ public class WebAppGroup {
             File webXmlFile = new File(webInfFolder, WEB_XML);
             if (webXmlFile.exists()) {
                 Logger.log(Logger.DEBUG, resources, "Launcher.ParsingWebXml");
-                Document webXMLDoc = new WebXmlParser(this.resources).parseStreamToXML(webXmlFile);
+                Document webXMLDoc = new WebXmlParser(this.resources, this.commonLibCL)
+                        .parseStreamToXML(webXmlFile);
                 webXMLParentNode = webXMLDoc.getDocumentElement();
                 Logger.log(Logger.DEBUG, resources,
                         "Launcher.WebXmlParseComplete");

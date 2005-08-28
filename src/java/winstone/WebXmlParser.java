@@ -55,9 +55,11 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
     static final String WS_CLIENT_LOCAL = "javax/servlet/resources/j2ee_web_services_client_1_1.xsd";
 
     private WinstoneResourceBundle resources;
+    private ClassLoader commonLoader;
 
-    public WebXmlParser(WinstoneResourceBundle resources) {
+    public WebXmlParser(WinstoneResourceBundle resources, ClassLoader commonCL) {
         this.resources = resources;
+        this.commonLoader = commonCL;
     }
     
     /**
@@ -93,23 +95,22 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
             if ((webXmlVersion != null) && !webXmlVersion.trim().equals("") && 
                     !webXmlVersion.startsWith("2.2") && !webXmlVersion.startsWith("2.3")) {
                 // If we have (and can parse) the 2.4 xsd, set to redirect locally to use it
-                if (getClass().getClassLoader().getResource(XSD_2_4_LOCAL) != null) {
-                    try {
-                        factory.setAttribute(
-                                        "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
-                                        "http://www.w3.org/2001/XMLSchema");
+                try {
+                    factory.setAttribute(
+                                    "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
+                                    "http://www.w3.org/2001/XMLSchema");
+                    if (this.commonLoader.getResource(XSD_2_4_LOCAL) != null) {
                         factory.setAttribute(
                                         "http://java.sun.com/xml/jaxp/properties/schemaSource",
-                                        getClass().getClassLoader().getResource(
+                                        this.commonLoader.getResource(
                                                 XSD_2_4_LOCAL).toString());
-                        Logger.log(Logger.FULL_DEBUG, resources,
-                                "Launcher.Local24XSDEnabled");
-                    } catch (Throwable err) {
-                        Logger.log(Logger.WARNING, resources,
-                                "Launcher.NonXSDParser");
+                        Logger.log(Logger.FULL_DEBUG, resources, "Launcher.Local24XSDEnabled");
+                    } else {
+                        Logger.log(Logger.WARNING, resources, "Launcher.24XSDNotFound");
                     }
-                } else {
-                    Logger.log(Logger.WARNING, resources, "Launcher.24XSDNotFound");
+                } catch (Throwable err) {
+                    Logger.log(Logger.WARNING, resources,
+                            "Launcher.NonXSDParser");
                 }
                 builder = factory.newDocumentBuilder();
                 builder.setEntityResolver(this);
@@ -136,15 +137,20 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
             return getLocalResource(url, DTD_2_2_LOCAL);
         else if ((publicName != null) && publicName.equals(DTD_2_3_PUBLIC))
             return getLocalResource(url, DTD_2_3_LOCAL);
-        else if ((url != null) && url.equals(XSD_2_4_URL))
+        else if ((url != null) && url.equals(XSD_2_4_URL) &&
+                (this.commonLoader.getResource(XSD_2_4_LOCAL) != null))
             return getLocalResource(url, XSD_2_4_LOCAL);
-        else if ((url != null) && url.equals(XSD_XML_URL))
+        else if ((url != null) && url.equals(XSD_XML_URL) &&
+                (this.commonLoader.getResource(XSD_XML_LOCAL) != null))
             return getLocalResource(url, XSD_XML_LOCAL);
-        else if ((publicName != null) && publicName.equals(XSD_DTD_PUBLIC))
+        else if ((publicName != null) && publicName.equals(XSD_DTD_PUBLIC) &&
+                (this.commonLoader.getResource(XSD_DTD_LOCAL) != null))
             return getLocalResource(url, XSD_DTD_LOCAL);
-        else if ((url != null) && url.equals(DATATYPES_URL))
+        else if ((url != null) && url.equals(DATATYPES_URL) &&
+                (this.commonLoader.getResource(DATATYPES_LOCAL) != null))
             return getLocalResource(url, DATATYPES_LOCAL);
-        else if ((url != null) && url.equals(WS_CLIENT_URL))
+        else if ((url != null) && url.equals(WS_CLIENT_URL) &&
+                (this.commonLoader.getResource(WS_CLIENT_LOCAL) != null))
             return getLocalResource(url, WS_CLIENT_LOCAL);
         else if ((url != null) && url.startsWith("jar:"))
             return getLocalResource(url, url.substring(url.indexOf("!/") + 2));
@@ -156,10 +162,9 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
     }
 
     private InputSource getLocalResource(String url, String local) {
-        ClassLoader cl = getClass().getClassLoader();
-        if (cl.getResource(local) == null)
+        if (this.commonLoader.getResource(local) == null)
             return new InputSource(url);
-        InputSource is = new InputSource(cl.getResourceAsStream(local));
+        InputSource is = new InputSource(this.commonLoader.getResourceAsStream(local));
         is.setSystemId(url);
         return is;
     }

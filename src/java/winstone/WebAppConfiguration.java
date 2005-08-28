@@ -106,6 +106,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private static final String DISPATCHER_ERROR = "ERROR";
     private static final String JSP_SERVLET_NAME = "JspServlet";
     private static final String JSP_SERVLET_MAPPING = "*.jsp";
+    private static final String JSPX_SERVLET_MAPPING = "*.jspx";
     private static final String JSP_SERVLET_LOG_LEVEL = "WARNING";
     private static final String INVOKER_SERVLET_NAME = "invoker";
     private static final String INVOKER_SERVLET_CLASS = "winstone.InvokerServlet";
@@ -673,8 +674,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // Add the default index.html welcomeFile if none are supplied
         if (localWelcomeFiles.isEmpty()) {
-            if (useJasper)
+            if (useJasper) {
                 localWelcomeFiles.add("index.jsp");
+            }
             localWelcomeFiles.add("index.html");
         }
 
@@ -786,6 +788,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             this.servletInstances.put(JSP_SERVLET_NAME, sc);
             startupServlets.add(sc);
             processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING,
+                    this.exactServletMatchMounts, localFolderPatterns,
+                    localExtensionPatterns);
+            processMapping(JSP_SERVLET_NAME, JSPX_SERVLET_MAPPING,
                     this.exactServletMatchMounts, localFolderPatterns,
                     localExtensionPatterns);
         }
