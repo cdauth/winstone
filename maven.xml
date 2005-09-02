@@ -4,10 +4,6 @@
     xmlns:ant="jelly:ant"
     xmlns:maven="jelly:maven"
     default="jar:jar">
-
-  <goal name="timestamp">
-    <ant:tstamp/>
-  </goal>
   
   <postGoal name="test:compile">
     <copy todir="target/test-classes">
@@ -23,7 +19,10 @@
   </postGoal>
 
   <postGoal name="jar:jar">
-    <ant:jar jarfile="target/${pom.artifactId}-lite-${pom.currentVersion}.jar"
+    <tstamp/>
+    <ant:move file="${basedir}/target/${pom.artifactId}-${pom.currentVersion}.jar"
+              tofile="${basedir}/target/${pom.artifactId}-${pom.currentVersion}-${DSTAMP}.${TSTAMP}.jar" />
+    <ant:jar jarfile="${basedir}/target/${pom.artifactId}-lite-${pom.currentVersion}-${DSTAMP}.${TSTAMP}.jar"
          basedir="${maven.build.dest}"
          includes="javax/servlet/*,javax/servlet/http/*,javax/servlet/resources/web-app*.dtd,winstone/*">
       <manifest>
@@ -56,7 +55,8 @@
     <delete file="target/source-release/winstone-src-${pom.currentVersion}.tar"/>
   </goal>
   
-  <goal name="backup" prereqs="timestamp">
+  <goal name="backup">
+    <tstamp/>
     <ant:mkdir dir="${backup.dir}"/>
     <ant:tar tarfile="${backup.dir}/${pom.artifactId}_${DSTAMP}${TSTAMP}.tar" 
              basedir="." 
