@@ -161,7 +161,7 @@ public class WebAppGroup {
             String webRoot = webAppConfig.getWebroot();
             String contextName = webAppConfig.getContextName();
             destroyWebApp(prefix);
-            initWebApp(prefix, new File(webRoot), contextName);
+            this.webapps.put(prefix, initWebApp(prefix, new File(webRoot), contextName));
         } else {
             throw new WinstoneException(resources.getString("WebAppGroup.PrefixUnknown", prefix));
         }
