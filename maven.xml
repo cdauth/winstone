@@ -69,7 +69,7 @@
   
   <goal name="tcktest" prereqs="jar">
     <ant:property environment="env"/>
-    <ant:java fork="true" classname="winstone.Launcher" classpath="target/${pom.artifactId}-${pom.currentVersion}.jar">
+    <ant:java fork="true" classname="winstone.Launcher" classpath="target/classes">
       <ant:arg value="--webappsDir=${tck.webapp.dir}" />
       <ant:arg value="--commonLibFolder=${tck.commonLib.dir}" />
       <ant:arg value="--javaHome=${env.JAVA_HOME}"/>
@@ -85,7 +85,7 @@
   
   <goal name="tcktestjsp" prereqs="jar">
     <ant:property environment="env"/>
-    <ant:java fork="true" classname="winstone.Launcher" classpath="target/${pom.artifactId}-lite-${pom.currentVersion}.jar">
+    <ant:java fork="true" classname="winstone.Launcher" classpath="target/classes">
       <ant:arg value="--webappsDir=${tck.jsp.webapp.dir}" />
       <ant:arg value="--commonLibFolder=${tck.commonLib.dir}" />
       <ant:arg value="--javaHome=${env.JAVA_HOME}"/>
