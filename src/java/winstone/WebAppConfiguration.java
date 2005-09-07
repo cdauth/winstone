@@ -100,6 +100,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private static final String ELEM_LOCALE_ENC_MAPPING = "locale-encoding-mapping";
     private static final String ELEM_LOCALE = "locale";
     private static final String ELEM_ENCODING = "encoding";
+    private static final String ELEM_JSP_CONFIG = "jsp-config";
+    private static final String ELEM_JSP_PROPERTY_GROUP = "jsp-property-group";
+    
     private static final String DISPATCHER_REQUEST = "REQUEST";
     private static final String DISPATCHER_FORWARD = "FORWARD";
     private static final String DISPATCHER_INCLUDE = "INCLUDE";
@@ -286,13 +289,20 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             this.localeEncodingMap.put(token.substring(0, delimPos), token
                     .substring(delimPos + 1));
         }
+        
+        // init jsp mappings set
+        List jspMappings = new ArrayList();
+        jspMappings.add(JSP_SERVLET_MAPPING);
+        jspMappings.add(JSPX_SERVLET_MAPPING);
 
         // Add required context atttributes
-        this.attributes.put("javax.servlet.context.tempdir", new File(System
-                .getProperty("java.io.tmpdir")));
+        File tmpDir = new File(new File(System.getProperty("java.io.tmpdir"), 
+                "winstone.tmp"), contextName); 
+        tmpDir.mkdirs();
+        this.attributes.put("javax.servlet.context.tempdir", tmpDir);
 
         // Parse the web.xml file
-        if (elm != null)
+        if (elm != null) {
             for (int n = 0; n < elm.getChildNodes().getLength(); n++) {
                 Node child = elm.getChildNodes().item(n);
                 if (child.getNodeType() != Node.ELEMENT_NODE)
@@ -465,7 +475,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 }
 
                 // Process the list of welcome files
-                else if (nodeName.equals(ELEM_WELCOME_FILES))
+                else if (nodeName.equals(ELEM_WELCOME_FILES)) {
                     for (int m = 0; m < child.getChildNodes().getLength(); m++) {
                         Node welcomeFile = child.getChildNodes().item(m);
                         if ((welcomeFile.getNodeType() == Node.ELEMENT_NODE)
@@ -475,7 +485,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                                     .getNodeValue().trim());
                         }
                     }
-
+                }
+                
                 // Process the error pages
                 else if (nodeName.equals(ELEM_ERROR_PAGE)) {
                     String code = null;
@@ -588,7 +599,26 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         }
                     }
                 }
+
+                // Record the url mappings for jsp files if set
+                else if (nodeName.equals(ELEM_JSP_CONFIG)) {
+                    for (int m = 0; m < child.getChildNodes().getLength(); m++) {
+                        Node propertyGroupNode = child.getChildNodes().item(m);
+                        if ((propertyGroupNode.getNodeType() == Node.ELEMENT_NODE)
+                                && propertyGroupNode.getNodeName().equals(ELEM_JSP_PROPERTY_GROUP)) {
+                            for (int l = 0; l < propertyGroupNode.getChildNodes().getLength(); l++) {
+                                Node urlPatternNode = propertyGroupNode.getChildNodes().item(l);
+                                if ((urlPatternNode.getNodeType() == Node.ELEMENT_NODE)
+                                        && urlPatternNode.getNodeName().equals(ELEM_URL_PATTERN)
+                                        && (urlPatternNode.getFirstChild() != null)) {
+                                    jspMappings.add(urlPatternNode.getFirstChild().getNodeValue().trim());
+                                }
+                            }
+                        }
+                    }
+                }
             }
+        }
         
         // If not distributable, remove the cluster reference
         if (!distributable && (cluster != null)) {
@@ -787,12 +817,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     this.resources, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
             this.servletInstances.put(JSP_SERVLET_NAME, sc);
             startupServlets.add(sc);
-            processMapping(JSP_SERVLET_NAME, JSP_SERVLET_MAPPING,
-                    this.exactServletMatchMounts, localFolderPatterns,
-                    localExtensionPatterns);
-            processMapping(JSP_SERVLET_NAME, JSPX_SERVLET_MAPPING,
-                    this.exactServletMatchMounts, localFolderPatterns,
-                    localExtensionPatterns);
+            for (Iterator mapIt = jspMappings.iterator(); mapIt.hasNext(); ) {
+                processMapping(JSP_SERVLET_NAME, (String) mapIt.next(),
+                        this.exactServletMatchMounts, localFolderPatterns,
+                        localExtensionPatterns);
+            }
         }
 
         // Initialise invoker servlet if requested

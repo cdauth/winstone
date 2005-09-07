@@ -317,7 +317,7 @@ public class HttpListener implements Listener, Runnable {
      */
     private String parseURILine(String uriLine, WinstoneRequest req,
             WinstoneResponse rsp) {
-        Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.UriLine", uriLine);
+        Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.UriLine", uriLine.trim());
         
         // Method
         int spacePos = uriLine.indexOf(' ');
