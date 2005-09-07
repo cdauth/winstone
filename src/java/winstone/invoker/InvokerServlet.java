@@ -43,9 +43,9 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class InvokerServlet extends HttpServlet {
-    final String RESOURCE_FILE = "winstone.LocalStrings";
-    final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
-    final String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
+    private static final String RESOURCE_FILE = "winstone.invoker.LocalStrings";
+    private static final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
+    private static final String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
 
     private WinstoneResourceBundle resources;
     private Map mountedInstances;
@@ -75,6 +75,10 @@ public class InvokerServlet extends HttpServlet {
                 this.mountedInstances.clear();
             }
         }
+        this.resources = null;
+        this.mountedInstances = null;
+        this.prefix = null;
+        this.invokerPrefix = null;
     }
 
     /**

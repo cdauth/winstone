@@ -218,6 +218,15 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 useJasper = false;
             }
         }
+        if (useInvoker) {
+            try {
+                Class.forName(INVOKER_SERVLET_CLASS, false, this.loader);
+            } catch (Throwable err) {
+                Logger.log(Logger.WARNING, resources, 
+                        "WebAppConfig.InvokerNotFound");
+                useInvoker = false;
+            }
+        }
 
         this.attributes = new Hashtable();
         this.initParameters = new HashMap();
