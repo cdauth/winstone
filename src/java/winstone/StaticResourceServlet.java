@@ -174,7 +174,7 @@ public class StaticResourceServlet extends HttpServlet {
             Writer outWriter = null;
             try {
                 out = response.getOutputStream();
-            } catch (IOException err) {
+            } catch (Throwable err) {
                 outWriter = response.getWriter();
             }
             byte buffer[] = new byte[4096];
