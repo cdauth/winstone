@@ -15,7 +15,7 @@
  * Version 2 along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-package winstone;
+package winstone.invoker;
 
 import java.io.IOException;
 import java.util.Hashtable;
@@ -27,6 +27,13 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import winstone.Logger;
+import winstone.Mapping;
+import winstone.RequestDispatcher;
+import winstone.ServletConfiguration;
+import winstone.WebAppConfiguration;
+import winstone.WinstoneResourceBundle;
 
 /**
  * If a URI matches a servlet class name, mount an instance of that servlet, and

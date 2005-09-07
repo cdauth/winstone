@@ -112,7 +112,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private static final String JSPX_SERVLET_MAPPING = "*.jspx";
     private static final String JSP_SERVLET_LOG_LEVEL = "WARNING";
     private static final String INVOKER_SERVLET_NAME = "invoker";
-    private static final String INVOKER_SERVLET_CLASS = "winstone.InvokerServlet";
+    private static final String INVOKER_SERVLET_CLASS = "winstone.invoker.InvokerServlet";
     private static final String DEFAULT_INVOKER_PREFIX = "/servlet/";
     private static final String DEFAULT_SERVLET_NAME = "default";
     private static final String DEFAULT_SERVLET_CLASS = "winstone.StaticResourceServlet";

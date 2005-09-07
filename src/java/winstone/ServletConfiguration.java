@@ -164,7 +164,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                         this.servletName, this.classFile });
     }
     
-    protected void ensureInitialization() {
+    public void ensureInitialization() {
         
         if (this.instance != null) {
             return; // already init'd
