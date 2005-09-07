@@ -145,7 +145,7 @@ public class StaticResourceServlet extends HttpServlet {
         }
 
         // Send a 304 if not modified
-        else if ((cachedResDate != -1)
+        else if (!isInclude && (cachedResDate != -1)
                 && (cachedResDate < System.currentTimeMillis())
                 && (cachedResDate >= res.lastModified())) {
             String mimeType = getServletContext().getMimeType(
@@ -157,8 +157,8 @@ public class StaticResourceServlet extends HttpServlet {
             response.getOutputStream().close();
         }
 
-        // Write out the resource if not range
-        else if (request.getHeader(RANGE_HEADER) == null) {
+        // Write out the resource if not range or is included
+        else if ((request.getHeader(RANGE_HEADER) == null) || isInclude) {
             String mimeType = getServletContext().getMimeType(
                     res.getName().toLowerCase());
             if (mimeType != null)
@@ -168,23 +168,25 @@ public class StaticResourceServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_OK);
             response.setContentLength((int) res.length());
             response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
-            response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res
-                    .lastModified());
+            response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
             OutputStream out = null;
             Writer outWriter = null;
             try {
                 out = response.getOutputStream();
-            } catch (Throwable err) {
+            } catch (IllegalStateException err) {
+                outWriter = response.getWriter();
+            } catch (IllegalArgumentException err) {
                 outWriter = response.getWriter();
             }
             byte buffer[] = new byte[4096];
             int read = resStream.read(buffer);
             while (read > 0) {
-                if (out != null)
+                if (out != null) {
                     out.write(buffer, 0, read);
-                else
-                    outWriter.write(new String(buffer, 0, read, response
-                            .getCharacterEncoding()));
+                } else {
+                    outWriter.write(new String(buffer, 0, read, 
+                            response.getCharacterEncoding()));
+                }
                 read = resStream.read(buffer);
             }
             resStream.close();
