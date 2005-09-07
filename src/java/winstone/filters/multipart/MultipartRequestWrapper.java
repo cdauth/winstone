@@ -38,7 +38,8 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
-import javax.servlet.ServletRequestWrapper;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 
 
 /**
@@ -57,7 +58,7 @@ import javax.servlet.ServletRequestWrapper;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class MultipartRequestWrapper extends ServletRequestWrapper {
+public class MultipartRequestWrapper extends HttpServletRequestWrapper {
     public final static String MPH_ATTRIBUTE = "MultipartRequestWrapper.reference";
 
     private Map stringParameters;
@@ -74,7 +75,7 @@ public class MultipartRequestWrapper extends ServletRequestWrapper {
      */
     public MultipartRequestWrapper(ServletRequest request)
                      throws IOException {
-        super(request);
+        super((HttpServletRequest) request);
         String contentType = request.getContentType();
 
         if (!contentType.toLowerCase().startsWith("multipart/form-data")) {
@@ -113,6 +114,10 @@ public class MultipartRequestWrapper extends ServletRequestWrapper {
             Map mimeTypes = new HashMap();
             Map tempFileNames = new HashMap();
             Map uploadFileNames = new HashMap();
+            String encoding = request.getCharacterEncoding();
+            if (encoding == null) {
+                encoding = "8859_1";
+            }
 
             for (int loopCount = 0; loopCount < parts.getCount(); loopCount++) {
                 MimeBodyPart current = (MimeBodyPart) parts.getBodyPart(loopCount);
@@ -153,7 +158,7 @@ public class MultipartRequestWrapper extends ServletRequestWrapper {
                         }
                         inRaw.close();
                         outStream.close();
-                        this.tempFileNames.put(nameField, tempFile.getAbsoluteFile());
+                        tempFileNames.put(nameField, tempFile.getAbsoluteFile());
                     } else {
                         byte[] stash = new byte[inRaw.available()];
                         inRaw.read(stash);
@@ -162,14 +167,13 @@ public class MultipartRequestWrapper extends ServletRequestWrapper {
                         Object oldParam = stringParameters.get(nameField);
                         if (oldParam == null) {
                             stringParameters.put(nameField, new String[] {
-                                    new String(stash, request.getCharacterEncoding())
+                                    new String(stash, encoding)
                             });
                         } else {
                             String oldParams[] = (String []) oldParam;
                             String newParams[] = new String[oldParams.length + 1];
                             System.arraycopy(oldParams, 0, newParams, 0, oldParams.length);
-                            newParams[oldParams.length] = new String(stash, 
-                                    request.getCharacterEncoding());
+                            newParams[oldParams.length] = new String(stash, encoding);
                             stringParameters.put(nameField, newParams);
                         }
                     }
