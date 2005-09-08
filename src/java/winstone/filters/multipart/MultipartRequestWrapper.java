@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -138,8 +139,14 @@ public class MultipartRequestWrapper extends HttpServletRequestWrapper {
                     if (headers.indexOf(" filename=" + '"') != -1) {
                         String fileName = headers.substring(headers.indexOf(" filename=" + '"') + 11);
                         fileName = fileName.substring(0, fileName.indexOf('"'));
+                        if (fileName.lastIndexOf('/') != -1) {
+                            fileName = fileName.substring(fileName.lastIndexOf('/') + 1);
+                        }
+                        if (fileName.lastIndexOf('\\') != -1) {
+                            fileName = fileName.substring(fileName.lastIndexOf('\\') + 1);
+                        }
                         uploadFileNames.put(nameField, fileName);
-                    
+                        
                         if (tempFileNames.containsKey(nameField)) {
                             throw new IOException("Multiple parameters named " + nameField);
                         }
@@ -212,7 +219,7 @@ public class MultipartRequestWrapper extends HttpServletRequestWrapper {
     }
 
     public Enumeration getParameterNames() {
-        Set names = this.stringParameters.keySet();
+        Set names = new HashSet(this.stringParameters.keySet());
         names.addAll(this.tempFileNames.keySet());
         Enumeration parent = super.getParameterNames();
         names.addAll(Collections.list(parent));
@@ -233,7 +240,7 @@ public class MultipartRequestWrapper extends HttpServletRequestWrapper {
         } else if (name.endsWith(".filename") && isFileUploadParameter(
                 name.substring(0, name.length() - 9))) {
             return new String[] {getUploadFileName(name.substring(0, name.length() - 9))};
-        } else if (name.endsWith(".mimetype") && isFileUploadParameter(
+        } else if (name.endsWith(".content-type") && isFileUploadParameter(
                 name.substring(0, name.length() - 9))) {
             return new String[] {getContentType(name.substring(0, name.length() - 9))};
         } else if (isNonFileUploadParameter(name)) {
