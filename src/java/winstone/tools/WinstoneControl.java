@@ -18,6 +18,7 @@
 package winstone.tools;
 
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.HashMap;
@@ -38,7 +39,7 @@ import winstone.WinstoneResourceBundle;
 public class WinstoneControl {
     final static String LOCAL_RESOURCE_FILE = "winstone.tools.LocalStrings";
     final static String OPERATION_SHUTDOWN = "shutdown";
-    final static String OPERATION_RELOAD = "reload";
+    final static String OPERATION_RELOAD = "reload:";
     static int TIMEOUT = 10000;
 
     /**
@@ -92,18 +93,22 @@ public class WinstoneControl {
         }
 
         // check for reload
-        else if (operation.equalsIgnoreCase(OPERATION_RELOAD)) {
+        else if (operation.toLowerCase().startsWith(OPERATION_RELOAD.toLowerCase())) {
+            String webappName = operation.substring(OPERATION_RELOAD.length());
             Socket socket = new Socket(host, Integer.parseInt(port));
             socket.setSoTimeout(TIMEOUT);
             OutputStream out = socket.getOutputStream();
             out.write(Launcher.RELOAD_TYPE);
+            ObjectOutputStream objOut = new ObjectOutputStream(out);
+            objOut.writeUTF(webappName);
+            objOut.close();
             out.close();
             Logger.log(Logger.INFO, resources, "WinstoneControl.ReloadOK",
                     new String[] { host, port });
         }
-
-        else
+        else {
             printUsage(resources);
+        }
     }
 
     /**
