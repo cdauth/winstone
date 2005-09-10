@@ -113,11 +113,12 @@ public class GzipResponseWrapper extends HttpServletResponseWrapper {
     public PrintWriter getWriter() throws IOException {
         if (this.bufferWriter != null) {
             return this.bufferWriter;
-        } else if (this.bufferStream != null) {
-            throw new IllegalStateException("getOutputStream " +
-                    "has already been called");
         } else {
-            this.bufferStream = new ByteArrayServletOutputStream();
+            // this is actually against servlet spec, but return a 
+            // writer only, if the stream has already been requested
+            if (this.bufferStream == null) {
+                this.bufferStream = new ByteArrayServletOutputStream();
+            }
             this.bufferWriter = new PrintWriter(
                     new OutputStreamWriter(this.bufferStream, 
                             getCharacterEncoding()), true);
