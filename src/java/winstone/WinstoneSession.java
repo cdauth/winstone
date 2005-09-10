@@ -70,7 +70,7 @@ public class WinstoneSession implements HttpSession, Serializable {
             boolean distributable) {
         this.sessionId = sessionId;
         this.webAppConfig = webAppConfig;
-        this.sessionData = new Hashtable();
+        this.sessionData = new HashMap();
         this.createTime = System.currentTimeMillis();
         this.isNew = true;
         this.isInvalidated = false;
