@@ -55,6 +55,7 @@ import javax.servlet.http.HttpSessionAttributeListener;
 import javax.servlet.http.HttpSessionListener;
 
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * Models the web.xml file's details ... basically just a bunch of configuration
@@ -312,8 +313,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // Parse the web.xml file
         if (elm != null) {
-            for (int n = 0; n < elm.getChildNodes().getLength(); n++) {
-                Node child = elm.getChildNodes().item(n);
+            NodeList children = elm.getChildNodes();
+            for (int n = 0; n < children.getLength(); n++) {
+                Node child = children.item(n);
                 if (child.getNodeType() != Node.ELEMENT_NODE)
                     continue;
                 String nodeName = child.getNodeName();
