@@ -74,28 +74,22 @@ public class WinstoneResourceBundle {
      */
     public static String globalReplace(String input, String fromMarker,
             String toValue) {
-        if (input == null)
+        if (input == null) {
             return null;
-        else if (fromMarker == null)
+        } else if (fromMarker == null) {
             return input;
+        }
 
-        int fromPos = input.indexOf(fromMarker);
-        if (fromPos == -1)
-            return input;
-        else
-            return globalReplace(input.substring(0, fromPos), fromMarker,
-                    toValue)
-                    + toValue
-                    + globalReplace(input.substring(fromPos
-                            + fromMarker.length()), fromMarker, toValue);
+        StringBuffer out = new StringBuffer();
+        int index = 0;
+        int foundAt = input.indexOf(fromMarker, index);
+        while (foundAt != -1) {
+            out.append(input.substring(index, foundAt));
+            out.append(toValue);
+            index = foundAt + fromMarker.length();
+            foundAt = input.indexOf(fromMarker, index);
+        }
+        out.append(input.substring(index));
+        return out.toString();
     }
-
-    /**
-     * Perform a string replace for all the from/to pairs in the replaceParams
-     * map / private String getString(String key, Map replaceParams) { String
-     * myCopy = this.resources.getString(key); for (Iterator i =
-     * replaceParams.keySet().iterator(); i.hasNext(); ) { String from =
-     * (String) i.next(); String to = (String) replaceParams.get(from); myCopy =
-     * globalReplace(myCopy, from, to); } return myCopy; }
-     */
 }
