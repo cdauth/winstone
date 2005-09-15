@@ -70,8 +70,7 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
         String authorization = request.getHeader("Authorization");
         if ((authorization != null)
                 && authorization.toLowerCase().startsWith("basic")) {
-            String decoded = decodeBase64String(authorization.substring(5)
-                    .trim());
+            String decoded = decodeBase64String(authorization.substring(5).trim());
             int delimPos = decoded.indexOf(':');
             if (delimPos != -1) {
                 AuthenticationPrincipal principal = this.realm
@@ -106,10 +105,14 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
      */
     public String decodeBase64String(String input) {
         try {
-            byte inBytes[] = input.getBytes("8859_1");
+            char inChars[] = input.toCharArray();
             byte outBytes[] = new byte[(int) Math
-                    .floor((inBytes.length - 1) * 0.75)];
-            decodeBase64(inBytes, 0, input.indexOf('='), outBytes, 0);
+                    .floor((inChars.length - 1) * 0.75)];
+            int length = input.indexOf('=');
+            if (length == -1) {
+                length = input.length();
+            }
+            decodeBase64(inChars, 0, input.indexOf('='), outBytes, 0);
             return new String(outBytes, "8859_1");
         } catch (Throwable err) {
             return null;
@@ -119,7 +122,7 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
     /**
      * Decodes a byte array from base64
      */
-    public static void decodeBase64(byte input[], int inOffset, int inLength,
+    public static void decodeBase64(char input[], int inOffset, int inLength,
             byte output[], int outOffset) {
         if (inLength == 0)
             return;

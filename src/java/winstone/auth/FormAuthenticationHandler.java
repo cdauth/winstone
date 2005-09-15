@@ -187,10 +187,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                             "FormAuthenticationHandler.CantSetUser",
                             wrapperCheck.getClass().getName());
 
-                WinstoneSession session = (WinstoneSession) request
-                        .getSession(true);
-                principal.setAuthType(HttpServletRequest.FORM_AUTH);
-                session.setAuthenticatedUser(principal);
+                WinstoneSession session = (WinstoneSession) request.getSession(true);
                 String previousLocation = this.loginPage;
                 if ((session.getCachedRequest() != null)
                         && (actualRequest != null)) {
@@ -203,9 +200,19 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                 } else
                     Logger.log(Logger.DEBUG, this.resources,
                             "FormAuthenticationHandler.NoCachedRequest");
-                javax.servlet.RequestDispatcher rd = request
-                        .getRequestDispatcher(previousLocation);
-                rd.forward(request, response);
+                
+                // do role check, since we don't know that this user has permission
+                if (doRoleCheck(request, response, previousLocation)) {
+                    principal.setAuthType(HttpServletRequest.FORM_AUTH);
+                    session.setAuthenticatedUser(principal);
+                    javax.servlet.RequestDispatcher rd = request
+                            .getRequestDispatcher(previousLocation);
+                    rd.forward(request, response);
+                } else {
+                    javax.servlet.RequestDispatcher rd = request
+                            .getRequestDispatcher(this.errorPage);
+                    rd.forward(request, response);
+                }
             }
             return false;
         }
@@ -234,7 +241,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
             if ((session != null) && (session.getAuthenticatedUser() != null)) {
                 actualRequest.setRemoteUser(session.getAuthenticatedUser());
                 Logger.log(Logger.FULL_DEBUG, this.resources,
-                        "FormAuthenticationHandler.GotUseFromSession");
+                        "FormAuthenticationHandler.GotUserFromSession");
             }
             return true;
         }

@@ -95,8 +95,14 @@ public abstract class BaseAuthenticationHandler implements
         // Give previous attempts a chance to be validated
         if (!validatePossibleAuthenticationResponse(request, response, pathRequested)) {
             return false;
+        } else {
+            return doRoleCheck(request, response, pathRequested);
         }
+    }
 
+    protected boolean doRoleCheck(HttpServletRequest request,
+            HttpServletResponse response, String pathRequested) 
+            throws IOException, ServletException {
         // Loop through constraints
         boolean foundApplicable = false;
         for (int n = 0; (n < this.constraints.length) && !foundApplicable; n++) {
@@ -132,11 +138,12 @@ public abstract class BaseAuthenticationHandler implements
                 }
             }
         }
+        
         // If we made it this far without a check being run, there must be none applicable
         Logger.log(Logger.FULL_DEBUG, this.resources, "BaseAuthenticationHandler.PassedAuthCheck");
         return true;
     }
-
+    
     protected void setNoCache(HttpServletResponse response) {
         response.setHeader("Pragma", "No-cache");
         response.setHeader("Cache-Control", "No-cache");
