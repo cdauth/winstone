@@ -41,19 +41,19 @@
              passive="yes">
       <ant:fileset file="target/${pom.artifactId}-${pom.currentVersion}.jar"/>
       <ant:fileset file="target/${pom.artifactId}-lite-${pom.currentVersion}.jar"/>
-      <ant:fileset file="target/winstone-src-${release.name}.tar.gz"/>
+      <ant:fileset file="target/${pom.artifactId}-src-${release.name}.tar.gz"/>
     </ant:ftp>
   </goal>
 
   <goal name="release.archive">
     <mkdir dir="target/source-release"/>
-    <ant:tar tarfile="target/source-release/winstone-src-${pom.currentVersion}.tar" 
+    <ant:tar tarfile="target/source-release/${pom.artifactId}-src-${pom.currentVersion}.tar" 
              basedir="." 
              includes="**/*"
              excludes="target/**,build-eclipse/**"/>
-    <ant:gzip src="target/source-release/winstone-src-${pom.currentVersion}.tar" 
-              zipfile="target/source-release/winstone-src-${pom.currentVersion}.tar.gz"/>
-    <delete file="target/source-release/winstone-src-${pom.currentVersion}.tar"/>
+    <ant:gzip src="target/source-release/${pom.artifactId}-src-${pom.currentVersion}.tar" 
+              zipfile="target/${pom.artifactId}-src-${pom.currentVersion}.tar.gz"/>
+    <delete file="target/source-release/${pom.artifactId}-src-${pom.currentVersion}.tar"/>
   </goal>
   
   <goal name="backup">

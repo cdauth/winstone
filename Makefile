@@ -1,4 +1,13 @@
 
+########################################################################################
+# Makefile for GCJ compilation of Winstone Servlet Container to native binary
+#
+# Currently works under linux only - mingw compilation unsupported
+#
+# Author: Rick Knowles
+#
+########################################################################################
+
 CC = gcj
 CFLAGS = -ffast-math -funroll-loops
 
