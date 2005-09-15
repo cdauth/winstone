@@ -60,9 +60,8 @@ public class Ajp13IncomingPacket {
     /**
      * Constructor
      */
-    public Ajp13IncomingPacket(InputStream in,
-            WinstoneResourceBundle resources, RequestHandlerThread handler)
-            throws IOException {
+    public Ajp13IncomingPacket(InputStream in, WinstoneResourceBundle resources, 
+            RequestHandlerThread handler) throws IOException {
         this.resources = resources;
 
         // Get the incoming packet flag

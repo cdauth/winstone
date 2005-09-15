@@ -26,6 +26,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -163,15 +164,27 @@ public class Ajp13Listener implements Listener, Runnable {
         WinstoneRequest req = this.objectPool.getRequestFromPool();
         WinstoneResponse rsp = this.objectPool.getResponseFromPool();
         rsp.setRequest(req);
+        req.setWebAppGroup(this.webAppGroup);
         // rsp.updateContentTypeHeader("text/html");
 
         if (iAmFirst || (KEEP_ALIVE_TIMEOUT == -1))
             socket.setSoTimeout(CONNECTION_TIMEOUT);
         else
             socket.setSoTimeout(KEEP_ALIVE_TIMEOUT);
-        Ajp13IncomingPacket headers = new Ajp13IncomingPacket(inSocket,
-                localResources, handler);
-        socket.setSoTimeout(CONNECTION_TIMEOUT);
+        Ajp13IncomingPacket headers = null;
+        try {
+            headers = new Ajp13IncomingPacket(inSocket, localResources, handler);
+        } catch (SocketTimeoutException err) {
+            // keep alive timeout ? ignore if not first
+            if (iAmFirst) {
+                throw err;
+            } else {
+                deallocateRequestResponse(handler, req, rsp, null, null);
+                return;
+            }
+        } finally {
+            try {socket.setSoTimeout(CONNECTION_TIMEOUT);} catch (Throwable err) {}
+        }
 
         if (headers.getPacketLength() > 0) {
             headers.parsePacket("8859_1");
@@ -202,7 +215,6 @@ public class Ajp13Listener implements Listener, Runnable {
             } else
                 inData = new WinstoneInputStream(new byte[0], mainResources);
             req.setInputStream(inData);
-            req.setWebAppGroup(this.webAppGroup);
 
             // Build input/output streams, plus request/response
             WinstoneOutputStream outData = new Ajp13OutputStream(socket

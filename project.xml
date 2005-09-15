@@ -12,7 +12,7 @@
   
   <!-- The version of the project under development, e.g.
        1.1, 1.2, 2.0-SNAPSHOT -->
-  <currentVersion>0.7rc</currentVersion>
+  <currentVersion>0.7</currentVersion>
   
   <!-- the year the project started -->
   <inceptionYear>2003</inceptionYear>

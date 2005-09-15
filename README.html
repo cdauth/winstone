@@ -152,7 +152,10 @@ Other options:
    --config                 = load configuration properties from here(if supplied).
    --prefix                 = add this prefix to all URLs. (eg http://host/prefix/etc).
    --commonLibFolder        = folder for additional jar files. Default is ./lib
+    
    --logfile                = redirect winstone log messages to this file
+   --logThrowingLineNo      = show the line no that logged the message (slow). Default is false
+   --logThrowingThread      = show the thread that logged the message. Default is false
    --debug                  = set the level of debug msgs (1-9). Default is 5 (INFO level)
 
    --httpPort               = set the http listening port. -1 to disable, Default is 8080
@@ -175,6 +178,7 @@ Other options:
    --directoryListings      = enable directory lists (true/false). Default is true
    --useJasper              = enable jasper JSP handling (true/false). Default is false
    --useServletReloading    = enable servlet reloading (true/false). Default is false
+   --preferredClassLoader   = override the preferred webapp class loader.
    --useInvoker             = enable the servlet invoker (true/false). Default is true
    --invokerPrefix          = set the invoker prefix. Default is /servlet/
    --usage / --help         = show this message
@@ -242,14 +246,34 @@ Security options:
   <ul>
     <li>Updated build process to use Apache Maven (see <a href="http://maven.apache.org">
       http://maven.apache.org</a>. Build instructions have been updated to match.</li>
-    <li>Source code has been formatted - a fair bit easier to read now</li>
+    <li>Source code has been reformatted - a fair bit easier to read now</li>
     <li>Multiple webapp support has been added. There's no auto-deploy features yet,
       but that will come soon. Use the --webappsDir=&lt;webapps directory&gt; to declare
       a folder that will have any directories auto-mounted and any warfiles auto-deployed.
       (I originally said this was not going to be included, but changed my mind when I
       realised it could be done with only 10K additional jarfile size).</li>
-    <li>Fixed the bugs in the exception handling and error servlet redirection. There were
-      problems when a </li>
+    <li>Fixed the bugs in the exception handling and error servlet redirection, as
+      well as in web xml parsing, and more other places that I can possibly list here.
+      If you had some strange bug or incompatibility before, chances are it's been fixed
+      now.</li>
+    <li>Passed the Sun JSR-154 Servlet Test Compatibility Kit (TCK) tests.</li>
+    <li>I also ran the JSR-152 JSP TCK on winstone with Apache Jasper support enabled, 
+      and while it didn't pass all tests, the tests it failed were the same ones the 
+      Tomcat failed, so I notified the Tomcat/Jasper developers of the test failures. 
+      Currently waiting on a response ... in any case I suspect these are actually test 
+      errors rather than implementation errors.</li>
+    <li>Better support for open source JVMs. Martin Cordova has been very helpful in 
+      testing winstone under a wider range of JVMs, as well as providing some really 
+      good feedback on needed features. His tests included JamVM and CacaoVM, as well 
+      as IBM's JDK. Jim Huang also reported that winstone works well under Kaffe.</li>
+    <li>User definable webapp class loader: This is likely to be of interest to the Aspect
+      Oriented Programming crowd. It allows you to write your own class loader class
+      (conforming to the same contructor signature as URLClassLoader), and then
+      to use it in place of the normal web app class loader with --preferredClassLoader. 
+      This allows AspectWerkz style weaving classloaders to be used on webapps where it 
+      wouldn't have been otherwise possible (eg JDKs that don't support the profiler 
+      option, such as 1.4 and before), or anything else you can think of doing with a 
+      custom classloader.</li>
   </ul>
 
   <p>New features in v0.6:</p>

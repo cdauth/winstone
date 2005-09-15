@@ -849,10 +849,12 @@ public class WinstoneRequest implements HttpServletRequest {
             return;
 
         // fire event
-        for (int n = 0; n < this.requestAttributeListeners.length; n++) {
-            this.requestAttributeListeners[n].attributeRemoved(
-                    new ServletRequestAttributeEvent(this.webappConfig, 
-                            this, name, value));
+        if (this.requestAttributeListeners != null) {
+            for (int n = 0; n < this.requestAttributeListeners.length; n++) {
+                this.requestAttributeListeners[n].attributeRemoved(
+                        new ServletRequestAttributeEvent(this.webappConfig, 
+                                this, name, value));
+            }
         }
         
         this.attributes.remove(name);
@@ -864,16 +866,21 @@ public class WinstoneRequest implements HttpServletRequest {
             attributes.put(name, o); // make sure it's set at the top level
 
             // fire event
-            if (oldValue == null)
-                for (int n = 0; n < this.requestAttributeListeners.length; n++)
-                    this.requestAttributeListeners[n]
-                            .attributeAdded(new ServletRequestAttributeEvent(
-                                    this.webappConfig, this, name, o));
-            else
-                for (int n = 0; n < this.requestAttributeListeners.length; n++)
-                    this.requestAttributeListeners[n]
-                            .attributeReplaced(new ServletRequestAttributeEvent(
-                                    this.webappConfig, this, name, oldValue));
+            if (this.requestAttributeListeners != null) {
+                if (oldValue == null) {
+                    for (int n = 0; n < this.requestAttributeListeners.length; n++) {
+                        this.requestAttributeListeners[n].attributeAdded(
+                                new ServletRequestAttributeEvent(this.webappConfig, 
+                                        this, name, o));
+                    }
+                } else {
+                    for (int n = 0; n < this.requestAttributeListeners.length; n++) {
+                        this.requestAttributeListeners[n]
+                                .attributeReplaced(new ServletRequestAttributeEvent(
+                                        this.webappConfig, this, name, oldValue));
+                    }
+                }
+            }
         } else if (name != null) {
             removeAttribute(name);
         }

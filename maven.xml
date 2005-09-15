@@ -19,10 +19,11 @@
   </postGoal>
 
   <postGoal name="jar:jar">
-    <tstamp/>
+    <!--tstamp/>
     <ant:move file="${basedir}/target/${pom.artifactId}-${pom.currentVersion}.jar"
               tofile="${basedir}/target/${pom.artifactId}-${pom.currentVersion}-${DSTAMP}.${TSTAMP}.jar" />
-    <ant:jar jarfile="${basedir}/target/${pom.artifactId}-lite-${pom.currentVersion}-${DSTAMP}.${TSTAMP}.jar"
+    <ant:jar jarfile="${basedir}/target/${pom.artifactId}-lite-${pom.currentVersion}-${DSTAMP}.${TSTAMP}.jar"-->
+    <ant:jar jarfile="${basedir}/target/${pom.artifactId}-lite-${pom.currentVersion}.jar"
          basedir="${maven.build.dest}"
          includes="javax/servlet/*,javax/servlet/http/*,javax/servlet/resources/web-app*.dtd,winstone/*">
       <manifest>
