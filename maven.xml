@@ -32,7 +32,8 @@
     </ant:jar>
   </postGoal>
   
-  <goal name="release.sourceforge" prereqs="jar:jar,release.archive">
+  <goal name="release.sourceforge" prereqs="jar:jar">
+    <attainGoal name="release.archive"/>
     <ant:ftp server="upload.sourceforge.net"
              remotedir="incoming"
              userid="anonymous"
