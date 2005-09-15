@@ -12,13 +12,15 @@ WINSTONE_AUTH_O = winstone_auth.o winstone_realm.o winstone_auth_res1.o winstone
 WINSTONE_CLUSTER_O = winstone_cluster.o winstone_cluster_res1.o
 WINSTONE_CLASSLOADER_O = winstone_classloader.o winstone_classloader_res1.o
 WINSTONE_JNDI_O = winstone_jndi.o winstone_jndi_res1.o winstone_jndi_res2.o
+WINSTONE_SSL_O = winstone_ssl.o winstone_ssl_res1.o
+WINSTONE_INVOKER_O = winstone_invoker.o winstone_invoker_res1.o
 SERVLET_O = servlet.o servlet_res1.o servlet_res2.o
 CRIMSON_O = crimson.o crimson_res1.o crimson_res2.o javax_xml.o xml_api.o
 JSP_API_O = jsp_api.o jsp_api_res1.o jsp_api_res2.o jsp_api_res3.o jsp_api_res4.o jsp_api_res5.o jsp_api_res6.o
 
-all:	$(WINSTONE_LITE_O) $(WINSTONE_AJP_O) $(WINSTONE_AUTH_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(WINSTONE_CLASSLOADER_O) $(SERVLET_O) $(CRIMSON_O) $(JSP_API_O)
+all:	$(WINSTONE_LITE_O) $(WINSTONE_AJP_O) $(WINSTONE_AUTH_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(WINSTONE_CLASSLOADER_O) $(WINSTONE_SSL_O) $(WINSTONE_INVOKER_O) $(SERVLET_O) $(CRIMSON_O) $(JSP_API_O)
 	$(CC) $(CFLAGS) --main=winstone.Launcher -o winstone_lite $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O)
-	$(CC) $(CFLAGS) --main=winstone.Launcher -o winstone_full $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O) $(WINSTONE_AUTH_O) $(WINSTONE_AJP_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(WINSTONE_CLASSLOADER_O) $(JSP_API_O)
+	$(CC) $(CFLAGS) --main=winstone.Launcher -o winstone_full $(WINSTONE_LITE_O) $(SERVLET_O) $(CRIMSON_O) $(WINSTONE_AUTH_O) $(WINSTONE_AJP_O) $(WINSTONE_CLUSTER_O) $(WINSTONE_JNDI_O) $(WINSTONE_CLASSLOADER_O) $(WINSTONE_SSL_O) $(WINSTONE_INVOKER_O) $(JSP_API_O)
 
 winstone_lite.o: $(WINSTONE_JAVA_BASE)/winstone/*.java
 	$(CC) $(CFLAGS) -o winstone_lite.o --classpath=$(WINSTONE_JAVA_BASE):$(CRIMSON_BASE) -c $(WINSTONE_JAVA_BASE)/winstone/*.java
@@ -49,6 +51,16 @@ winstone_classloader.o: $(WINSTONE_JAVA_BASE)/winstone/classLoader/*.java
 	$(CC) $(CFLAGS) -o winstone_classloader.o --classpath=$(WINSTONE_JAVA_BASE):$(CRIMSON_BASE) -c $(WINSTONE_JAVA_BASE)/winstone/classLoader/*.java
 winstone_classloader_res1.o: $(WINSTONE_JAVA_BASE)/winstone/classLoader/LocalStrings.properties
 	$(CC) $(CFLAGS) -o winstone_classloader_res1.o --resource=winstone/classLoader/LocalStrings.properties -c $(WINSTONE_JAVA_BASE)/winstone/classLoader/LocalStrings.properties
+
+winstone_ssl.o: $(WINSTONE_JAVA_BASE)/winstone/ssl/*.java
+	$(CC) $(CFLAGS) -o winstone_ssl.o --classpath=$(WINSTONE_JAVA_BASE):$(CRIMSON_BASE) -c $(WINSTONE_JAVA_BASE)/winstone/ssl/*.java
+winstone_ssl_res1.o: $(WINSTONE_JAVA_BASE)/winstone/ssl/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_ssl_res1.o --resource=winstone/ssl/LocalStrings.properties -c $(WINSTONE_JAVA_BASE)/winstone/ssl/LocalStrings.properties
+
+winstone_invoker.o: $(WINSTONE_JAVA_BASE)/winstone/invoker/*.java
+	$(CC) $(CFLAGS) -o winstone_invoker.o --classpath=$(WINSTONE_JAVA_BASE):$(CRIMSON_BASE) -c $(WINSTONE_JAVA_BASE)/winstone/invoker/*.java
+winstone_invoker_res1.o: $(WINSTONE_JAVA_BASE)/winstone/invoker/LocalStrings.properties
+	$(CC) $(CFLAGS) -o winstone_invoker_res1.o --resource=winstone/invoker/LocalStrings.properties -c $(WINSTONE_JAVA_BASE)/winstone/invoker/LocalStrings.properties
 
 winstone_jndi.o: $(WINSTONE_JAVA_BASE)/winstone/jndi/*.java \
                  $(WINSTONE_JAVA_BASE)/winstone/jndi/java/*.java \
