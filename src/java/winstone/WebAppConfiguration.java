@@ -1559,6 +1559,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         
         while (errWrapper instanceof ServletException) {
             errWrapper = ((ServletException) errWrapper).getRootCause();
+            if (errWrapper == null) {
+                break;
+            }
             for (int n = 0; n < exceptionClasses.length; n++) {
 
                 Logger.log(Logger.FULL_DEBUG, resources,

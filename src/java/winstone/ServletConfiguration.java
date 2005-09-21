@@ -193,14 +193,17 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                 Logger.log(Logger.WARNING, resources, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
                 setUnavailable();
+                this.unavailableException = err;
             } catch (IllegalAccessException err) {
                 Logger.log(Logger.WARNING, resources, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
                 setUnavailable();
+                this.unavailableException = err;
             } catch (InstantiationException err) {
                 Logger.log(Logger.WARNING, resources, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
                 setUnavailable();
+                this.unavailableException = err;
             } catch (ServletException err) {
                 Logger.log(Logger.WARNING, resources, 
                         "ServletConfiguration.InitError", this.servletName, err);
