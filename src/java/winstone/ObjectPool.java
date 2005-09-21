@@ -53,6 +53,7 @@ public class ObjectPool {
     private Object responsePoolSemaphore = new Boolean(true);
     private int threadIndex = 0;
     private WinstoneResourceBundle resources;
+    private boolean simulateModUniqueId;
 
     /**
      * Constructs an instance of the object pool, including handlers, requests
@@ -60,6 +61,7 @@ public class ObjectPool {
      */
     public ObjectPool(Map args, WinstoneResourceBundle resources) throws IOException {
         this.resources = resources;
+        this.simulateModUniqueId = WebAppConfiguration.booleanArg(args, "simulateModUniqueId", false);
 
         // Build the initial pool of handler threads
         this.unusedRequestHandlerThreads = new Vector();
@@ -86,7 +88,7 @@ public class ObjectPool {
         for (int n = 0; n < STARTUP_REQUEST_HANDLERS_IN_POOL; n++)
             this.unusedRequestHandlerThreads
                     .add(new RequestHandlerThread(this,
-                            this.resources, this.threadIndex++));
+                            this.resources, this.threadIndex++, this.simulateModUniqueId));
 
         // Initialise the request/response pools
         for (int n = 0; n < START_REQUESTS_IN_POOL; n++)
@@ -145,7 +147,8 @@ public class ObjectPool {
 
             // If we are out (and not over our limit), allocate a new one
             else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL) {
-                rh = new RequestHandlerThread(this, this.resources, this.threadIndex++);
+                rh = new RequestHandlerThread(this, this.resources, 
+                        this.threadIndex++, this.simulateModUniqueId);
                 this.usedRequestHandlerThreads.add(rh);
                 Logger.log(Logger.FULL_DEBUG, resources,
                         "ObjectPool.NewRHPoolThread", new String[] {
@@ -172,14 +175,13 @@ public class ObjectPool {
 
             synchronized (this.requestHandlerSemaphore) {
                 if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL) {
-                    rh = new RequestHandlerThread(this, this.resources, this.threadIndex++);
+                    rh = new RequestHandlerThread(this, this.resources, 
+                            this.threadIndex++, this.simulateModUniqueId);
                     this.usedRequestHandlerThreads.add(rh);
                     Logger.log(Logger.FULL_DEBUG, resources,
                             "ObjectPool.NewRHPoolThread", new String[] {
                                     "" + this.usedRequestHandlerThreads.size(),
-                                    ""
-                                            + this.unusedRequestHandlerThreads
-                                                    .size() });
+                                    "" + this.unusedRequestHandlerThreads.size() });
                 }
             }
             if (rh != null)
@@ -197,18 +199,12 @@ public class ObjectPool {
      */
     public void releaseRequestHandler(RequestHandlerThread rh) {
         synchronized (this.requestHandlerSemaphore) {
-            // if (this.usedRequestHandlerThreads.contains(rh))
-            // {
             this.usedRequestHandlerThreads.remove(rh);
             this.unusedRequestHandlerThreads.add(rh);
             Logger.log(Logger.FULL_DEBUG, resources,
                     "ObjectPool.ReleasingRHPoolThread", new String[] {
                             "" + this.usedRequestHandlerThreads.size(),
                             "" + this.unusedRequestHandlerThreads.size() });
-            // }
-            // else
-            // Logger.log(Logger.WARNING, resources,
-            // "ObjectPool.UnknownRHPoolThread");
         }
     }
 

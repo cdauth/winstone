@@ -46,6 +46,7 @@ public class RequestHandlerThread implements Runnable {
     private String threadName;
     private WinstoneResourceBundle resources;
     private long requestStartTime;
+    private boolean simulateModUniqueId;
 //    private Object processingMonitor = new Boolean(true);
 
     /**
@@ -53,9 +54,11 @@ public class RequestHandlerThread implements Runnable {
      * when a real request comes along.
      */
     public RequestHandlerThread(ObjectPool objectPool, 
-            WinstoneResourceBundle resources, int threadIndex) {
+            WinstoneResourceBundle resources, int threadIndex, 
+            boolean simulateModUniqueId) {
         this.resources = resources;
         this.objectPool = objectPool;
+        this.simulateModUniqueId = simulateModUniqueId;
         this.threadName = resources.getString(
                 "RequestHandlerThread.ThreadName", "" + threadIndex);
 
@@ -105,6 +108,10 @@ public class RequestHandlerThread implements Runnable {
                                     rsp, inData, outData);
                             continueFlag = false;
                             continue;
+                        }
+                        
+                        if (this.simulateModUniqueId) {
+                            req.setAttribute("UNIQUE_ID", "" + requestId);
                         }
                         long headerParseTime = getRequestProcessTime();
                         iAmFirst = false;
