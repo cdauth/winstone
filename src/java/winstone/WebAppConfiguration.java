@@ -1520,8 +1520,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             "WebAppConfig.CheckWelcomeFile", servletPath
                                     .toString()
                                     + pathInfo.toString());
-                    String welcomeFile = matchWelcomeFiles(servletPath
-                            .toString()
+                    String welcomeFile = matchWelcomeFiles(servletPath.toString()
                             + pathInfo.toString(), request);
                     if (welcomeFile != null) {
                         response.sendRedirect(this.prefix

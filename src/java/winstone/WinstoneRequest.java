@@ -564,9 +564,16 @@ public class WinstoneRequest implements HttpServletRequest {
                 this.locales = parseLocales(value);
             else if (name.equalsIgnoreCase(CONTENT_LENGTH_HEADER))
                 this.contentLength = Integer.parseInt(value);
-            else if (name.equalsIgnoreCase(HOST_HEADER))
-                this.serverName = nextColonPos == -1 ? value : value.substring(
-                        0, nextColonPos);
+            else if (name.equalsIgnoreCase(HOST_HEADER)) {
+                if (nextColonPos == -1) {
+                    this.serverName = nextColonPos == -1 ? value : value.substring(0, nextColonPos);
+                } else {
+                    this.serverName = value.substring(0, nextColonPos);
+                    if (nextColonPos == value.length() - 1) {
+                        this.serverPort = Integer.parseInt(value.substring(nextColonPos + 1));
+                    }
+                }
+            }
             else if (name.equalsIgnoreCase(CONTENT_TYPE_HEADER)) {
                 this.contentType = value;
                 int semicolon = value.lastIndexOf(';');
