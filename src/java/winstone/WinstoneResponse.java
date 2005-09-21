@@ -406,6 +406,8 @@ public class WinstoneResponse implements HttpServletResponse {
                         + (1000 * (long) cookie.getMaxAge());
                 Date expiryDate = new Date(expiryMS);
                 out.append("; Expires=").append(df.format(expiryDate));
+            } else if (cookie.getMaxAge() == 0) {
+                out.append("; Expires=").append(df.format(new Date(5000)));
             }
             if (cookie.getPath() != null)
                 out.append("; Path=").append(cookie.getPath());
