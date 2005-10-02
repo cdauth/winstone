@@ -1,7 +1,7 @@
 <html>
 <head>
   <title>Winstone Servlet Container</title>
-  <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 150kb jar file"/>
+  <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 154kb jar file"/>
   <meta name="keywords" content="servlets, servlet, jsp, java, jdk, jre, winstone, small, fast, reliable, open source, gpl, gcj, jndi, xml"/>
   <meta name="author" content="Rick Knowles"/>
   <meta name="language" content="English"/>
@@ -13,7 +13,7 @@
   <meta name="revisit-after" content="7 Days"/>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.7</h1></center>
+<center><h1>Winstone Servlet Container v0.7.1</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
   <hr width="90%" size="1" noshade="noshade"/>
@@ -72,7 +72,7 @@
   <p>The original goals in writing Winstone were:</p>
     <ul>
       <li>Supply fast, reliable servlet container functionality for a single webapp per server</li>
-      <li>Keep the size of the core distribution jar as low as possible (currently 150KB)</li>
+      <li>Keep the size of the core distribution jar as low as possible (currently 154KB)</li>
       <li>Keep configuration files to an absolute minimum, using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -118,7 +118,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone-src-0.7.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone-src-0.7.1.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -129,21 +129,21 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.1.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.1.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.jar --webappsDir=&lt;location of webapps directory&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.1.jar --webappsDir=&lt;location of webapps directory&gt;</code> (+ other options)
 
 <h2><a name="commandLine">Command-line options:</a></h2>
 
   <pre>
 Syntax:
-  java -jar winstone-0.7.jar [--option=value] [--option=value] etc
+  java -jar winstone-0.7.1.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile OR --webappsDir
    --webroot                = set document root folder.
