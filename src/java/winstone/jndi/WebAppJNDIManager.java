@@ -17,28 +17,13 @@
  */
 package winstone.jndi;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-
-import javax.naming.CompositeName;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.Name;
-import javax.naming.NamingException;
 
 import org.w3c.dom.Node;
 
-import winstone.JNDIManager;
 import winstone.Logger;
-import winstone.WinstoneResourceBundle;
-import winstone.jndi.resourceFactories.WinstoneDataSource;
 
 /**
  * Implements a simple web.xml + command line arguments style jndi manager
@@ -46,15 +31,11 @@ import winstone.jndi.resourceFactories.WinstoneDataSource;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class WebAppJNDIManager implements JNDIManager {
+public class WebAppJNDIManager extends ContainerJNDIManager {
     final static String ELEM_ENV_ENTRY = "env-entry";
     final static String ELEM_ENV_ENTRY_NAME = "env-entry-name";
     final static String ELEM_ENV_ENTRY_TYPE = "env-entry-type";
     final static String ELEM_ENV_ENTRY_VALUE = "env-entry-value";
-    private static final String LOCAL_RESOURCE_FILE = "winstone.jndi.LocalStrings";
-    private Map objectsToCreate;
-    private ClassLoader loader;
-    private WinstoneResourceBundle resources;
 
     /**
      * Gets the relevant list of objects from the args, validating against the
@@ -62,35 +43,10 @@ public class WebAppJNDIManager implements JNDIManager {
      * the java:/comp/env context
      */
     public WebAppJNDIManager(Map args, List webXMLNodes, ClassLoader loader) {
-        // Build all the objects we wanted
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
-        this.objectsToCreate = new HashMap();
-        this.loader = loader;
-        
-        Logger.log(Logger.MAX, resources, "WebAppJNDIManager.UsingClassLoader",
-                this.loader.toString());
-
-        Collection keys = new ArrayList(args.keySet());
-        for (Iterator i = keys.iterator(); i.hasNext();) {
-            String key = (String) i.next();
-
-            if (key.startsWith("jndi.resource.")) {
-                String resName = key.substring(14);
-                String className = (String) args.get(key);
-                String value = (String) args.get("jndi.param." + resName
-                        + ".value");
-                Logger.log(Logger.FULL_DEBUG, this.resources,
-                        "WebAppJNDIManager.CreatingResourceArgs", resName);
-                Object obj = createObject(resName.trim(), className.trim(),
-                        value, args);
-                if (obj != null)
-                    this.objectsToCreate.put(resName, obj);
-            }
-        }
+        super(args, webXMLNodes, loader);
 
         // If the webXML nodes are not null, validate that all the entries we
-        // wanted
-        // have been created
+        // wanted have been created
         if (webXMLNodes != null)
             for (Iterator i = webXMLNodes.iterator(); i.hasNext();) {
                 Node node = (Node) i.next();
@@ -123,175 +79,12 @@ public class WebAppJNDIManager implements JNDIManager {
                         Logger.log(Logger.FULL_DEBUG, this.resources,
                                 "WebAppJNDIManager.CreatingResourceWebXML",
                                 name);
-                        Object obj = createObject(name, type, value, args);
+                        Object obj = createObject(name, type, value, args, loader);
                         if (obj != null)
                             this.objectsToCreate.put(name, obj);
                     }
                 }
             }
-    }
-
-    /**
-     * Add the objects passed to the constructor to the JNDI Context addresses
-     * specified
-     */
-    public void setup() {
-        
-        // Set context class loader
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(this.loader);
-        
-        try {
-            InitialContext ic = new InitialContext();
-            for (Iterator i = this.objectsToCreate.keySet().iterator(); i
-                    .hasNext();) {
-                String name = (String) i.next();
-                try {
-                    Name fullName = new CompositeName(name);
-                    Context currentContext = ic;
-                    while (fullName.size() > 1) {
-                        // Make contexts that are not already present
-                        try {
-                            currentContext = currentContext
-                                    .createSubcontext(fullName.get(0));
-                        } catch (NamingException err) {
-                            currentContext = (Context) currentContext
-                                    .lookup(fullName.get(0));
-                        }
-                        fullName = fullName.getSuffix(1);
-                    }
-                    ic.bind(name, this.objectsToCreate.get(name));
-                    Logger.log(Logger.FULL_DEBUG, this.resources,
-                            "WebAppJNDIManager.BoundResource", name);
-                } catch (NamingException err) {
-                    Logger.log(Logger.ERROR, this.resources,
-                                    "WebAppJNDIManager.ErrorBindingResource",
-                                    name, err);
-                }
-            }
-            Logger.log(Logger.DEBUG, this.resources, 
-                    "WebAppJNDIManager.SetupComplete", "" + this.objectsToCreate.size());
-        } catch (NamingException err) {
-            Logger.log(Logger.ERROR, this.resources,
-                    "WebAppJNDIManager.ErrorGettingInitialContext", err);
-        } finally {
-            Thread.currentThread().setContextClassLoader(cl);
-        }
-    }
-
-    /**
-     * Remove the objects under administration from the JNDI Context, and then
-     * destroy the objects
-     */
-    public void tearDown() {
-        // Set context class loader
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(this.loader);
-        
-        try {
-            InitialContext ic = new InitialContext();
-            for (Iterator i = this.objectsToCreate.keySet().iterator(); i
-                    .hasNext();) {
-                String name = (String) i.next();
-                try {
-                    ic.unbind(name);
-                } catch (NamingException err) {
-                    Logger.log(Logger.ERROR, this.resources,
-                            "WebAppJNDIManager.ErrorUnbindingResource", name,
-                            err);
-                }
-                Object unboundObject = this.objectsToCreate.get(name);
-                if (unboundObject instanceof WinstoneDataSource)
-                    ((WinstoneDataSource) unboundObject).destroy();
-                Logger.log(Logger.FULL_DEBUG, this.resources,
-                        "WebAppJNDIManager.UnboundResource", name);
-            }
-            Logger.log(Logger.DEBUG, this.resources, 
-                    "WebAppJNDIManager.TeardownComplete", "" + this.objectsToCreate.size());
-        } catch (NamingException err) {
-            Logger.log(Logger.ERROR, this.resources,
-                    "WebAppJNDIManager.ErrorGettingInitialContext", err);
-        } finally {
-            Thread.currentThread().setContextClassLoader(cl);
-        }
-    }
-
-    /**
-     * Build an object to insert into the jndi space
-     */
-    private Object createObject(String name, String className, String value,
-            Map args) {
-        
-        if ((className == null) || (name == null))
-            return null;
-        
-        // Set context class loader
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(this.loader);
-        
-        try {
-            // If we are working with a datasource
-            if (className.equals("javax.sql.DataSource")) {
-                try {
-                    return new WinstoneDataSource(name, extractRelevantArgs(args,
-                            name), this.loader, this.resources);
-                } catch (Throwable err) {
-                    Logger.log(Logger.ERROR, this.resources,
-                            "WebAppJNDIManager.ErrorBuildingDatasource", name, err);
-                }
-            }
-
-            // If we are working with a mail session
-            else if (className.equals("javax.mail.Session")) {
-                try {
-                    Class smtpClass = Class.forName(className, true, this.loader);
-                    Method smtpMethod = smtpClass.getMethod("getInstance",
-                            new Class[] { Properties.class,
-                                    Class.forName("javax.mail.Authenticator") });
-                    return smtpMethod.invoke(null, new Object[] {
-                            extractRelevantArgs(args, name), null });
-                    //return Session.getInstance(extractRelevantArgs(args, name), null);
-                } catch (Throwable err) {
-                    Logger
-                            .log(Logger.ERROR, this.resources,
-                                    "WebAppJNDIManager.ErrorBuildingMailSession",
-                                    name, err);
-                }
-            }
-
-            // If unknown type, try to instantiate with the string constructor
-            else if (value != null) {
-                try {
-                    Class objClass = Class.forName(className.trim(), true, this.loader);
-                    Constructor objConstr = objClass
-                            .getConstructor(new Class[] { String.class });
-                    return objConstr.newInstance(new Object[] { value });
-                } catch (Throwable err) {
-                    Logger.log(Logger.ERROR, this.resources,
-                            "WebAppJNDIManager.ErrorBuildingObject", new String[] {
-                                    name, className }, err);
-                }
-            }
-                
-            return null;
-            
-        } finally {
-            Thread.currentThread().setContextClassLoader(cl);
-        }
-    }
-
-    /**
-     * Rips the parameters relevant to a particular resource from the command args 
-     */
-    private Properties extractRelevantArgs(Map input, String name) {
-        Properties relevantArgs = new Properties();
-        for (Iterator i = input.keySet().iterator(); i.hasNext();) {
-            String key = (String) i.next();
-            if (key.startsWith("jndi.param." + name + "."))
-                relevantArgs.put(key.substring(12 + name.length()), input
-                        .get(key));
-        }
-        return relevantArgs;
     }
 
 }

@@ -693,7 +693,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         }
 
         // Instantiate the JNDI manager
-        String jndiMgrClassName = stringArg(startupArgs, "jndiClassName",
+        String jndiMgrClassName = stringArg(startupArgs, "webappJndiClassName",
                 DEFAULT_JNDI_MGR_CLASS).trim();
         if (useJNDI)
             try {
@@ -702,7 +702,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 Constructor jndiMgrConstr = jndiMgrClass.getConstructor(new Class[] { 
                         Map.class, List.class, ClassLoader.class });
                 this.jndiManager = (JNDIManager) jndiMgrConstr.newInstance(new Object[] { 
-                        startupArgs, envEntryNodes, this.loader });
+                        null, envEntryNodes, this.loader });
                 if (this.jndiManager != null)
                     this.jndiManager.setup();
             } catch (ClassNotFoundException err) {

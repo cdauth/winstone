@@ -50,6 +50,7 @@ public class Launcher implements Runnable {
     static final String HTTPS_LISTENER_CLASS = "winstone.ssl.HttpsListener";
     static final String AJP_LISTENER_CLASS = "winstone.ajp13.Ajp13Listener";
     static final String CLUSTER_CLASS = "winstone.cluster.SimpleCluster";
+    static final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.ContainerJNDIManager";
     static final String RESOURCE_FILE = "winstone.LocalStrings";
 
     public static final byte SHUTDOWN_TYPE = (byte) '0';
@@ -66,6 +67,7 @@ public class Launcher implements Runnable {
     private List listeners;
     private Map args;
     private Cluster cluster;
+    private JNDIManager globalJndiManager;
     
     /**
      * Constructor - initialises the web app, object pools, control port and the
@@ -176,6 +178,29 @@ public class Launcher implements Runnable {
                 }
             }
         }
+        
+        // If jasper is enabled, run the container wide jndi populator
+        if (WebAppConfiguration.booleanArg(args, "useJNDI", false)) {
+            String jndiMgrClassName = WebAppConfiguration.stringArg(args, "containerJndiClassName",
+                    DEFAULT_JNDI_MGR_CLASS).trim();
+            try {
+                // Build the realm
+                Class jndiMgrClass = Class.forName(jndiMgrClassName, true, commonLibCL);
+                Constructor jndiMgrConstr = jndiMgrClass.getConstructor(new Class[] { 
+                        Map.class, List.class, ClassLoader.class });
+                this.globalJndiManager = (JNDIManager) jndiMgrConstr.newInstance(new Object[] { 
+                        args, null, commonLibCL });
+                this.globalJndiManager.setup();
+            } catch (ClassNotFoundException err) {
+                Logger.log(Logger.DEBUG, this.resources,
+                        "Launcher.JNDIDisabled");
+            } catch (Throwable err) {
+                Logger.log(Logger.ERROR, this.resources,
+                        "Launcher.JNDIError", jndiMgrClassName, err);
+            }
+        }
+
+        // Instantiate the JNDI manager
         
         // Open the web apps
         this.webAppGroup = new WebAppGroup(this.resources, this.cluster, 
@@ -317,6 +342,9 @@ public class Launcher implements Runnable {
         if (this.cluster != null)
             this.cluster.destroy();
         this.webAppGroup.destroy();
+        if (this.globalJndiManager != null) {
+            this.globalJndiManager.tearDown();
+        }
 
         if (this.controlThread != null) {
             this.controlThread.interrupt();
