@@ -11,16 +11,19 @@ Long-term
        - ajp13 connector
      - More complete manual/documentation
      - Publish apidocs
-     - Auto-deployer for webappsDir folder. Redeploy warfiles that have been updated or added
-     - Maven winstone plugin, so we can run maven winstone, and it will war-up and execute
      - Eclipse plug-in ? internal launcher plus browser window, and project level config for 
          winstone properties
      - Check for warfile, common libs and properties file inside classpath, so that we can 
          pack an app in a single jar
-     - Cache filter matching calcs for various URLs
-     - Virtual host support
      - More accurate profiling of memory usage, object allocation etc
+     
+v0.8
+     - Maven winstone plugin, so we can run maven winstone, and it will war-up and execute
+     - Virtual host support
+     - Auto-deployer for webappsDir folder. Redeploy warfiles that have been updated or added
+     - Cache filter matching calcs for various URLs
      - DB connection pool keep-alive support, etc
+     - Access log. Apache style if possible, minimal config.
      
 v0.7
 DONE - Fixed load-on-startup optional content bug (thanks to Matthias Wuttke)
