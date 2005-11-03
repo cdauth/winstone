@@ -25,7 +25,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -70,6 +69,9 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
     public void contextInitialized(ServletContextEvent sce) {
         this.webAppConfig = (WebAppConfiguration) sce.getServletContext();
         this.interrupted = false;
+        synchronized (this) {
+            this.loadedClasses.clear();
+        }
         Thread thread = new Thread(this, resources
                 .getString("ReloadingClassLoader.ThreadName"));
         thread.setDaemon(true);
@@ -80,6 +82,9 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
     public void contextDestroyed(ServletContextEvent sce) {
         this.interrupted = true;
         this.webAppConfig = null;
+        synchronized (this) {
+            this.loadedClasses.clear();
+        }
     }
 
     /**
@@ -96,10 +101,13 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
         while (!interrupted) {
             try {
                 Thread.sleep(RELOAD_SEARCH_SLEEP);
-                Set loadedClassesCopy = new HashSet(this.loadedClasses);
+                String loadedClassesCopy[] = null;
+                synchronized (this) {
+                    loadedClassesCopy = (String []) this.loadedClasses.toArray(new String[0]);
+                }
 
-                for (Iterator i = loadedClassesCopy.iterator(); i.hasNext() && !interrupted;) {
-                    String className = transformToFileFormat((String) i.next());
+                for (int n = 0; (n < loadedClassesCopy.length) && !interrupted; n++) {
+                    String className = transformToFileFormat(loadedClassesCopy[n]);
                     File location = (File) classLocationTable.get(className);
                     Long classDate = null;
                     if ((location == null) || !location.exists()) {
@@ -160,12 +168,16 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
     }
 
     protected Class findClass(String name) throws ClassNotFoundException {
-        this.loadedClasses.add("Class:" + name);
+        synchronized (this) {
+            this.loadedClasses.add("Class:" + name);
+        }
         return super.findClass(name);
     }
 
     public URL findResource(String name) {
-        this.loadedClasses.add(name);
+        synchronized (this) {
+            this.loadedClasses.add(name);
+        }
         return super.findResource(name);
     }
 
@@ -183,7 +195,7 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
         return null;
     }
 
-    private String transformToFileFormat(String name) {
+    private static String transformToFileFormat(String name) {
         if (!name.startsWith("Class:"))
             return name;
         else
