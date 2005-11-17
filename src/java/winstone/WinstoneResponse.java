@@ -725,7 +725,7 @@ public class WinstoneResponse implements HttpServletResponse {
         
         // Build location
         StringBuffer fullLocation = new StringBuffer();
-        if (location.startsWith("http://"))
+        if (location.startsWith("http://") || location.startsWith("https://"))
             fullLocation.append(location);
         else {
             fullLocation.append(this.req.getScheme()).append("://");
