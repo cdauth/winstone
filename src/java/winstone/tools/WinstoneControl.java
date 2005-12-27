@@ -37,7 +37,8 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class WinstoneControl {
-    final static String LOCAL_RESOURCE_FILE = "winstone.tools.LocalStrings";
+    private final static WinstoneResourceBundle TOOLS_RESOURCES = new WinstoneResourceBundle("winstone.tools.LocalStrings");
+    
     final static String OPERATION_SHUTDOWN = "shutdown";
     final static String OPERATION_RELOAD = "reload:";
     static int TIMEOUT = 10000;
@@ -47,8 +48,6 @@ public class WinstoneControl {
      * executing the winstone operation required.
      */
     public static void main(String args[]) throws Exception {
-        WinstoneResourceBundle resources = new WinstoneResourceBundle(
-                LOCAL_RESOURCE_FILE);
 
         // Loop for args
         Map options = new HashMap();
@@ -67,7 +66,7 @@ public class WinstoneControl {
         }
 
         if (operation.equals("")) {
-            printUsage(resources);
+            printUsage();
             return;
         }
 
@@ -78,7 +77,7 @@ public class WinstoneControl {
                 "localhost");
         String port = WebAppConfiguration.stringArg(options, "port", "8081");
 
-        Logger.log(Logger.INFO, resources, "WinstoneControl.UsingHostPort",
+        Logger.log(Logger.INFO, TOOLS_RESOURCES, "WinstoneControl.UsingHostPort",
                 new String[] { host, port });
 
         // Check for shutdown
@@ -88,7 +87,7 @@ public class WinstoneControl {
             OutputStream out = socket.getOutputStream();
             out.write(Launcher.SHUTDOWN_TYPE);
             out.close();
-            Logger.log(Logger.INFO, resources, "WinstoneControl.ShutdownOK",
+            Logger.log(Logger.INFO, TOOLS_RESOURCES, "WinstoneControl.ShutdownOK",
                     new String[] { host, port });
         }
 
@@ -103,19 +102,18 @@ public class WinstoneControl {
             objOut.writeUTF(webappName);
             objOut.close();
             out.close();
-            Logger.log(Logger.INFO, resources, "WinstoneControl.ReloadOK",
+            Logger.log(Logger.INFO, TOOLS_RESOURCES, "WinstoneControl.ReloadOK",
                     new String[] { host, port });
         }
         else {
-            printUsage(resources);
+            printUsage();
         }
     }
 
     /**
      * Displays the usage message
      */
-    private static void printUsage(WinstoneResourceBundle resources)
-            throws IOException {
-        System.out.println(resources.getString("WinstoneControl.Usage"));
+    private static void printUsage() throws IOException {
+        System.out.println(TOOLS_RESOURCES.getString("WinstoneControl.Usage"));
     }
 }

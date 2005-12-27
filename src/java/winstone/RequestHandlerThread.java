@@ -44,7 +44,6 @@ public class RequestHandlerThread implements Runnable {
     private Listener listener;
     private Socket socket;
     private String threadName;
-    private WinstoneResourceBundle resources;
     private long requestStartTime;
     private boolean simulateModUniqueId;
 //    private Object processingMonitor = new Boolean(true);
@@ -53,13 +52,11 @@ public class RequestHandlerThread implements Runnable {
      * Constructor - this is called by the handler pool, and just sets up for
      * when a real request comes along.
      */
-    public RequestHandlerThread(ObjectPool objectPool, 
-            WinstoneResourceBundle resources, int threadIndex, 
+    public RequestHandlerThread(ObjectPool objectPool, int threadIndex, 
             boolean simulateModUniqueId) {
-        this.resources = resources;
         this.objectPool = objectPool;
         this.simulateModUniqueId = simulateModUniqueId;
-        this.threadName = resources.getString(
+        this.threadName = Launcher.RESOURCES.getString(
                 "RequestHandlerThread.ThreadName", "" + threadIndex);
 
         // allocate a thread to run on this object
@@ -100,8 +97,8 @@ public class RequestHandlerThread implements Runnable {
                                 this.req, this.rsp, this.inData, this.socket,
                                 iAmFirst);
                         if (servletURI == null) {
-                            Logger.log(Logger.FULL_DEBUG, resources,
-                                    "RequestHandlerThread.KeepAliveTimedOut");
+                            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
+                                    "RequestHandlerThread.KeepAliveTimedOut", this.threadName);
                             
                             // Keep alive timed out - deallocate and go into wait state
                             this.listener.deallocateRequestResponse(this, req,
@@ -116,7 +113,7 @@ public class RequestHandlerThread implements Runnable {
                         long headerParseTime = getRequestProcessTime();
                         iAmFirst = false;
 
-                        Logger.log(Logger.FULL_DEBUG, resources,
+                        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                                 "RequestHandlerThread.StartRequest",
                                 "" + requestId);
 
@@ -127,20 +124,20 @@ public class RequestHandlerThread implements Runnable {
                             webAppConfig = req.getWebAppGroup().getWebAppByURI("/");    
                         }
                         if (webAppConfig == null) {
-                            Logger.log(Logger.WARNING, resources,
+                            Logger.log(Logger.WARNING, Launcher.RESOURCES,
                                     "RequestHandlerThread.UnknownWebapp",
                                     new String[] { servletURI });
                             rsp.sendError(WinstoneResponse.SC_NOT_FOUND, 
-                                    resources.getString("RequestHandlerThread.UnknownWebappPage", servletURI));
+                                    Launcher.RESOURCES.getString("RequestHandlerThread.UnknownWebappPage", servletURI));
                             rsp.flushBuffer();
                             rsp.verifyContentLength();
 
                             // Process keep-alive
                             continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
                             this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
-                            Logger.log(Logger.FULL_DEBUG, resources, "RequestHandlerThread.FinishRequest",
+                            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "RequestHandlerThread.FinishRequest",
                                     "" + requestId);
-                            Logger.log(Logger.SPEED, resources, "RequestHandlerThread.RequestTime",
+                            Logger.log(Logger.SPEED, Launcher.RESOURCES, "RequestHandlerThread.RequestTime",
                                     new String[] { servletURI, "" + headerParseTime, "" + getRequestProcessTime() });
                             continue;
                         }
@@ -160,7 +157,7 @@ public class RequestHandlerThread implements Runnable {
                         this.outData.finishResponse();
                         this.inData.finishRequest();
 
-                        Logger.log(Logger.FULL_DEBUG, resources,
+                        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                                 "RequestHandlerThread.FinishRequest",
                                 "" + requestId);
 
@@ -184,12 +181,12 @@ public class RequestHandlerThread implements Runnable {
                         req.setRequestAttributeListeners(null);
 
                         this.listener.deallocateRequestResponse(this, req, rsp, inData, outData);
-                        Logger.log(Logger.SPEED, resources, "RequestHandlerThread.RequestTime",
+                        Logger.log(Logger.SPEED, Launcher.RESOURCES, "RequestHandlerThread.RequestTime",
                                 new String[] { servletURI, "" + headerParseTime, 
                                                 "" + getRequestProcessTime() });
                     } catch (InterruptedIOException errIO) {
                         continueFlag = false;
-                        Logger.log(Logger.FULL_DEBUG, resources,
+                        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                                 "RequestHandlerThread.SocketTimeout", errIO);
                     } catch (SocketException errIO) {
                         continueFlag = false;
@@ -207,7 +204,7 @@ public class RequestHandlerThread implements Runnable {
                             outSocket); // shut sockets
                 } catch (Throwable errClose) {
                 }
-                Logger.log(Logger.ERROR, resources,
+                Logger.log(Logger.ERROR, Launcher.RESOURCES,
                         "RequestHandlerThread.RequestError", err);
             }
 
@@ -215,7 +212,7 @@ public class RequestHandlerThread implements Runnable {
 
             if (!interrupted) {
                 // Suspend this thread until we get assigned and woken up
-                Logger.log(Logger.FULL_DEBUG, this.resources,
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "RequestHandlerThread.EnterWaitState");
                 try {
                     synchronized (this) {
@@ -224,11 +221,11 @@ public class RequestHandlerThread implements Runnable {
                 } catch (InterruptedException err) {
                     interrupted = true;
                 }
-                Logger.log(Logger.FULL_DEBUG, this.resources,
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "RequestHandlerThread.WakingUp");
             }
         }
-        Logger.log(Logger.FULL_DEBUG, this.resources, "RequestHandlerThread.ThreadExit");
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "RequestHandlerThread.ThreadExit");
     }
 
     /**
@@ -245,13 +242,13 @@ public class RequestHandlerThread implements Runnable {
 
             // Null RD means an error or we have been redirected to a welcome page
             if (rd != null) {
-                Logger.log(Logger.FULL_DEBUG, resources,
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "RequestHandlerThread.HandlingRD", rd.getName());
                 rd.forward(req, rsp);
             }
             // if null returned, assume we were redirected
         } catch (Throwable err) {
-            Logger.log(Logger.WARNING, resources,
+            Logger.log(Logger.WARNING, Launcher.RESOURCES,
                     "RequestHandlerThread.UntrappedError", err);
             rdError = webAppConfig.getErrorDispatcherByClass(err);
         }
@@ -266,7 +263,7 @@ public class RequestHandlerThread implements Runnable {
                     rdError.forward(req, rsp);
                 }
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources, "RequestHandlerThread.ErrorInErrorServlet", err);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "RequestHandlerThread.ErrorInErrorServlet", err);
             }
 //            rsp.sendUntrappedError(err, req, rd != null ? rd.getName() : null);
         }

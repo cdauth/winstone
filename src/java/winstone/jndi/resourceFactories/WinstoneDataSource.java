@@ -20,8 +20,10 @@ package winstone.jndi.resourceFactories;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.Driver;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -29,194 +31,238 @@ import java.util.Properties;
 import javax.sql.DataSource;
 
 import winstone.Logger;
-import winstone.WinstoneException;
+import winstone.WebAppConfiguration;
 import winstone.WinstoneResourceBundle;
 
 /**
- * Implements the Winstone connection pooling data source
+ * Implements a JDBC 2.0 pooling datasource. This is meant to act as a wrapper
+ * around a JDBC 1.0 driver, just providing the pool management functions.
  * 
+ * Supports keep alives, and check-connection-before-get options, as well 
+ * as normal reclaimable pool management options like maxIdle, maxConnections and
+ * startConnections. Additionally it supports poll-retry on full, which means the 
+ * getConnection call will block and retry after a certain period when the pool
+ * is maxed out (good for high load conditions).
+ *
+ * This class was originally drawn from the generator-runtime servlet framework and
+ * modified to make it more JDBC-API only compliant.
+ *
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneDataSource implements DataSource, Runnable {
-    final static int SLEEP_PERIOD = 2000;
-    private static final String LOCAL_RESOURCE_FILE = "winstone.jndi.resourceFactories.LocalStrings";
-    private Thread thread;
+    
+    public static final WinstoneResourceBundle DS_RESOURCES = 
+        new WinstoneResourceBundle("winstone.jndi.resourceFactories.LocalStrings");
+    
     private String name;
-    private List usedWrappers;
-    private List usedConnections;
-    private List unusedConnections;
-    private Object semaphore = new Boolean(true);
-    private boolean interrupted;
-    private int loginTimeout;
-    private PrintWriter logWriter;
+    
     private String url;
     private Driver driver;
     private Properties connectProps;
-    private WinstoneResourceBundle resources;
-    private int MAX_CONNECTIONS = 20;
-    private int MAX_IDLE_CONNECTIONS = 10;
-    private int START_CONNECTIONS = 2;
+    
+    private int maxIdleCount;
+    private int maxHeldCount;
+    private int retryCount;
+    private int retryPeriod;
+    
+    private String keepAliveSQL;
+    private int keepAlivePeriod;
+    private boolean checkBeforeGet;
+    private int killInactivePeriod;
+    
+    private List usedWrappers;
+    private List unusedRealConnections; // sempahore
+    private List usedRealConnections;
+    
+    private Thread managementThread;
 
+    private int loginTimeout;
+    private PrintWriter logWriter;
+    
     /**
-     * Build a fresh instance
+     * Main constructor. Basically just calls the init method
      */
-    public WinstoneDataSource(String name, Map args, ClassLoader loader,
-            WinstoneResourceBundle resources) throws SQLException,
-            ClassNotFoundException {
+    public WinstoneDataSource(String name, Map args, ClassLoader loader) {
         this.name = name;
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
-        this.interrupted = false;
-        this.loginTimeout = 0;
+        
         this.usedWrappers = new ArrayList();
-        this.usedConnections = new ArrayList();
-        this.unusedConnections = new ArrayList();
+        this.usedRealConnections = new ArrayList();
+        this.unusedRealConnections = new ArrayList();
         this.connectProps = new Properties();
 
-        // Extract the connection properties from the map
-        this.url = (String) args.get("url");
-        String driverClassName = (String) args.get("driverClassName");
+        // Extract pool management properties
+        this.keepAliveSQL = WebAppConfiguration.stringArg(args, "keepAliveSQL", "");
+        this.keepAlivePeriod = WebAppConfiguration.intArg(args, "keepAlivePeriod", -1);
+        this.checkBeforeGet = WebAppConfiguration.booleanArg(args, "checkBeforeGet", false);
+        this.killInactivePeriod = WebAppConfiguration.intArg(args, "killInactivePeriod", -1);
+
+        this.url = WebAppConfiguration.stringArg(args, "url", null);
+        String driverClassName = WebAppConfiguration.stringArg(args, "driverClassName", "");
         if (args.get("username") != null)
             this.connectProps.put("user", args.get("username"));
         if (args.get("password") != null)
             this.connectProps.put("password", args.get("password"));
 
-        if (args.get("maxConnections") != null)
-            MAX_CONNECTIONS = Integer.parseInt((String) args
-                    .get("maxConnections"));
-        if (args.get("maxIdle") != null)
-            MAX_IDLE_CONNECTIONS = Integer.parseInt((String) args
-                    .get("maxIdle"));
-        if (args.get("startConnections") != null)
-            START_CONNECTIONS = Integer.parseInt((String) args
-                    .get("startConnections"));
-
-        Logger.log(Logger.MAX, this.resources, "WinstoneDataSource.UsingClassLoader",
-                loader.toString());
+        this.maxHeldCount = WebAppConfiguration.intArg(args, "maxConnections", 20);
+        this.maxIdleCount = WebAppConfiguration.intArg(args, "maxIdle", 10);
+        int startCount = WebAppConfiguration.intArg(args, "startConnections", 1);
         
-        if (this.url == null)
-            throw new SQLException(this.resources
-                    .getString("WinstoneDataSource.NoUrlSupplied"));
-        else if (driverClassName == null)
-            throw new SQLException(this.resources
-                    .getString("WinstoneDataSource.NoDriverSupplied"));
-        else
-            try {
-                Class driverClass = Class
-                        .forName(driverClassName.trim(), true, loader);
-                this.driver = (Driver) driverClass.newInstance();
+        this.retryCount = WebAppConfiguration.intArg(args, "retryCount", 1);
+        this.retryPeriod = WebAppConfiguration.intArg(args, "retryPeriod", 1000);
 
-                // Get a test connection, and exit if it fails
-                Connection realConnection = this.driver.connect(this.url,
-                        this.connectProps);
-                this.unusedConnections.add(realConnection);
+        log(Logger.FULL_DEBUG, "DBConnectionPool.Init", this.url);
 
-                // Add missing idle connections
-                while ((this.unusedConnections.size() < START_CONNECTIONS)
-                        && (this.usedConnections.size()
-                                + this.unusedConnections.size() < MAX_CONNECTIONS)) {
-                    Connection conn = this.driver.connect(this.url,
-                            this.connectProps);
-                    if (conn == null)
-                        throw new WinstoneException(
-                                this.resources
-                                        .getString("WinstoneDataSource.DriverConnectNull"));
-                    this.unusedConnections.add(conn);
-                    Logger.log(Logger.FULL_DEBUG, this.resources,
-                            "WinstoneDataSource.AddingPooledConnection",
-                            new String[] { "" + this.usedConnections.size(),
-                                    "" + this.unusedConnections.size() });
+        try {
+            synchronized (this.unusedRealConnections) {
+                if (!driverClassName.equals("")) {
+                    Class driverClass = Class.forName(driverClassName.trim(), true, loader);
+                    this.driver = (Driver) driverClass.newInstance();
+
+                    for (int n = 0; n < startCount; n++) {
+                        makeNewRealConnection(this.unusedRealConnections);
+                    }
                 }
-
-                thread = new Thread(this, this.resources.getString(
-                        "WinstoneDataSource.ThreadName", name));
-                thread.setDaemon(true);
-                thread.setContextClassLoader(loader);
-                thread.start();
-            } catch (Throwable err) {
-                Logger.log(Logger.ERROR, this.resources,
-                        "WinstoneDataSource.ErrorLoadingDriver",
-                        driverClassName, err);
             }
-    }
+        } catch (Throwable err) {
+            log(Logger.ERROR, "DBConnectionPool.ErrorInCreate", err);
+        }
 
-    public void destroy() {
-        this.interrupted = true;
-        if (this.thread != null)
-            this.thread.interrupt();
+        // Start management thread
+        this.managementThread = new Thread(this, "DBConnectionPool management thread");
+        this.managementThread.start();
     }
 
     /**
-     * Pool management thread
+     * Close this pool - probably because we will want to re-init the pool
      */
-    public void run() {
-        Logger.log(Logger.FULL_DEBUG, this.resources,
-                "WinstoneDataSource.MaintenanceStarted");
+    public void destroy() {
+        if (this.managementThread != null) {
+            this.managementThread.interrupt();
+            this.managementThread = null;
+        }
 
-        while (!interrupted) {
-            try {
-                synchronized (this.semaphore) {
-                    // Trim excessive idle connections
-                    while (this.unusedConnections.size() > MAX_IDLE_CONNECTIONS) {
-                        Connection closeMe = (Connection) this.unusedConnections
-                                .get(0);
-                        this.unusedConnections.remove(closeMe);
-                        closeMe.close();
-                        Logger.log(Logger.FULL_DEBUG, resources,
-                                "WinstoneDataSource.ClosingPooledConnection",
-                                new String[] {
-                                        "" + this.usedConnections.size(),
-                                        "" + this.unusedConnections.size() });
-                    }
+        synchronized (this.unusedRealConnections) {
+            killPooledConnections(this.unusedRealConnections, 0);
+            killPooledConnections(this.usedRealConnections, 0);
+        }
+        
+        this.usedRealConnections.clear();
+        this.unusedRealConnections.clear();
+        this.usedWrappers.clear();
+    }
 
-                    // Iterate through the list of used wrappers, and release
-                    // any that
-                    // have been held for too long ? Maybe later
+    /**
+     * Gets a connection with a specific username/password. These are not pooled.
+     */
+    public Connection getConnection(String username, String password)
+            throws SQLException {
+        Properties newProps = new Properties();
+        newProps.put("user", username);
+        newProps.put("password", password);
+        Connection conn = this.driver.connect(this.url, newProps);
+        WinstoneConnection wrapper = null;
+        synchronized (this.unusedRealConnections) {
+            wrapper = new WinstoneConnection(conn, this);
+            this.usedWrappers.add(wrapper);
+        }
+        return wrapper;
+    }
+
+    public Connection getConnection() throws SQLException {
+        return getConnection(this.retryCount);
+    }
+    
+    /**
+     * Get a read-write connection - preferably from the pool, but fresh if needed
+     */
+    protected Connection getConnection(int retriesAllowed) throws SQLException {
+        Connection realConnection = null;
+        
+        synchronized (this.unusedRealConnections) {
+            // If we have any spare, get it from the unused pool
+            if (this.unusedRealConnections.size() > 0) {
+                realConnection = (Connection) this.unusedRealConnections.get(0);
+                this.unusedRealConnections.remove(realConnection);
+                this.usedRealConnections.add(realConnection);
+                log(Logger.FULL_DEBUG, "DBConnectionPool.UsingPooled",
+                        new String[] {"" + this.usedRealConnections.size(), 
+                           "" + this.unusedRealConnections.size()});
+                try {
+                    return prepareWrapper(realConnection);
+                } catch (SQLException err) {
+                    // Leave the realConnection as non-null, so we know prepareWrapper failed
                 }
+            }
 
-                Thread.sleep(SLEEP_PERIOD);
-            } catch (InterruptedException err) {
-                Logger.log(Logger.DEBUG, this.resources,
-                        "WinstoneDataSource.MaintenanceThread");
-            } catch (Throwable err) {
-                Logger.log(Logger.ERROR, this.resources,
-                        "WinstoneDataSource.MaintenanceError", err);
+            // If we are out (and not over our limit), allocate a new one
+            else if (this.usedRealConnections.size() < maxHeldCount) {
+                realConnection = makeNewRealConnection(this.usedRealConnections);
+                log(Logger.FULL_DEBUG, "DBConnectionPool.UsingNew",
+                        new String[] {"" + this.usedRealConnections.size(), 
+                           "" + this.unusedRealConnections.size()});
+                try {
+                    return prepareWrapper(realConnection);
+                } catch (SQLException err) {
+                    // Leave the realConnection as non-null, so we know prepareWrapper failed
+                }
             }
         }
-        Logger.log(Logger.FULL_DEBUG, this.resources,
-                "WinstoneDataSource.MaintenanceFinished");
+        
+        if (realConnection != null) {
+            // prepareWrapper() must have failed, so call this method again
+            realConnection = null;
+            return getConnection(retriesAllowed);
+        } else if (retriesAllowed <= 0) {
+            // otherwise throw fail message - we've blown our limit
+            throw new SQLException(DS_RESOURCES.getString("DBConnectionPool.Exceeded", "" + maxHeldCount));
+        } else {
+            log(Logger.FULL_DEBUG, "DBConnectionPool.Retrying", new String[] {
+                    "" + maxHeldCount, "" + retriesAllowed, "" + retryPeriod});
+            
+            // If we are here, it's because we need to retry for a connection
+            try {
+                Thread.sleep(retryPeriod);
+            } catch (InterruptedException err) {}
+            return getConnection(retriesAllowed - 1);
+        }
     }
 
+    private Connection prepareWrapper(Connection realConnection) throws SQLException {
+        // Check before get()
+        if (this.checkBeforeGet) {
+            try {
+                executeKeepAlive(realConnection);
+            } catch (SQLException err) {
+                // Dead connection, kill it and try again
+                killConnection(this.usedRealConnections, realConnection);
+                throw err;
+            }
+        }
+        realConnection.setAutoCommit(false);
+        WinstoneConnection wrapper = new WinstoneConnection(realConnection, this);
+        this.usedWrappers.add(wrapper);
+        return wrapper;
+    }
+    
     /**
-     * Releases a wrapper from the used pool, and adds the real connection back
-     * to the unused pool.
-     * 
-     * @param wrapper
-     *            Connection wrapper we are finished with
-     * @param realConnection
-     *            JDBC Connection that we want to return to the pool
+     * Releases connections back to the pool
      */
-    void releaseConnection(WinstoneConnection wrapper, Connection realConnection)
-            throws SQLException {
-        synchronized (this.semaphore) {
-            // Remove the wrapper from the used list
-            if (wrapper != null)
+    void releaseConnection(WinstoneConnection wrapper, Connection realConnection) throws SQLException {
+        synchronized (this.unusedRealConnections) {
+            if (wrapper != null) {
                 this.usedWrappers.remove(wrapper);
-            // Log destroying wrapper
-
-            // Put the real connection back in the pool
+            }
             if (realConnection != null) {
-                if (this.usedConnections.contains(realConnection)) {
-                    this.unusedConnections.add(realConnection);
-                    this.usedConnections.remove(realConnection);
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneDataSource.ReleasingPooledConnection",
-                            new String[] { "" + this.usedConnections.size(),
-                                    "" + this.unusedConnections.size() });
+                if (this.usedRealConnections.contains(realConnection)) {
+                    this.usedRealConnections.remove(realConnection);
+                    this.unusedRealConnections.add(realConnection);
+                    log(Logger.FULL_DEBUG, "DBConnectionPool.Releasing",
+                            new String[] {"" + this.usedRealConnections.size(), 
+                               "" + this.unusedRealConnections.size()});
                 } else {
+                    log(Logger.WARNING, "DBConnectionPool.ReleasingUnknown");
                     realConnection.close();
-                    Logger.log(Logger.FULL_DEBUG, resources,
-                            "WinstoneDataSource.ClosingUnpooledConnection");
                 }
             }
         }
@@ -239,63 +285,189 @@ public class WinstoneDataSource implements DataSource, Runnable {
     }
 
     /**
-     * Gets a connection from the pool
+     * Clean up and keep-alive thread.
+     * Note - this needs a lot more attention to the semaphore use during keepAlive etc
      */
-    public Connection getConnection() throws SQLException {
-        WinstoneConnection wrapper = null;
-        synchronized (this.semaphore) {
-            Connection realConnection = null;
-            // If we have any spare, get it from the pool
-            if (this.unusedConnections.size() > 0) {
-                realConnection = (Connection) this.unusedConnections.get(0);
-                this.unusedConnections.remove(realConnection);
-                this.usedConnections.add(realConnection);
-                Logger.log(Logger.FULL_DEBUG, resources,
-                        "WinstoneDataSource.UsingPooledConnection",
-                        new String[] { "" + this.usedConnections.size(),
-                                "" + this.unusedConnections.size() });
-                // Log using pooled connection
+    public void run() {
+        log(Logger.DEBUG, "DBConnectionPool.MaintenanceStart");
+
+        int keepAliveCounter = -1;
+        int killInactiveCounter = -1;
+        boolean threadRunning = true;
+
+        while (threadRunning) {
+            try {
+                long startTime = System.currentTimeMillis();
+
+                // Keep alive if the time is right
+                if ((this.keepAlivePeriod != -1) && threadRunning) {
+                    keepAliveCounter++;
+
+                    if (this.keepAlivePeriod <= keepAliveCounter) {
+                        synchronized (this.unusedRealConnections) {
+                            executeKeepAliveOnUnused();
+                        }
+                        keepAliveCounter = 0;
+                    }
+                }
+                
+                if (Thread.interrupted()) {
+                    threadRunning = false;
+                }
+
+                // Kill inactive connections if the time is right
+                if ((this.killInactivePeriod != -1) && threadRunning) {
+                    killInactiveCounter++;
+
+                    if (this.killInactivePeriod <= killInactiveCounter) {
+                        synchronized (this.unusedRealConnections) {
+                            killPooledConnections(this.unusedRealConnections, this.maxIdleCount);
+                        }
+
+                        killInactiveCounter = 0;
+                    }
+                }
+
+                if ((killInactiveCounter == 0) || (keepAliveCounter == 0)) {
+                    log(Logger.FULL_DEBUG, "DBConnectionPool.MaintenanceTime",
+                            "" + (System.currentTimeMillis() - startTime));
+                }
+
+                if (Thread.interrupted()) {
+                    threadRunning = false;
+                } else {
+                    Thread.sleep(60000); // sleep 1 minute
+                }
+                
+                if (Thread.interrupted()) {
+                    threadRunning = false;
+                }
+            } catch (InterruptedException err) {
+                threadRunning = false;
+                continue;
             }
-
-            // If we are out (and not over our limit), allocate a new one
-            else if (this.usedConnections.size() < MAX_CONNECTIONS) {
-                realConnection = this.driver.connect(this.url,
-                        this.connectProps);
-                this.usedConnections.add(realConnection);
-                Logger.log(Logger.FULL_DEBUG, resources,
-                        "WinstoneDataSource.AddingPooledConnection",
-                        new String[] { "" + this.usedConnections.size(),
-                                "" + this.unusedConnections.size() });
-                // Log using new connection
-            }
-
-            // otherwise throw fail message - we've blown our limit
-            else
-                throw new SQLException(this.resources.getString(
-                        "WinstoneDataSource.PoolLimitExceeded", ""
-                                + MAX_CONNECTIONS));
-
-            wrapper = new WinstoneConnection(realConnection, this,
-                    this.resources);
-            this.usedWrappers.add(wrapper);
         }
-        return wrapper;
+
+        log(Logger.DEBUG, "DBConnectionPool.MaintenanceFinish");
     }
 
     /**
-     * Gets a connection with a specific username/password. These are not pooled.
+     * Executes keep alive for each of the connections in the supplied pool
      */
-    public Connection getConnection(String username, String password)
-            throws SQLException {
-        Properties newProps = new Properties();
-        newProps.put("user", username);
-        newProps.put("password", password);
-        Connection conn = this.driver.connect(this.url, newProps);
-        WinstoneConnection wrapper = null;
-        synchronized (this.semaphore) {
-            wrapper = new WinstoneConnection(conn, this, this.resources);
-            this.usedWrappers.add(wrapper);
+    protected void executeKeepAliveOnUnused() {
+        // keep alive all unused roConns now
+        List dead = new ArrayList();
+        
+        for (Iterator i = this.unusedRealConnections.iterator(); i.hasNext();) {
+            Connection conn = (Connection) i.next();
+
+            try {
+                executeKeepAlive(conn);
+            } catch (SQLException errSQL) {
+                dead.add(conn);
+            }
         }
-        return wrapper;
+        
+        for (Iterator i = dead.iterator(); i.hasNext(); ) {
+            killConnection(this.unusedRealConnections, (Connection) i.next());
+        }
+        
+        log(Logger.FULL_DEBUG, "DBConnectionPool.KeepAliveFinished", "" + 
+                this.unusedRealConnections.size());
+    }
+
+    protected void executeKeepAlive(Connection connection) throws SQLException {
+        if (!this.keepAliveSQL.equals("")) {
+            PreparedStatement qryKeepAlive = null;
+            try {
+                qryKeepAlive = connection.prepareStatement(keepAliveSQL);
+                qryKeepAlive.execute();
+            } catch (SQLException err) {
+                log(Logger.WARNING, "DBConnectionPool.KeepAliveFailed", err);
+                throw err;
+            } finally {
+                if (qryKeepAlive != null) {
+                    qryKeepAlive.close();
+                }
+            }
+        }
+    }
+
+    /**
+     * This makes a new rw connection. It assumes that the synchronization has taken
+     * place in the calling code, so is unsafe for use outside this class.
+     */
+    protected Connection makeNewRealConnection(List pool) throws SQLException {
+        if (this.url == null) {
+            throw new SQLException("No JDBC URL supplied");
+        }
+
+        Connection realConnection = this.driver.connect(this.url, this.connectProps);
+        pool.add(realConnection);
+        log(Logger.FULL_DEBUG, "DBConnectionPool.AddingNew", 
+                new String[] {"" + this.usedRealConnections.size(), 
+                "" + this.unusedRealConnections.size()});
+
+        return realConnection;
+    }
+
+    /**
+     * Iterates through a list and kills off unused connections until we reach the
+     * minimum idle count for that pool.
+     */
+    protected void killPooledConnections(List pool, int maxIdleCount) {
+        // kill inactive unused roConns now
+        int killed = 0;
+
+        while (pool.size() > maxIdleCount) {
+            killed++;
+            Connection conn = (Connection) pool.get(0);
+            killConnection(pool, conn);
+        }
+
+        if (killed > 0) {
+            log(Logger.FULL_DEBUG, "DBConnectionPool.Killed", "" + killed);
+        }
+    }
+    
+    private static void killConnection(List pool, Connection conn) {
+        pool.remove(conn);
+        try {
+            conn.close();
+        } catch (SQLException err) {
+        }
+    }
+    
+    private void log(int level, String msgKey) {
+        if (getLogWriter() != null) {
+            getLogWriter().println(DS_RESOURCES.getString(msgKey));
+        } else {
+            Logger.log(level, DS_RESOURCES, msgKey);
+        }
+    }
+    
+    private void log(int level, String msgKey, Throwable err) {
+        if (getLogWriter() != null) {
+            getLogWriter().println(DS_RESOURCES.getString(msgKey));
+            err.printStackTrace(getLogWriter());
+        } else {
+            Logger.log(level, DS_RESOURCES, msgKey, err);
+        }
+    }
+    
+    private void log(int level, String msgKey, String arg) {
+        if (getLogWriter() != null) {
+            getLogWriter().println(DS_RESOURCES.getString(msgKey, arg));
+        } else {
+            Logger.log(level, DS_RESOURCES, msgKey, arg);
+        }
+    }
+    
+    private void log(int level, String msgKey, String arg[]) {
+        if (getLogWriter() != null) {
+            getLogWriter().println(DS_RESOURCES.getString(msgKey, arg));
+        } else {
+            Logger.log(level, DS_RESOURCES, msgKey, arg);
+        }
     }
 }

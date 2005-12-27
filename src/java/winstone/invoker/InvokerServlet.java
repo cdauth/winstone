@@ -43,11 +43,11 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class InvokerServlet extends HttpServlet {
-    private static final String RESOURCE_FILE = "winstone.invoker.LocalStrings";
     private static final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
     private static final String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
 
-    private WinstoneResourceBundle resources;
+    private static final WinstoneResourceBundle INVOKER_RESOURCES = 
+        new WinstoneResourceBundle("winstone.invoker.LocalStrings");
     private Map mountedInstances;
     private String prefix;
     private String invokerPrefix;
@@ -57,7 +57,6 @@ public class InvokerServlet extends HttpServlet {
      */
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        this.resources = new WinstoneResourceBundle(RESOURCE_FILE);
         this.mountedInstances = new Hashtable();
         this.prefix = config.getInitParameter("prefix");
         this.invokerPrefix = config.getInitParameter("invokerPrefix");
@@ -75,7 +74,6 @@ public class InvokerServlet extends HttpServlet {
                 this.mountedInstances.clear();
             }
         }
-        this.resources = null;
         this.mountedInstances = null;
         this.prefix = null;
         this.invokerPrefix = null;
@@ -99,11 +97,10 @@ public class InvokerServlet extends HttpServlet {
                 // Class servletClass = Class.forName(servletName, true,
                 // Thread.currentThread().getContextClassLoader());
                 sc = new ServletConfiguration((WebAppConfiguration) this.getServletContext(), 
-                        this.resources,  getServletConfig().getServletName()
-                                + ":" + servletName, servletName,
+                        getServletConfig().getServletName() + ":" + servletName, servletName,
                         new Hashtable(), -1);
                 this.mountedInstances.put(servletName, sc);
-                Logger.log(Logger.DEBUG, this.resources,
+                Logger.log(Logger.DEBUG, INVOKER_RESOURCES,
                         "InvokerServlet.MountingServlet", new String[] {
                                 servletName,
                                 getServletConfig().getServletName() });
@@ -135,15 +132,15 @@ public class InvokerServlet extends HttpServlet {
         ServletConfiguration invokedServlet = getInvokableInstance(servletName);
 
         if (invokedServlet == null) {
-            Logger.log(Logger.WARNING, this.resources,
+            Logger.log(Logger.WARNING, INVOKER_RESOURCES,
                     "InvokerServlet.NoMatchingServletFound", servletName);
-            rsp.sendError(HttpServletResponse.SC_NOT_FOUND, this.resources
+            rsp.sendError(HttpServletResponse.SC_NOT_FOUND, INVOKER_RESOURCES
                     .getString("InvokerServlet.NoMatchingServletFound",
                             servletName));
         } else {
             RequestDispatcher rd = new RequestDispatcher(
                     (WebAppConfiguration) getServletContext(), 
-                    invokedServlet, this.resources);
+                    invokedServlet);
             rd.setForNamedDispatcher(new Mapping[0], new Mapping[0]);
             rd.forward(req, rsp);
         }

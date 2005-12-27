@@ -50,11 +50,10 @@ public class DigestAuthenticationHandler extends BaseAuthenticationHandler {
 
     public DigestAuthenticationHandler(Node loginConfigNode,
             List constraintNodes, Set rolesAllowed,
-            WinstoneResourceBundle resources, AuthenticationRealm realm)
-            throws NoSuchAlgorithmException {
-        super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
+            AuthenticationRealm realm) throws NoSuchAlgorithmException {
+        super(loginConfigNode, constraintNodes, rolesAllowed, realm);
         this.md5Digester = MessageDigest.getInstance("MD5");
-        Logger.log(Logger.DEBUG, this.resources,
+        Logger.log(Logger.DEBUG, AUTH_RESOURCES,
                 "DigestAuthenticationHandler.Initialised", realmName);
     }
 
@@ -75,7 +74,7 @@ public class DigestAuthenticationHandler extends BaseAuthenticationHandler {
         response.setHeader("WWW-Authenticate", authHeader);
 
         // Return unauthorized
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, this.resources
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, AUTH_RESOURCES
                 .getString("DigestAuthenticationHandler.UnauthorizedMessage"));
     }
 
@@ -172,11 +171,11 @@ public class DigestAuthenticationHandler extends BaseAuthenticationHandler {
                     ((WinstoneRequest) wrapper.getRequest())
                             .setRemoteUser(principal);
                 else
-                    Logger.log(Logger.WARNING, this.resources,
+                    Logger.log(Logger.WARNING, AUTH_RESOURCES,
                             "DigestAuthenticationHandler.CantSetUser", wrapper
                                     .getRequest().getClass().getName());
             } else
-                Logger.log(Logger.WARNING, this.resources,
+                Logger.log(Logger.WARNING, AUTH_RESOURCES,
                         "DigestAuthenticationHandler.CantSetUser", request
                                 .getClass().getName());
         }

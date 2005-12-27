@@ -40,16 +40,13 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     protected ByteArrayOutputStream buffer;
     protected boolean committed;
     protected boolean bodyOnly;
-    protected WinstoneResourceBundle resources;
     protected WinstoneResponse owner;
     protected boolean disregardMode = false;
     
     /**
      * Constructor
      */
-    public WinstoneOutputStream(OutputStream out, boolean bodyOnlyForInclude,
-            WinstoneResourceBundle resources) {
-        this.resources = resources;
+    public WinstoneOutputStream(OutputStream out, boolean bodyOnlyForInclude) {
         this.outStream = out;
         this.bodyOnly = bodyOnlyForInclude;
         this.bufferSize = DEFAULT_BUFFER_SIZE;
@@ -68,7 +65,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
 
     public void setBufferSize(int bufferSize) {
         if (this.owner.isCommitted()) {
-            throw new IllegalStateException(resources.getString(
+            throw new IllegalStateException(Launcher.RESOURCES.getString(
                     "WinstoneOutputStream.AlreadyCommitted"));
         }
         this.bufferSize = bufferSize;
@@ -117,20 +114,20 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             this.owner.verifyContentLength();
             this.committed = true;
 
-            Logger.log(Logger.DEBUG, resources, "WinstoneOutputStream.CommittingOutputStream");
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.CommittingOutputStream");
             
             PrintStream headerStream = new PrintStream(this.outStream, true);
             String statusLine = this.owner.getProtocol() + " "
                     + this.owner.getStatus();
             headerStream.println(statusLine);
-            Logger.log(Logger.FULL_DEBUG, resources,
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                     "WinstoneOutputStream.ResponseStatus", statusLine);
 
             // Write headers and cookies
             for (Iterator i = this.owner.getHeaders().iterator(); i.hasNext();) {
                 String header = (String) i.next();
                 headerStream.println(header);
-                Logger.log(Logger.FULL_DEBUG, resources,
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "WinstoneOutputStream.Header", header);
             }
 
@@ -140,14 +137,14 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
                     Cookie cookie = (Cookie) i.next();
                     String cookieText = this.owner.writeCookie(cookie);
                     headerStream.println(cookieText);
-                    Logger.log(Logger.FULL_DEBUG, resources,
+                    Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneOutputStream.Header", cookieText);
                 }
             }
             headerStream.println();
             headerStream.flush();
             // Logger.log(Logger.FULL_DEBUG,
-            // resources.getString("HttpProtocol.OutHeaders") + out.toString());
+            // Launcher.RESOURCES.getString("HttpProtocol.OutHeaders") + out.toString());
         }
         byte content[] = this.buffer.toByteArray();
 //        winstone.ajp13.Ajp13Listener.packetDump(content, content.length);
@@ -161,7 +158,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         this.outStream.write(content, 0, commitLength);
         this.outStream.flush();
 
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                 "WinstoneOutputStream.CommittedBytes", 
                 "" + (this.bytesCommitted + commitLength));
 
@@ -172,10 +169,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
 
     public void reset() {
         if (isCommitted())
-            throw new IllegalStateException(resources
+            throw new IllegalStateException(Launcher.RESOURCES
                     .getString("WinstoneOutputStream.AlreadyCommitted"));
         else {
-            Logger.log(Logger.FULL_DEBUG, resources,
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                     "WinstoneOutputStream.ResetBuffer", this.bufferPosition
                             + "");
             this.buffer.reset();

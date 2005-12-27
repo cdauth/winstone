@@ -47,11 +47,10 @@ import winstone.WinstoneResourceBundle;
  */
 public class ReloadingClassLoader extends URLClassLoader implements ServletContextListener, Runnable {
     final int RELOAD_SEARCH_SLEEP = 50;
-    private static final String LOCAL_RESOURCE_FILE = "winstone.classLoader.LocalStrings";
+    private static final WinstoneResourceBundle CL_RESOURCES = new WinstoneResourceBundle("winstone.classLoader.LocalStrings");
     private boolean interrupted;
     private WebAppConfiguration webAppConfig;
     private Set loadedClasses;
-    private WinstoneResourceBundle resources;
     private File classPaths[];
     
     public ReloadingClassLoader(URL urls[], ClassLoader parent) {
@@ -60,7 +59,6 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
         for (int n = 0; n < urls.length; n++) {
             this.classPaths[n] = new File(urls[n].getFile());
         }
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
 
         // Start the file date changed monitoring thread
         this.loadedClasses = new HashSet();
@@ -72,7 +70,7 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
         synchronized (this) {
             this.loadedClasses.clear();
         }
-        Thread thread = new Thread(this, resources
+        Thread thread = new Thread(this, CL_RESOURCES
                 .getString("ReloadingClassLoader.ThreadName"));
         thread.setDaemon(true);
         thread.setPriority(Thread.MIN_PRIORITY);
@@ -92,7 +90,7 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
      * the classpath trigger a classLoader self destruct and recreate.
      */
     public void run() {
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, CL_RESOURCES,
                 "ReloadingClassLoader.MaintenanceThreadStarted");
 
         Map classDateTable = new HashMap();
@@ -134,7 +132,7 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
                     if (classDate == null) {
                         if (!lostClasses.contains(className)) {
                             lostClasses.add(className);
-                            Logger.log(Logger.DEBUG, resources,
+                            Logger.log(Logger.DEBUG, CL_RESOURCES,
                                     "ReloadingClassLoader.ClassLost", className);
                         }
                         continue;
@@ -150,7 +148,7 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
                         classDateTable.put(className, classDate);
                     } else if (oldClassDate.compareTo(classDate) != 0) {
                         // Trigger reset of webAppConfig
-                        Logger.log(Logger.INFO, resources, 
+                        Logger.log(Logger.INFO, CL_RESOURCES, 
                                 "ReloadingClassLoader.ReloadRequired",
                                 new String[] {className, 
                                         "" + new Date(classDate.longValue()),
@@ -159,11 +157,11 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
                     }
                 }
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources,
+                Logger.log(Logger.ERROR, CL_RESOURCES,
                         "ReloadingClassLoader.MaintenanceThreadError", err);
             }
         }
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, CL_RESOURCES,
                 "ReloadingClassLoader.MaintenanceThreadFinished");
     }
 

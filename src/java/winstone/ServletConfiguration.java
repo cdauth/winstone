@@ -68,25 +68,21 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     private String jspFile;
     private String runAsRole;
     private Map securityRoleRefs;
-    private WinstoneResourceBundle resources;
     private Object servletSemaphore = new Boolean(true);
     private boolean isSingleThreadModel = false;
     private boolean unavailable = false;
     private Throwable unavailableException = null;
     
-    protected ServletConfiguration(WebAppConfiguration webAppConfig, 
-            WinstoneResourceBundle resources) {
+    protected ServletConfiguration(WebAppConfiguration webAppConfig) {
         this.webAppConfig = webAppConfig;
         this.initParameters = new Hashtable();
         this.loadOnStartup = -1;
-        this.resources = resources;
         this.securityRoleRefs = new Hashtable();
     }
 
-    public ServletConfiguration(WebAppConfiguration webAppConfig,
-            WinstoneResourceBundle resources, String servletName, String className,
-            Map initParams, int loadOnStartup) {
-        this(webAppConfig, resources);
+    public ServletConfiguration(WebAppConfiguration webAppConfig, String servletName, 
+            String className, Map initParams, int loadOnStartup) {
+        this(webAppConfig);
         if (initParams != null)
             this.initParameters.putAll(initParams);
         this.servletName = servletName;
@@ -95,9 +91,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         this.loadOnStartup = loadOnStartup;
     }
 
-    public ServletConfiguration(WebAppConfiguration webAppConfig, 
-            WinstoneResourceBundle resources, Node elm) {
-        this(webAppConfig, resources);
+    public ServletConfiguration(WebAppConfiguration webAppConfig, Node elm) {
+        this(webAppConfig);
 
         // Parse the web.xml file entry
         for (int n = 0; n < elm.getChildNodes().getLength(); n++) {
@@ -159,7 +154,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             this.classFile = WebAppConfiguration.JSP_SERVLET_CLASS;
             WebAppConfiguration.addJspServletParams(this.initParameters);
         }
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                 "ServletConfiguration.DeployedInstance", new String[] {
                         this.servletName, this.classFile });
     }
@@ -187,25 +182,25 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                         "javax.servlet.SingleThreadModel").isInstance(this.instance);
                 
                 // Initialise with the correct classloader
-                Logger.log(Logger.DEBUG, resources, "ServletConfiguration.init", this.servletName);
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "ServletConfiguration.init", this.servletName);
                 this.instance.init(this);
             } catch (ClassNotFoundException err) {
-                Logger.log(Logger.WARNING, resources, 
+                Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
                 setUnavailable();
                 this.unavailableException = err;
             } catch (IllegalAccessException err) {
-                Logger.log(Logger.WARNING, resources, 
+                Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
                 setUnavailable();
                 this.unavailableException = err;
             } catch (InstantiationException err) {
-                Logger.log(Logger.WARNING, resources, 
+                Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
                 setUnavailable();
                 this.unavailableException = err;
             } catch (ServletException err) {
-                Logger.log(Logger.WARNING, resources, 
+                Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.InitError", this.servletName, err);
                 this.instance = null; // so that we don't call the destroy method
                 setUnavailable();
@@ -250,7 +245,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             // we only invalidate the throwing servlet
             setUnavailable();
             ((HttpServletResponse) response).sendError(HttpServletResponse.SC_NOT_FOUND, 
-                    resources.getString("StaticResourceServlet.PathNotFound", requestURI));
+                    Launcher.RESOURCES.getString("StaticResourceServlet.PathNotFound", requestURI));
 //            throw new ServletException(resources.getString(
 //                    "RequestDispatcher.ForwardError"), err);
         } finally {
@@ -304,7 +299,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     protected void setUnavailable() {
         this.unavailable = true;
         if (this.instance != null) {
-            Logger.log(Logger.DEBUG, resources,
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                     "ServletConfiguration.destroy", this.servletName);
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());

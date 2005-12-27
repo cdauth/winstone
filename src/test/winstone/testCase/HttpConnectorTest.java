@@ -30,7 +30,6 @@ import org.xml.sax.SAXException;
 
 import winstone.Launcher;
 import winstone.Logger;
-import winstone.WinstoneResourceBundle;
 
 import com.meterware.httpunit.GetMethodWebRequest;
 import com.meterware.httpunit.WebConversation;
@@ -72,8 +71,7 @@ public class HttpConnectorTest extends TestCase {
         args.put("debug", "8");
         args.put("logThrowingLineNo", "true");
         Logger.init(Logger.FULL_DEBUG, System.out, true, true);
-        WinstoneResourceBundle resources = Launcher.getResourceBundle();
-        Launcher winstone = new Launcher(args, resources);
+        Launcher winstone = new Launcher(args);
 
         // Check for a simple connection
         WebConversation wc = new WebConversation();
@@ -102,8 +100,7 @@ public class HttpConnectorTest extends TestCase {
         args.put("debug", "8");
         args.put("logThrowingLineNo", "true");
         Logger.init(Logger.FULL_DEBUG, System.out, true, true);
-        WinstoneResourceBundle resources = Launcher.getResourceBundle();
-        Launcher winstone = new Launcher(args, resources);
+        Launcher winstone = new Launcher(args);
 
         // Check for a simple connection
         WebConversation wc = new WebConversation();

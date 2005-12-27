@@ -54,18 +54,16 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class HttpsListener extends HttpListener {
-    private static final String LOCAL_RESOURCE_FILE = "winstone.ssl.LocalStrings";
+    private static final WinstoneResourceBundle SSL_RESOURCES = new WinstoneResourceBundle("winstone.ssl.LocalStrings");
     private String keystore;
     private String password;
     private String keyManagerType;
-    private WinstoneResourceBundle localResources;
 
     /**
      * Constructor
      */
-    public HttpsListener(Map args, WinstoneResourceBundle resources,
-            ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
-        super(args, resources, objectPool, webAppGroup);
+    public HttpsListener(Map args, ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
+        super(args, objectPool, webAppGroup);
         this.keystore = WebAppConfiguration.stringArg(args, getConnectorName()
                 + "KeyStore", "winstone.ks");
         this.password = WebAppConfiguration.stringArg(args, getConnectorName()
@@ -96,8 +94,6 @@ public class HttpsListener extends HttpListener {
      */
     protected ServerSocket getServerSocket() throws IOException {
         // Just to make sure it's set before we start
-        this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
-
         SSLContext context = getSSLContext(this.keystore, this.password);
         SSLServerSocketFactory factory = context.getServerSocketFactory();
         SSLServerSocket ss = (SSLServerSocket) (this.listenAddress == null ? factory
@@ -178,18 +174,18 @@ public class HttpsListener extends HttpListener {
             
             File ksFile = new File(keyStoreName);
             if (!ksFile.exists() || !ksFile.isFile())
-                throw new WinstoneException(localResources.getString(
+                throw new WinstoneException(SSL_RESOURCES.getString(
                         "HttpsListener.KeyStoreNotFound", ksFile.getPath()));
             InputStream in = new FileInputStream(ksFile);
             char[] passwordChars = password == null ? null : password.toCharArray();
             KeyStore ks = KeyStore.getInstance("JKS");
             ks.load(in, passwordChars);
             kmf.init(ks, passwordChars);
-            Logger.log(Logger.FULL_DEBUG, localResources,
+            Logger.log(Logger.FULL_DEBUG, SSL_RESOURCES,
                     "HttpsListener.KeyCount", ks.size() + "");
             for (Enumeration e = ks.aliases(); e.hasMoreElements();) {
                 String alias = (String) e.nextElement();
-                Logger.log(Logger.FULL_DEBUG, localResources,
+                Logger.log(Logger.FULL_DEBUG, SSL_RESOURCES,
                         "HttpsListener.KeyFound", new String[] { alias,
                                 ks.getCertificate(alias) + "" });
             }
@@ -201,7 +197,7 @@ public class HttpsListener extends HttpListener {
         } catch (IOException err) {
             throw err;
         } catch (Throwable err) {
-            throw new WinstoneException(localResources
+            throw new WinstoneException(SSL_RESOURCES
                     .getString("HttpsListener.ErrorGettingContext"), err);
         }
     }

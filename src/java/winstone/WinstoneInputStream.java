@@ -33,22 +33,19 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream {
     private InputStream inData;
     private Integer contentLength;
     private int readSoFar;
-    private WinstoneResourceBundle resources;
     private ByteArrayOutputStream dump;
     
     /**
      * Constructor
      */
-    public WinstoneInputStream(InputStream inData,
-            WinstoneResourceBundle resources) {
+    public WinstoneInputStream(InputStream inData) {
         super();
         this.inData = inData;
-        this.resources = resources;
         this.dump = new ByteArrayOutputStream();
     }
 
-    public WinstoneInputStream(byte inData[], WinstoneResourceBundle resources) {
-        this(new ByteArrayInputStream(inData), resources);
+    public WinstoneInputStream(byte inData[]) {
+        this(new ByteArrayInputStream(inData));
     }
 
     public InputStream getRawInputStream() {
@@ -64,7 +61,7 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream {
         if (this.contentLength == null) {
             int data = this.inData.read();
             this.dump.write(data);
-  //          System.out.println("Char: " + (char) data);
+//            System.out.println("Char: " + (char) data);
             return data;
         } else if (this.contentLength.intValue() > this.readSoFar) {
             this.readSoFar++;
@@ -95,7 +92,7 @@ public class WinstoneInputStream extends javax.servlet.ServletInputStream {
         byte buffer[] = new byte[BUFFER_SIZE];
         int charsRead = super.readLine(buffer, 0, BUFFER_SIZE);
         if (charsRead == -1) {
-            Logger.log(Logger.DEBUG, resources,
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                     "WinstoneInputStream.EndOfStream");
             return new byte[0];
         }

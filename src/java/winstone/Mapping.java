@@ -41,24 +41,20 @@ public class Mapping implements java.util.Comparator {
     private boolean isPatternFirst; // ie is this a blah* pattern, not *blah
                                     // (extensions only)
 
-    private WinstoneResourceBundle resources;
-
-    protected Mapping(String mappedTo, WinstoneResourceBundle resources) {
+    protected Mapping(String mappedTo) {
         this.mappedTo = mappedTo;
-        this.resources = resources;
     }
 
     /**
      * Factory constructor method - this parses the url pattern into pieces we can use to match
      * against incoming URLs.
      */
-    public static Mapping createFromURL(String mappedTo, String pattern,
-            WinstoneResourceBundle resources) {
+    public static Mapping createFromURL(String mappedTo, String pattern) {
         if ((pattern == null) || (mappedTo == null))
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
 
-        Mapping me = new Mapping(mappedTo, resources);
+        Mapping me = new Mapping(mappedTo);
 
         int firstStarPos = pattern.indexOf(STAR);
         int lastStarPos = pattern.lastIndexOf(STAR);
@@ -71,7 +67,7 @@ public class Mapping implements java.util.Comparator {
 
         // > 1 star = error
         else if (firstStarPos != lastStarPos)
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
 
         // check for default servlet, ie mapping = exactly /*
@@ -89,7 +85,7 @@ public class Mapping implements java.util.Comparator {
         
         // check for non-extension match
         else if (pattern.indexOf(SLASH) != -1)
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
 
         // check for extension match at the beginning (eg *blah)
@@ -104,10 +100,10 @@ public class Mapping implements java.util.Comparator {
             me.patternType = EXTENSION_PATTERN;
             me.isPatternFirst = true;
         } else
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
 
-        Logger.log(Logger.FULL_DEBUG, resources, "Mapping.MappedPattern",
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "Mapping.MappedPattern",
                 new String[] { mappedTo, pattern });
         return me;
     }
@@ -115,13 +111,12 @@ public class Mapping implements java.util.Comparator {
     /**
      * Factory constructor method - this turns a servlet name into a mapping element
      */
-    public static Mapping createFromLink(String mappedTo, String linkName,
-            WinstoneResourceBundle resources) {
+    public static Mapping createFromLink(String mappedTo, String linkName) {
         if ((linkName == null) || (mappedTo == null))
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidLink", new String[] { mappedTo, linkName }));
 
-        Mapping me = new Mapping(mappedTo, resources);
+        Mapping me = new Mapping(mappedTo);
         me.linkName = linkName;
         return me;
     }

@@ -54,23 +54,19 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
     private ServletContext context;
     private ClassLoader loader;
     private boolean unavailableException;
-    private WinstoneResourceBundle resources;
     private Object filterSemaphore = new Boolean(true);
 
-    protected FilterConfiguration(ServletContext context, ClassLoader loader,
-            WinstoneResourceBundle resources) {
+    protected FilterConfiguration(ServletContext context, ClassLoader loader) {
         this.context = context;
         this.loader = loader;
-        this.resources = resources;
         this.initParameters = new Hashtable();
     }
 
     /**
      * Constructor
      */
-    public FilterConfiguration(ServletContext context, ClassLoader loader,
-            WinstoneResourceBundle resources, Node elm) {
-        this(context, loader, resources);
+    public FilterConfiguration(ServletContext context, ClassLoader loader, Node elm) {
+        this(context, loader);
 
         // Parse the web.xml file entry
         for (int n = 0; n < elm.getChildNodes().getLength(); n++) {
@@ -104,7 +100,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
                     this.initParameters.put(paramName, paramValue);
             }
         }
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                 "FilterConfiguration.DeployedInstance", new String[] {
                         this.filterName, this.classFile });
     }
@@ -132,7 +128,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
     public Filter getFilter() throws ServletException {
         synchronized (this.filterSemaphore) {
             if (isUnavailable())
-                throw new WinstoneException(resources
+                throw new WinstoneException(Launcher.RESOURCES
                         .getString("FilterConfiguration.FilterUnavailable"));
             else if (this.instance == null)
                 try {
@@ -143,22 +139,22 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
                     Class filterClass = Class.forName(classFile, true,
                             this.loader);
                     this.instance = (Filter) filterClass.newInstance();
-                    Logger.log(Logger.DEBUG, resources,
+                    Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                             "FilterConfiguration.init", this.filterName);
 
                     // Initialise with the correct classloader
                     this.instance.init(this);
                     Thread.currentThread().setContextClassLoader(cl);
                 } catch (ClassNotFoundException err) {
-                    Logger.log(Logger.ERROR, resources,
+                    Logger.log(Logger.ERROR, Launcher.RESOURCES,
                             "FilterConfiguration.ClassLoadError",
                             this.classFile, err);
                 } catch (IllegalAccessException err) {
-                    Logger.log(Logger.ERROR, resources,
+                    Logger.log(Logger.ERROR, Launcher.RESOURCES,
                             "FilterConfiguration.ClassLoadError",
                             this.classFile, err);
                 } catch (InstantiationException err) {
-                    Logger.log(Logger.ERROR, resources,
+                    Logger.log(Logger.ERROR, Launcher.RESOURCES,
                             "FilterConfiguration.ClassLoadError",
                             this.classFile, err);
                 } catch (ServletException err) {
@@ -183,7 +179,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
     }
 
     public String toString() {
-        return this.resources.getString("FilterConfiguration.Description",
+        return Launcher.RESOURCES.getString("FilterConfiguration.Description",
                 new String[] { this.filterName, this.classFile });
     }
 
@@ -194,7 +190,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
     protected void setUnavailable() {
         this.unavailableException = true;
         if (this.instance != null) {
-            Logger.log(Logger.DEBUG, resources,
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                     "FilterConfiguration.destroy", this.filterName);
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(this.loader);
@@ -212,7 +208,7 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
             getFilter().doFilter(request, response, chain);
         } catch (UnavailableException err) {
             setUnavailable();
-            throw new ServletException(resources
+            throw new ServletException(Launcher.RESOURCES
                     .getString("RequestDispatcher.FilterError"), err);
         } finally {
             Thread.currentThread().setContextClassLoader(cl);

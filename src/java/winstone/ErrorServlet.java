@@ -35,14 +35,6 @@ import javax.servlet.http.HttpServlet;
  * @version $Id$
  */
 public class ErrorServlet extends HttpServlet {
-
-    static final String RESOURCE_FILE = "winstone.LocalStrings";
-
-    private WinstoneResourceBundle resources;    
-    
-    public ErrorServlet() {
-        this.resources = new WinstoneResourceBundle(RESOURCE_FILE);
-    }
     
     public void service(ServletRequest request, ServletResponse response) throws ServletException, IOException {
         
@@ -60,9 +52,9 @@ public class ErrorServlet extends HttpServlet {
         pw.flush();
          
         // If we are here there was no error servlet, so show the default error page
-        String output = resources.getString("WinstoneResponse.ErrorPage",
+        String output = Launcher.RESOURCES.getString("WinstoneResponse.ErrorPage",
                 new String[] { sc + "", (msg == null ? "" : msg), sw.toString(),
-                        resources.getString("ServerVersion"),
+                Launcher.RESOURCES.getString("ServerVersion"),
                         "" + new Date() });
         response.setContentLength(output.getBytes(response.getCharacterEncoding()).length);
         Writer out = response.getWriter();

@@ -29,8 +29,6 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.spi.NamingManager;
 
-import winstone.WinstoneResourceBundle;
-
 /**
  * Enumeration over the set of bindings for this context.
  * 
@@ -42,7 +40,6 @@ public class WinstoneBindingEnumeration implements NamingEnumeration {
     private Hashtable bindings;
     private Hashtable contextEnvironment;
     private Context context;
-    private WinstoneResourceBundle resources;
 
     /**
      * Constructor - sets up the enumeration ready for retrieving bindings
@@ -52,9 +49,7 @@ public class WinstoneBindingEnumeration implements NamingEnumeration {
      *            The source binding set
      */
     public WinstoneBindingEnumeration(Hashtable bindings,
-            Hashtable environment, Context context,
-            WinstoneResourceBundle resources) {
-        this.resources = resources;
+            Hashtable environment, Context context) {
         Object keys[] = bindings.keySet().toArray();
         Arrays.sort(keys);
         Vector nameList = new Vector(Arrays.asList(keys));
@@ -66,7 +61,7 @@ public class WinstoneBindingEnumeration implements NamingEnumeration {
 
     public Object next() throws NamingException {
         if (this.nameEnumeration == null)
-            throw new NamingException(this.resources
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES
                     .getString("WinstoneBindingEnumeration.AlreadyClosed"));
 
         String name = (String) this.nameEnumeration.nextElement();
@@ -76,7 +71,7 @@ public class WinstoneBindingEnumeration implements NamingEnumeration {
                     .add(name), this.context, this.contextEnvironment);
         } catch (Throwable err) {
             NamingException errNaming = new NamingException(
-                    this.resources
+                    ContainerJNDIManager.JNDI_RESOURCES
                             .getString("WinstoneBindingEnumeration.FailedToGetInstance"));
             errNaming.setRootCause(err);
             throw errNaming;
@@ -86,7 +81,7 @@ public class WinstoneBindingEnumeration implements NamingEnumeration {
 
     public boolean hasMore() throws NamingException {
         if (this.nameEnumeration == null)
-            throw new NamingException(this.resources
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES
                     .getString("WinstoneBindingEnumeration.AlreadyClosed"));
         else
             return this.nameEnumeration.hasMoreElements();

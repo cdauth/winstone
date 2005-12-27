@@ -26,8 +26,6 @@ import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 
-import winstone.WinstoneResourceBundle;
-
 /**
  * Enumeration across the names/classes of the bindings in a particular context.
  * Used by the list() method.
@@ -37,14 +35,11 @@ import winstone.WinstoneResourceBundle;
  */
 public class WinstoneNameEnumeration implements NamingEnumeration {
     private Enumeration nameEnumeration;
-    private WinstoneResourceBundle resources;
     
     /**
      * Constructor
      */
-    public WinstoneNameEnumeration(Map bindings,
-            WinstoneResourceBundle resources) {
-        this.resources = resources;
+    public WinstoneNameEnumeration(Map bindings) {
         Object keys[] = bindings.keySet().toArray();
         Arrays.sort(keys);
         Vector nameClassPairs = new Vector();
@@ -60,7 +55,7 @@ public class WinstoneNameEnumeration implements NamingEnumeration {
 
     public boolean hasMore() throws NamingException {
         if (this.nameEnumeration == null)
-            throw new NamingException(this.resources
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES
                     .getString("WinstoneNameEnumeration.AlreadyClosed"));
         else
             return this.nameEnumeration.hasMoreElements();

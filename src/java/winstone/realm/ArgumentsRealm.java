@@ -40,20 +40,18 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class ArgumentsRealm implements AuthenticationRealm {
+    private static final WinstoneResourceBundle REALM_RESOURCES = new WinstoneResourceBundle("winstone.realm.LocalStrings");
+    
     static final String PASSWORD_PREFIX = "argumentsRealm.passwd.";
     static final String ROLES_PREFIX = "argumentsRealm.roles.";
-    static final String LOCAL_RESOURCES = "winstone.realm.LocalStrings";
     private Map passwords;
     private Map roles;
-    private WinstoneResourceBundle resources;
 
     /**
      * Constructor - this sets up an authentication realm, using the arguments
      * supplied on the command line as a source of userNames/passwords/roles.
      */
-    public ArgumentsRealm(WinstoneResourceBundle resources, Set rolesAllowed,
-            Map args) {
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); // resources;
+    public ArgumentsRealm(Set rolesAllowed, Map args) {
         this.passwords = new Hashtable();
         this.roles = new Hashtable();
 
@@ -78,7 +76,7 @@ public class ArgumentsRealm implements AuthenticationRealm {
             }
         }
 
-        Logger.log(Logger.DEBUG, this.resources, "ArgumentsRealm.Initialised",
+        Logger.log(Logger.DEBUG, REALM_RESOURCES, "ArgumentsRealm.Initialised",
                 "" + this.passwords.size());
     }
 

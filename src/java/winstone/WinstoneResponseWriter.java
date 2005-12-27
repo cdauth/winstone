@@ -37,15 +37,13 @@ public class WinstoneResponseWriter extends PrintWriter {
 
     private WinstoneOutputStream outputStream;
     private WinstoneResponse response;
-    private WinstoneResourceBundle resources;
     private int bytesBuffered;
     
-    public WinstoneResponseWriter(WinstoneOutputStream out, WinstoneResponse response,
-            WinstoneResourceBundle resources) throws UnsupportedEncodingException {
+    public WinstoneResponseWriter(WinstoneOutputStream out, 
+            WinstoneResponse response) throws UnsupportedEncodingException {
         super(new OutputStreamWriter(out, response.getCharacterEncoding()), false);
         this.outputStream = out;
         this.response = response;
-        this.resources = resources;
         this.bytesBuffered = 0;
     }
 
@@ -90,7 +88,7 @@ public class WinstoneResponseWriter extends PrintWriter {
         if ((contentLengthHeader != null) && 
                 ((this.outputStream.getOutputStreamLength() + this.bytesBuffered) >= 
                         Integer.parseInt(contentLengthHeader))) {
-            Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponseWriter.AutoFlush",
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneResponseWriter.AutoFlush",
                     new String[] {contentLengthHeader,
                     (this.outputStream.getOutputStreamLength() + this.bytesBuffered) + ""});
             flush();

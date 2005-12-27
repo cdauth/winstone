@@ -45,11 +45,11 @@ import winstone.WinstoneResourceBundle;
 public abstract class BaseAuthenticationHandler implements
         AuthenticationHandler {
     static final String ELEM_REALM_NAME = "realm-name";
-    static final String LOCAL_RESOURCES = "winstone.auth.LocalStrings";
+    
     protected SecurityConstraint constraints[];
     protected AuthenticationRealm realm;
     protected String realmName;
-    protected WinstoneResourceBundle resources;
+    public final static WinstoneResourceBundle AUTH_RESOURCES = new WinstoneResourceBundle("winstone.auth.LocalStrings");
 
     /**
      * Factory method - this parses the web.xml nodes and builds the correct
@@ -57,9 +57,8 @@ public abstract class BaseAuthenticationHandler implements
      */
     protected BaseAuthenticationHandler(Node loginConfigNode,
             List constraintNodes, Set rolesAllowed,
-            WinstoneResourceBundle resources, AuthenticationRealm realm) {
+            AuthenticationRealm realm) {
         this.realm = realm;
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); // resources;
 
         for (int m = 0; m < loginConfigNode.getChildNodes().getLength(); m++) {
             Node loginElm = loginConfigNode.getChildNodes().item(m);
@@ -73,7 +72,7 @@ public abstract class BaseAuthenticationHandler implements
         this.constraints = new SecurityConstraint[constraintNodes.size()];
         for (int n = 0; n < constraints.length; n++)
             this.constraints[n] = new SecurityConstraint((Node) constraintNodes
-                    .get(n), rolesAllowed, resources, this.resources, n);
+                    .get(n), rolesAllowed, n);
     }
 
     /**
@@ -86,7 +85,7 @@ public abstract class BaseAuthenticationHandler implements
     public boolean processAuthentication(ServletRequest inRequest,
             ServletResponse inResponse, String pathRequested)
             throws IOException, ServletException {
-        Logger.log(Logger.FULL_DEBUG, this.resources,
+        Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
                 "BaseAuthenticationHandler.StartAuthCheck");
 
         HttpServletRequest request = (HttpServletRequest) inRequest;
@@ -106,23 +105,23 @@ public abstract class BaseAuthenticationHandler implements
         // Loop through constraints
         boolean foundApplicable = false;
         for (int n = 0; (n < this.constraints.length) && !foundApplicable; n++) {
-            Logger.log(Logger.FULL_DEBUG, this.resources,
+            Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
                     "BaseAuthenticationHandler.EvalConstraint",
                     this.constraints[n].getName());
 
             // Find one that applies, then
             if (this.constraints[n].isApplicable(pathRequested, request.getMethod())) {
-                Logger.log(Logger.FULL_DEBUG, this.resources,
+                Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
                         "BaseAuthenticationHandler.ApplicableConstraint",
                         this.constraints[n].getName());
                 foundApplicable = true;
 
                 if (this.constraints[n].needsSSL() && !request.isSecure()) {
-                    Logger.log(Logger.DEBUG, resources,
+                    Logger.log(Logger.DEBUG, AUTH_RESOURCES,
                             "BaseAuthenticationHandler.ConstraintNeedsSSL",
                             this.constraints[n].getName());
                     response.sendError(HttpServletResponse.SC_FORBIDDEN, 
-                            resources.getString("BaseAuthenticationHandler.ConstraintNeedsSSL", 
+                            AUTH_RESOURCES.getString("BaseAuthenticationHandler.ConstraintNeedsSSL", 
                                     this.constraints[n].getName()));
                     return false;
                 }
@@ -140,7 +139,7 @@ public abstract class BaseAuthenticationHandler implements
         }
         
         // If we made it this far without a check being run, there must be none applicable
-        Logger.log(Logger.FULL_DEBUG, this.resources, "BaseAuthenticationHandler.PassedAuthCheck");
+        Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES, "BaseAuthenticationHandler.PassedAuthCheck");
         return true;
     }
     

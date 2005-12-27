@@ -21,7 +21,6 @@ import java.net.*;
 import java.io.*;
 
 import winstone.Logger;
-import winstone.WinstoneResourceBundle;
 import winstone.WinstoneSession;
 
 /**
@@ -43,14 +42,12 @@ public class ClusterSessionSearch implements Runnable {
     private String searchId;
     private String searchAddressPort;
     private int controlPort;
-    private WinstoneResourceBundle resources;
 
     /**
      * Sets up for a threaded search
      */
     public ClusterSessionSearch(String webAppPrefix, String sessionId, 
-            String ipPort, int controlPort, WinstoneResourceBundle resources) {
-        this.resources = resources;
+            String ipPort, int controlPort) {
         this.isFinished = false;
         this.searchWebAppPrefix = webAppPrefix;
         this.interrupted = false;
@@ -74,8 +71,7 @@ public class ClusterSessionSearch implements Runnable {
             String ipAddress = this.searchAddressPort.substring(0, colonPos);
             String port = this.searchAddressPort.substring(colonPos + 1);
 
-            Socket controlConnection = new Socket(ipAddress, Integer
-                    .parseInt(port));
+            Socket controlConnection = new Socket(ipAddress, Integer.parseInt(port));
             controlConnection.setSoTimeout(TIMEOUT);
             OutputStream out = controlConnection.getOutputStream();
             out.write(SESSION_CHECK_TYPE);
@@ -101,7 +97,7 @@ public class ClusterSessionSearch implements Runnable {
             in.close();
             controlConnection.close();
         } catch (Throwable err) {
-            Logger.log(Logger.WARNING, this.resources,
+            Logger.log(Logger.WARNING, SimpleCluster.CLUSTER_RESOURCES,
                     "ClusterSessionSearch.Error", err);
         }
         this.isFinished = true;

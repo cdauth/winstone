@@ -76,7 +76,7 @@ public class WebAppJNDIManager extends ContainerJNDIManager {
                                     .trim();
                     }
                     if ((name != null) && (type != null) && (value != null)) {
-                        Logger.log(Logger.FULL_DEBUG, this.resources,
+                        Logger.log(Logger.FULL_DEBUG, JNDI_RESOURCES,
                                 "WebAppJNDIManager.CreatingResourceWebXML",
                                 name);
                         Object obj = createObject(name, type, value, args, loader);

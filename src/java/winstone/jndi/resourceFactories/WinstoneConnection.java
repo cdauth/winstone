@@ -28,39 +28,52 @@ import java.sql.Statement;
 import java.util.Map;
 
 import winstone.Logger;
-import winstone.WinstoneResourceBundle;
 
 /**
+ * JDBC Connection wrapper for use in the pooling datasource. This just suppresses 
+ * the close() call, and releases the connection.
+ * 
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
 public class WinstoneConnection implements Connection {
     private Connection realConnection;
     private WinstoneDataSource datasource;
-    private WinstoneResourceBundle resources;
 
     /**
      * Constructor - this sets the real connection and the link back to the pool
      */
     public WinstoneConnection(Connection connection,
-            WinstoneDataSource datasource, WinstoneResourceBundle resources) {
+            WinstoneDataSource datasource) {
         this.realConnection = connection;
         this.datasource = datasource;
-        this.resources = resources;
     }
 
     public void close() throws SQLException {
-        Connection realConnectionHolder = null;
-        if (this.realConnection != null) {
-            Logger.log(Logger.FULL_DEBUG, resources,
+        if ((this.datasource != null) && (this.datasource.getLogWriter() != null)) {
+            this.datasource.getLogWriter().println(
+                    WinstoneDataSource.DS_RESOURCES.getString(
+                            "WinstoneConnection.ReleaseRollback"));
+        } else {
+            Logger.log(Logger.FULL_DEBUG, WinstoneDataSource.DS_RESOURCES,
                     "WinstoneConnection.ReleaseRollback");
-            if (!this.realConnection.getAutoCommit())
-                this.realConnection.rollback();
-            realConnectionHolder = this.realConnection;
-            this.realConnection = null;
         }
-        if (this.datasource != null)
-            this.datasource.releaseConnection(this, realConnectionHolder);
+        
+        Connection realConnectionHolder = null;
+        try {
+            if (this.realConnection != null) {
+                realConnectionHolder = this.realConnection;
+                this.realConnection = null;
+                
+                if (!realConnectionHolder.getAutoCommit())
+                    realConnectionHolder.rollback();
+            }
+        } finally {
+            if ((this.datasource != null) && (realConnectionHolder != null)) {
+                this.datasource.releaseConnection(this, realConnectionHolder);
+                this.datasource = null;
+            }
+        }
     }
 
     public boolean isClosed() throws SQLException {

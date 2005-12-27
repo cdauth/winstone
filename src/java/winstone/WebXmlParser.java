@@ -54,11 +54,9 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
     static final String DATATYPES_LOCAL = "javax/servlet/resources/datatypes.dtd";
     static final String WS_CLIENT_LOCAL = "javax/servlet/resources/j2ee_web_services_client_1_1.xsd";
 
-    private WinstoneResourceBundle resources;
     private ClassLoader commonLoader;
 
-    public WebXmlParser(WinstoneResourceBundle resources, ClassLoader commonCL) {
-        this.resources = resources;
+    public WebXmlParser(ClassLoader commonCL) {
         this.commonLoader = commonCL;
     }
     
@@ -104,12 +102,12 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
                                         "http://java.sun.com/xml/jaxp/properties/schemaSource",
                                         this.commonLoader.getResource(
                                                 XSD_2_4_LOCAL).toString());
-                        Logger.log(Logger.FULL_DEBUG, resources, "Launcher.Local24XSDEnabled");
+                        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "Launcher.Local24XSDEnabled");
                     } else {
-                        Logger.log(Logger.WARNING, resources, "Launcher.24XSDNotFound");
+                        Logger.log(Logger.WARNING, Launcher.RESOURCES, "Launcher.24XSDNotFound");
                     }
                 } catch (Throwable err) {
-                    Logger.log(Logger.WARNING, resources,
+                    Logger.log(Logger.WARNING, Launcher.RESOURCES,
                             "Launcher.NonXSDParser");
                 }
                 builder = factory.newDocumentBuilder();
@@ -119,7 +117,7 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
             }
             return doc;
         } catch (Throwable errParser) {
-            throw new WinstoneException(resources
+            throw new WinstoneException(Launcher.RESOURCES
                     .getString("Launcher.WebXMLParseError"), errParser);
         }
     }
@@ -131,7 +129,7 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
      */
     public InputSource resolveEntity(String publicName, String url)
             throws SAXException, IOException {
-        Logger.log(Logger.FULL_DEBUG, resources, "Launcher.ResolvingEntity",
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "Launcher.ResolvingEntity",
                 new String[] { publicName, url });
         if ((publicName != null) && publicName.equals(DTD_2_2_PUBLIC))
             return getLocalResource(url, DTD_2_2_LOCAL);
@@ -155,7 +153,7 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
         else if ((url != null) && url.startsWith("jar:"))
             return getLocalResource(url, url.substring(url.indexOf("!/") + 2));
         else {
-            Logger.log(Logger.FULL_DEBUG, resources,
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                     "Launcher.NoLocalResource", url);
             return new InputSource(url);
         }
@@ -178,7 +176,7 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
     }
 
     public void warning(SAXParseException exception) throws SAXException {
-        Logger.log(Logger.DEBUG, resources, "Launcher.XMLParseError",
+        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "Launcher.XMLParseError",
                 new String[] { exception.getLineNumber() + "",
                         exception.getMessage() });
     }

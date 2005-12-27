@@ -58,7 +58,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
     
     private WebAppConfiguration webAppConfig;
     private ServletConfiguration servletConfig;
-    private WinstoneResourceBundle resources;
     
     private String servletPath;
     private String pathInfo;
@@ -85,11 +84,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
      * needed to handle a servlet excecution, such as security constraints,
      * filters, etc.
      */
-    public RequestDispatcher(WebAppConfiguration webAppConfig, ServletConfiguration servletConfig, 
-            WinstoneResourceBundle resources) {
+    public RequestDispatcher(WebAppConfiguration webAppConfig, ServletConfiguration servletConfig) {
         this.servletConfig = servletConfig;
         this.webAppConfig = webAppConfig;
-        this.resources = resources;
 
         this.filterPatternsEvaluated = 0;
     }
@@ -164,7 +161,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
         // On the first call, log and initialise the filter chain
         if (this.doInclude == null) {
-            Logger.log(Logger.DEBUG, resources,
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                     "RequestDispatcher.IncludeMessage", new String[] {
                             getName(), this.requestURI });
             
@@ -241,11 +238,11 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
         // Only on the first call to forward, we should set any forwarding attributes
         if (this.doInclude == null) {
-            Logger.log(Logger.DEBUG, resources,
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                     "RequestDispatcher.ForwardMessage", new String[] {
                     getName(), this.requestURI });
             if (response.isCommitted()) {
-                throw new IllegalStateException(resources.getString(
+                throw new IllegalStateException(Launcher.RESOURCES.getString(
                         "RequestDispatcher.ForwardCommitted"));
             }
             
@@ -349,7 +346,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                     && filterPattern.getLinkName().equals(getName())) {
                 FilterConfiguration filter = (FilterConfiguration) this.webAppConfig.getFilters()
                         .get(filterPattern.getMappedTo());
-                Logger.log(Logger.DEBUG, this.resources,
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                         "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
                 filter.execute(request, response, this);
                 return;
@@ -360,12 +357,12 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                     && filterPattern.match(fullPath, null, null)) {
                 FilterConfiguration filter = (FilterConfiguration) this.webAppConfig.getFilters()
                         .get(filterPattern.getMappedTo());
-                Logger.log(Logger.DEBUG, this.resources, 
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
                         "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
                 filter.execute(request, response, this);
                 return;
             } else {
-                Logger.log(Logger.FULL_DEBUG, this.resources, "RequestDispatcher.BypassingFilter",
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "RequestDispatcher.BypassingFilter",
                         new String[] { getName(), filterPattern.toString(), fullPath });
             }
         }

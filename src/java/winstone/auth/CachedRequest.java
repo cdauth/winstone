@@ -23,7 +23,6 @@ import java.io.InputStream;
 
 import winstone.WinstoneInputStream;
 import winstone.WinstoneRequest;
-import winstone.WinstoneResourceBundle;
 
 /**
  * This class has been included so that we can handle caching a request object
@@ -46,9 +45,8 @@ public class CachedRequest extends WinstoneRequest {
      * @throws IOException
      *             If there are any problems with reading from the stream
      */
-    public CachedRequest(WinstoneRequest request,
-            WinstoneResourceBundle resources) throws IOException {
-        super(resources);
+    public CachedRequest(WinstoneRequest request) throws IOException {
+        super();
 
         // Stash the relevant pieces of info
         this.attributesStack.addAll(request.getAttributesStack());
@@ -89,8 +87,7 @@ public class CachedRequest extends WinstoneRequest {
                 readBytes = in.read(buffer);
             }
         }
-        this.inputData = new WinstoneInputStream(inBackup.toByteArray(),
-                resources);
+        this.inputData = new WinstoneInputStream(inBackup.toByteArray());
     }
 
     /**

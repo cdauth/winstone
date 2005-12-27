@@ -89,13 +89,10 @@ public class WinstoneResponse implements HttpServletResponse {
     private String reqKeepAliveHeader;
     private Integer errorStatusCode;
     
-    private WinstoneResourceBundle resources;
-    
     /**
      * Constructor
      */
-    public WinstoneResponse(WinstoneResourceBundle resources) {
-        this.resources = resources;
+    public WinstoneResponse() {
         
         this.headers = new ArrayList();
         this.cookies = new ArrayList();
@@ -135,23 +132,23 @@ public class WinstoneResponse implements HttpServletResponse {
     private String getEncodingFromLocale(Locale loc) {
         String localeString = loc.getLanguage() + "_" + loc.getCountry();
         Map encMap = this.webAppConfig.getLocaleEncodingMap();
-        Logger.log(Logger.FULL_DEBUG, resources, 
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, 
                 "WinstoneResponse.LookForLocaleEncoding",
                 new String[] {localeString, encMap + ""});
 
         String fullMatch = (String) encMap.get(localeString);
         if (fullMatch != null) {
-            Logger.log(Logger.FULL_DEBUG, resources, 
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, 
                     "WinstoneResponse.FoundLocaleEncoding", fullMatch);
             return fullMatch;
         } else {
             localeString = loc.getLanguage();
-            Logger.log(Logger.FULL_DEBUG, resources, 
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, 
                     "WinstoneResponse.LookForLocaleEncoding",
                     new String[] {localeString, encMap + ""});
             String match = (String) encMap.get(localeString);
             if (match != null) {
-                Logger.log(Logger.FULL_DEBUG, resources, 
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, 
                         "WinstoneResponse.FoundLocaleEncoding", match);
             }
             return match;
@@ -201,7 +198,7 @@ public class WinstoneResponse implements HttpServletResponse {
     
     public void startIncludeBuffer() {
         ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-        WinstoneOutputStream outStream = new WinstoneOutputStream(outBytes, true, resources);
+        WinstoneOutputStream outStream = new WinstoneOutputStream(outBytes, true);
         outStream.setResponse(this);
             
         this.includeByteArrays.push(outBytes);
@@ -285,7 +282,7 @@ public class WinstoneResponse implements HttpServletResponse {
             }
             int bodyBytes = this.outputStream.getOutputStreamLength();
             if (contentLength != bodyBytes)
-                Logger.log(Logger.DEBUG, resources,
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                         "WinstoneResponse.ShortOutput", new String[] {
                                 contentLength + "", bodyBytes + "" });
         }
@@ -353,7 +350,7 @@ public class WinstoneResponse implements HttpServletResponse {
             }
         }
         
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.HeadersPreCommit",
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneResponse.HeadersPreCommit",
                 this.headers + "");
     }
 
@@ -362,7 +359,7 @@ public class WinstoneResponse implements HttpServletResponse {
      */
     public String writeCookie(Cookie cookie) throws IOException {
         
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.WritingCookie", cookie + "");
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneResponse.WritingCookie", cookie + "");
         StringBuffer out = new StringBuffer();
 
         // Set-Cookie or Set-Cookie2
@@ -495,7 +492,7 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setCharacterEncoding(String encoding) {
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.SettingEncoding", encoding);
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneResponse.SettingEncoding", encoding);
         StringBuffer remainderHeader = new StringBuffer();
         getCharsetFromContentTypeHeader(getContentType(), remainderHeader);
         setContentType(remainderHeader + ";charset=" + encoding);
@@ -519,7 +516,7 @@ public class WinstoneResponse implements HttpServletResponse {
         }
         
         if (isCommitted()) {
-            Logger.log(Logger.WARNING, resources,
+            Logger.log(Logger.WARNING, Launcher.RESOURCES,
                     "WinstoneResponse.SetLocaleTooLate");
         } else if ((this.outPrintWriters.get(this.outputStream) == null)
                 && (this.explicitlySetEncoding == null)) {
@@ -551,18 +548,18 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public ServletOutputStream getOutputStream() throws IOException {
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.GetOutputStream");
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneResponse.GetOutputStream");
         return getTopOutputStream();
     }
 
     public PrintWriter getWriter() throws IOException {
-        Logger.log(Logger.FULL_DEBUG, resources, "WinstoneResponse.GetWriter");
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneResponse.GetWriter");
         WinstoneOutputStream outStream = getTopOutputStream();
         PrintWriter outWriter = (PrintWriter) this.outPrintWriters.get(outStream);
         if (outWriter != null)
             return outWriter;
         else {
-            outWriter = new WinstoneResponseWriter(outStream, this, this.resources); 
+            outWriter = new WinstoneResponseWriter(outStream, this); 
             this.outPrintWriters.put(outStream, outWriter);
             return outWriter;
         }
@@ -584,7 +581,7 @@ public class WinstoneResponse implements HttpServletResponse {
     public void resetBuffer() {
         if (this.includeOutputStreams.isEmpty()) {
             if (isCommitted())
-                throw new IllegalStateException(resources
+                throw new IllegalStateException(Launcher.RESOURCES
                         .getString("WinstoneResponse.ResponseCommitted"));
             
             // Disregard any output temporarily while we flush
@@ -715,11 +712,11 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void sendRedirect(String location) throws IOException {
         if (!this.includeOutputStreams.isEmpty()) {
-            Logger.log(Logger.ERROR, resources, "IncludeResponse.Redirect",
+            Logger.log(Logger.ERROR, Launcher.RESOURCES, "IncludeResponse.Redirect",
                     location);
             return;
         } else if (isCommitted()) {
-            throw new IllegalStateException(resources.getString("WinstoneOutputStream.AlreadyCommitted"));
+            throw new IllegalStateException(Launcher.RESOURCES.getString("WinstoneOutputStream.AlreadyCommitted"));
         }
         resetBuffer();
         
@@ -772,12 +769,12 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void sendError(int sc, String msg) throws IOException {
         if (!this.includeOutputStreams.isEmpty()) {
-            Logger.log(Logger.ERROR, resources, "IncludeResponse.Error",
+            Logger.log(Logger.ERROR, Launcher.RESOURCES, "IncludeResponse.Error",
                     new String[] { "" + sc, msg });
             return;
         }
         
-        Logger.log(Logger.DEBUG, this.resources,
+        Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                 "WinstoneResponse.SendingError", new String[] { "" + sc, msg });
 
         if ((this.webAppConfig != null) && (this.req != null)) {
@@ -795,7 +792,7 @@ public class WinstoneResponse implements HttpServletResponse {
                 } catch (IOException err) {
                     throw err;
                 } catch (Throwable err) {
-                    Logger.log(Logger.WARNING, this.resources,
+                    Logger.log(Logger.WARNING, Launcher.RESOURCES,
                             "WinstoneResponse.ErrorInErrorPage", new String[] {
                                     rd.getName(), sc + "" }, err);
                     return;
@@ -808,9 +805,9 @@ public class WinstoneResponse implements HttpServletResponse {
         if (this.errorStatusCode == null) {
             this.statusCode = sc;
         }
-        String output = resources.getString("WinstoneResponse.ErrorPage",
+        String output = Launcher.RESOURCES.getString("WinstoneResponse.ErrorPage",
                 new String[] { sc + "", (msg == null ? "" : msg), "",
-                        resources.getString("ServerVersion"),
+                        Launcher.RESOURCES.getString("ServerVersion"),
                         "" + new Date() });
         setContentLength(output.getBytes(getCharacterEncoding()).length);
         Writer out = getWriter();

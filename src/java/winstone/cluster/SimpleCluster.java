@@ -55,27 +55,24 @@ public class SimpleCluster implements Runnable, Cluster {
     final byte NODELIST_DOWNLOAD_TYPE = (byte) '2';
     final byte NODE_HEARTBEAT_TYPE = (byte) '3';
 
-    private static final String LOCAL_RESOURCE_FILE = "winstone.cluster.LocalStrings";
+    public static final WinstoneResourceBundle CLUSTER_RESOURCES = new WinstoneResourceBundle("winstone.cluster.LocalStrings");
     private int controlPort;
     private String initialClusterNodes;
     private Map clusterAddresses;
     private boolean interrupted;
-    private WinstoneResourceBundle localResources;
 
     /**
      * Builds a cluster instance
      */
-    public SimpleCluster(Map args, WinstoneResourceBundle resources,
-            Integer controlPort) {
+    public SimpleCluster(Map args, Integer controlPort) {
         this.interrupted = false;
         this.clusterAddresses = new Hashtable();
-        this.localResources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
         if (controlPort != null)
             this.controlPort = controlPort.intValue();
 
         // Start cluster init thread
         this.initialClusterNodes = (String) args.get("clusterNodes");
-        Thread thread = new Thread(this, localResources
+        Thread thread = new Thread(this, CLUSTER_RESOURCES
                 .getString("SimpleCluster.ThreadName"));
         thread.setDaemon(true);
         thread.setPriority(Thread.MIN_PRIORITY);
@@ -100,7 +97,7 @@ public class SimpleCluster implements Runnable, Cluster {
                 askClusterNodeForNodeList(st.nextToken());
         }
 
-        Logger.log(Logger.DEBUG, localResources, "SimpleCluster.InitNodes", ""
+        Logger.log(Logger.DEBUG, CLUSTER_RESOURCES, "SimpleCluster.InitNodes", ""
                 + this.clusterAddresses.size());
 
         while (!interrupted) {
@@ -115,7 +112,7 @@ public class SimpleCluster implements Runnable, Cluster {
                             .get(ipPort);
                     if (lastHeartBeat.before(noHeartbeatDate)) {
                         this.clusterAddresses.remove(ipPort);
-                        Logger.log(Logger.FULL_DEBUG, localResources,
+                        Logger.log(Logger.FULL_DEBUG, CLUSTER_RESOURCES,
                                 "SimpleCluster.RemovingNode", ipPort);
                     }
 
@@ -126,11 +123,11 @@ public class SimpleCluster implements Runnable, Cluster {
                 }
                 Thread.sleep(HEARTBEAT_PERIOD);
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, localResources,
+                Logger.log(Logger.ERROR, CLUSTER_RESOURCES,
                         "SimpleCluster.ErrorMonitorThread", err);
             }
         }
-        Logger.log(Logger.FULL_DEBUG, localResources,
+        Logger.log(Logger.FULL_DEBUG, CLUSTER_RESOURCES,
                 "SimpleCluster.FinishedMonitorThread");
     }
 
@@ -150,7 +147,7 @@ public class SimpleCluster implements Runnable, Cluster {
         for (Iterator i = addresses.iterator(); i.hasNext();) {
             String ipPort = (String) i.next();
             ClusterSessionSearch search = new ClusterSessionSearch(webAppConfig.getPrefix(), 
-                    sessionId, ipPort, this.controlPort, localResources);
+                    sessionId, ipPort, this.controlPort);
             searchThreads.add(search);
         }
 
@@ -195,7 +192,7 @@ public class SimpleCluster implements Runnable, Cluster {
         }
         if (answer != null) {
             answer.activate(webAppConfig);
-            Logger.log(Logger.DEBUG, localResources,
+            Logger.log(Logger.DEBUG, CLUSTER_RESOURCES,
                     "SimpleCluster.SessionTransferredFrom", senderThread);
         }
         return answer;
@@ -239,10 +236,10 @@ public class SimpleCluster implements Runnable, Cluster {
             in.close();
             clusterListSocket.close();
         } catch (ConnectException err) {
-            Logger.log(Logger.DEBUG, localResources,
+            Logger.log(Logger.DEBUG, CLUSTER_RESOURCES,
                     "SimpleCluster.NoNodeListResponse", address);
         } catch (Throwable err) {
-            Logger.log(Logger.ERROR, localResources,
+            Logger.log(Logger.ERROR, CLUSTER_RESOURCES,
                     "SimpleCluster.ErrorGetNodeList", address, err);
         }
     }
@@ -267,11 +264,11 @@ public class SimpleCluster implements Runnable, Cluster {
             outData.writeInt(this.controlPort);
             outData.close();
             heartbeatSocket.close();
-            Logger.log(Logger.FULL_DEBUG, localResources,
+            Logger.log(Logger.FULL_DEBUG, CLUSTER_RESOURCES,
                     "SimpleCluster.HeartbeatSent", address);
         } catch (ConnectException err) {/* ignore - 3 fails, and we remove */
         } catch (Throwable err) {
-            Logger.log(Logger.ERROR, localResources,
+            Logger.log(Logger.ERROR, CLUSTER_RESOURCES,
                     "SimpleCluster.HeartbeatError", address, err);
         }
     }
@@ -300,7 +297,7 @@ public class SimpleCluster implements Runnable, Cluster {
         else if (requestType == NODE_HEARTBEAT_TYPE)
             handleNodeHeartBeatRequest(socket, in);
         else
-            Logger.log(Logger.ERROR, localResources,
+            Logger.log(Logger.ERROR, CLUSTER_RESOURCES,
                     "SimpleCluster.UnknownRequest", "" + (char) requestType);
     }
 
@@ -329,7 +326,7 @@ public class SimpleCluster implements Runnable, Cluster {
                 if (inControl.readUTF().equals(
                         ClusterSessionSearch.SESSION_RECEIVED))
                     session.passivate();
-                Logger.log(Logger.DEBUG, localResources,
+                Logger.log(Logger.DEBUG, CLUSTER_RESOURCES,
                         "SimpleCluster.SessionTransferredTo", ipPortSender);
             } else {
                 outData.writeUTF(ClusterSessionSearch.SESSION_NOT_FOUND);
@@ -382,7 +379,7 @@ public class SimpleCluster implements Runnable, Cluster {
         String ipPort = socket.getInetAddress().getHostAddress() + ":"
                 + remoteControlPort;
         this.clusterAddresses.put(ipPort, new Date());
-        Logger.log(Logger.FULL_DEBUG, localResources,
+        Logger.log(Logger.FULL_DEBUG, CLUSTER_RESOURCES,
                 "SimpleCluster.HeartbeatReceived", ipPort);
     }
 }

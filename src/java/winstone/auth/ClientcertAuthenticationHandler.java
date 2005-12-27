@@ -32,7 +32,6 @@ import winstone.AuthenticationPrincipal;
 import winstone.AuthenticationRealm;
 import winstone.Logger;
 import winstone.WinstoneRequest;
-import winstone.WinstoneResourceBundle;
 
 /**
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
@@ -41,9 +40,9 @@ import winstone.WinstoneResourceBundle;
 public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler {
     public ClientcertAuthenticationHandler(Node loginConfigNode,
             List constraintNodes, Set rolesAllowed,
-            WinstoneResourceBundle resources, AuthenticationRealm realm) {
-        super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
-        Logger.log(Logger.DEBUG, this.resources,
+            AuthenticationRealm realm) {
+        super(loginConfigNode, constraintNodes, rolesAllowed, realm);
+        Logger.log(Logger.DEBUG, AUTH_RESOURCES,
                 "ClientcertAuthenticationHandler.Initialised", realmName);
     }
 
@@ -54,11 +53,8 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler {
             HttpServletResponse response, String pathRequested)
             throws IOException {
         // Return unauthorized, and set the realm name
-        response
-                .sendError(
-                        HttpServletResponse.SC_UNAUTHORIZED,
-                        this.resources
-                                .getString("ClientcertAuthenticationHandler.UnauthorizedMessage"));
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+                AUTH_RESOURCES.getString("ClientcertAuthenticationHandler.UnauthorizedMessage"));
     }
 
     /**
@@ -92,15 +88,11 @@ public class ClientcertAuthenticationHandler extends BaseAuthenticationHandler {
                             ((WinstoneRequest) wrapper.getRequest())
                                     .setRemoteUser(principal);
                         else
-                            Logger
-                                    .log(
-                                            Logger.WARNING,
-                                            this.resources,
-                                            "ClientCertAuthenticationHandler.CantSetUser",
-                                            wrapper.getRequest().getClass()
-                                                    .getName());
+                            Logger.log(Logger.WARNING, AUTH_RESOURCES,
+                                    "ClientCertAuthenticationHandler.CantSetUser",
+                                            wrapper.getRequest().getClass().getName());
                     } else
-                        Logger.log(Logger.WARNING, this.resources,
+                        Logger.log(Logger.WARNING, AUTH_RESOURCES,
                                 "ClientCertAuthenticationHandler.CantSetUser",
                                 request.getClass().getName());
                 }

@@ -45,24 +45,22 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class FileRealm implements AuthenticationRealm {
+    private static final WinstoneResourceBundle REALM_RESOURCES = new WinstoneResourceBundle("winstone.realm.LocalStrings");
+    
     final String FILE_NAME_ARGUMENT = "fileRealm.configFile";
     final String DEFAULT_FILE_NAME = "users.xml";
     final String ELEM_USER = "user";
     final String ATT_USERNAME = "username";
     final String ATT_PASSWORD = "password";
     final String ATT_ROLELIST = "roles";
-    static final String LOCAL_RESOURCES = "winstone.realm.LocalStrings";
     private Map passwords;
     private Map roles;
-    private WinstoneResourceBundle resources;
 
     /**
      * Constructor - this sets up an authentication realm, using the file
      * supplied on the command line as a source of userNames/passwords/roles.
      */
-    public FileRealm(WinstoneResourceBundle resources, Set rolesAllowed,
-            Map args) {
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCES); // resources;
+    public FileRealm(Set rolesAllowed, Map args) {
         this.passwords = new Hashtable();
         this.roles = new Hashtable();
 
@@ -71,7 +69,7 @@ public class FileRealm implements AuthenticationRealm {
                 : (String) args.get(FILE_NAME_ARGUMENT);
         File realmFile = new File(realmFileName);
         if (!realmFile.exists())
-            throw new WinstoneException(this.resources.getString(
+            throw new WinstoneException(REALM_RESOURCES.getString(
                     "FileRealm.FileNotFound", realmFile.getPath()));
         try {
             InputStream inFile = new FileInputStream(realmFile);
@@ -99,7 +97,7 @@ public class FileRealm implements AuthenticationRealm {
 
                     if ((userName == null) || (password == null)
                             || (roleList == null))
-                        Logger.log(Logger.FULL_DEBUG, this.resources,
+                        Logger.log(Logger.FULL_DEBUG, REALM_RESOURCES,
                                 "FileRealm.SkippingUser", userName);
                     else {
                         // Parse the role list into an array and sort it
@@ -117,10 +115,10 @@ public class FileRealm implements AuthenticationRealm {
                     }
                 }
             }
-            Logger.log(Logger.DEBUG, this.resources, "FileRealm.Initialised",
+            Logger.log(Logger.DEBUG, REALM_RESOURCES, "FileRealm.Initialised",
                     "" + this.passwords.size());
         } catch (java.io.IOException err) {
-            throw new WinstoneException(this.resources
+            throw new WinstoneException(REALM_RESOURCES
                     .getString("FileRealm.ErrorLoading"), err);
         }
     }
@@ -143,7 +141,7 @@ public class FileRealm implements AuthenticationRealm {
             DocumentBuilder builder = factory.newDocumentBuilder();
             return builder.parse(in);
         } catch (Throwable errParser) {
-            throw new WinstoneException(resources
+            throw new WinstoneException(REALM_RESOURCES
                     .getString("FileRealm.WebXMLParseError"), errParser);
         }
     }

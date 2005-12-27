@@ -46,7 +46,6 @@ public class HttpListener implements Listener, Runnable {
     protected static int KEEP_ALIVE_TIMEOUT = 10000;
     protected static int KEEP_ALIVE_SLEEP = 20;
     protected static int KEEP_ALIVE_SLEEP_MAX = 500;
-    protected WinstoneResourceBundle resources;
     protected WebAppGroup webAppGroup;
     protected ObjectPool objectPool;
     protected boolean doHostnameLookups;
@@ -60,10 +59,8 @@ public class HttpListener implements Listener, Runnable {
     /**
      * Constructor
      */
-    public HttpListener(Map args, WinstoneResourceBundle resources,
-            ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
+    public HttpListener(Map args, ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
         // Load resources
-        this.resources = resources;
         this.webAppGroup = webAppGroup;
         this.objectPool = objectPool;
         this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args,
@@ -79,7 +76,7 @@ public class HttpListener implements Listener, Runnable {
 
         this.interrupted = false;
 
-        Thread thread = new Thread(this, resources.getString(
+        Thread thread = new Thread(this, Launcher.RESOURCES.getString(
                 "Listener.ThreadName", new String[] { getConnectorName(),
                         "" + this.listenPort }));
         thread.setDaemon(true);
@@ -123,7 +120,7 @@ public class HttpListener implements Listener, Runnable {
         try {
             ServerSocket ss = getServerSocket();
             ss.setSoTimeout(LISTENER_TIMEOUT);
-            Logger.log(Logger.INFO, resources, "HttpListener.StartupOK",
+            Logger.log(Logger.INFO, Launcher.RESOURCES, "HttpListener.StartupOK",
                     new String[] { getConnectorName().toUpperCase(),
                             this.listenPort + "" });
 
@@ -146,11 +143,11 @@ public class HttpListener implements Listener, Runnable {
             // Close server socket
             ss.close();
         } catch (Throwable err) {
-            Logger.log(Logger.ERROR, resources, "HttpListener.ShutdownError",
+            Logger.log(Logger.ERROR, Launcher.RESOURCES, "HttpListener.ShutdownError",
                     getConnectorName().toUpperCase(), err);
         }
 
-        Logger.log(Logger.INFO, resources, "HttpListener.ShutdownOK",
+        Logger.log(Logger.INFO, Launcher.RESOURCES, "HttpListener.ShutdownOK",
                 getConnectorName().toUpperCase());
     }
 
@@ -174,16 +171,14 @@ public class HttpListener implements Listener, Runnable {
     public void allocateRequestResponse(Socket socket, InputStream inSocket,
             OutputStream outSocket, RequestHandlerThread handler,
             boolean iAmFirst) throws SocketException, IOException {
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                 "HttpListener.AllocatingRequest", Thread.currentThread()
                         .getName());
         socket.setSoTimeout(CONNECTION_TIMEOUT);
 
         // Build input/output streams, plus request/response
-        WinstoneInputStream inData = new WinstoneInputStream(inSocket,
-                this.resources);
-        WinstoneOutputStream outData = new WinstoneOutputStream(outSocket,
-                false, resources);
+        WinstoneInputStream inData = new WinstoneInputStream(inSocket);
+        WinstoneOutputStream outData = new WinstoneOutputStream(outSocket, false);
         WinstoneRequest req = this.objectPool.getRequestFromPool();
         WinstoneResponse rsp = this.objectPool.getResponseFromPool();
         outData.setResponse(rsp);
@@ -232,7 +227,7 @@ public class HttpListener implements Listener, Runnable {
         
         byte uriBuffer[] = null;
         try {
-            Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.WaitingForURILine");
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "HttpListener.WaitingForURILine");
             uriBuffer = inData.readLine();
         } catch (SocketTimeoutException err) {
             // keep alive timeout ? ignore if not first
@@ -277,7 +272,7 @@ public class HttpListener implements Listener, Runnable {
 
     protected void parseSocketInfo(Socket socket, WinstoneRequest req)
             throws IOException {
-        Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.ParsingSocketInfo");
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "HttpListener.ParsingSocketInfo");
         req.setScheme(getConnectorName());
         req.setServerPort(socket.getLocalPort());
         req.setLocalPort(socket.getLocalPort());
@@ -317,12 +312,12 @@ public class HttpListener implements Listener, Runnable {
      */
     private String parseURILine(String uriLine, WinstoneRequest req,
             WinstoneResponse rsp) {
-        Logger.log(Logger.FULL_DEBUG, resources, "HttpListener.UriLine", uriLine.trim());
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "HttpListener.UriLine", uriLine.trim());
         
         // Method
         int spacePos = uriLine.indexOf(' ');
         if (spacePos == -1)
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "HttpListener.ErrorUriLine", uriLine));
         String method = uriLine.substring(0, spacePos).toUpperCase();
         String fullURI = null;
@@ -380,7 +375,7 @@ public class HttpListener implements Listener, Runnable {
             while (headerLine.trim().length() > 0) {
                 if (headerLine.indexOf(':') != -1) {
                     headerList.add(headerLine.trim());
-                    Logger.log(Logger.FULL_DEBUG, resources,
+                    Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "HttpListener.Header", headerLine.trim());
                 }
                 headerBuffer = inData.readLine();

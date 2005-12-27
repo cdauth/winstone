@@ -129,7 +129,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     
     static final String JSP_SERVLET_CLASS = "org.apache.jasper.servlet.JspServlet";
     
-    private WinstoneResourceBundle resources;
     private WebAppGroup ownerWebappGroup;
     private Cluster cluster;
     private String webRoot;
@@ -190,10 +189,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      */
     public WebAppConfiguration(WebAppGroup ownerWebappGroup, Cluster cluster, String webRoot,
             String prefix, ObjectPool objectPool, Map startupArgs, Node elm,
-            WinstoneResourceBundle resources, ClassLoader parentClassLoader,
-            File parentClassPaths[], String contextName) {
+            ClassLoader parentClassLoader, File parentClassPaths[], String contextName) {
         this.ownerWebappGroup = ownerWebappGroup;
-        this.resources = resources;
         this.webRoot = webRoot;
         this.prefix = prefix;
         this.contextName = contextName;
@@ -212,9 +209,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             try {
                 Class.forName(JSP_SERVLET_CLASS, false, this.loader);
             } catch (Throwable err) {
-                Logger.log(Logger.WARNING, resources, 
+                Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "WebAppConfig.JasperNotFound");
-                Logger.log(Logger.DEBUG, resources, 
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
                         "WebAppConfig.JasperLoadException", err);
                 useJasper = false;
             }
@@ -223,7 +220,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             try {
                 Class.forName(INVOKER_SERVLET_CLASS, false, this.loader);
             } catch (Throwable err) {
-                Logger.log(Logger.WARNING, resources, 
+                Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "WebAppConfig.InvokerNotFound");
                 useInvoker = false;
             }
@@ -275,7 +272,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
          
         // init mimeTypes set
         this.mimeTypes = new Hashtable();
-        String allTypes = this.resources.getString("WebAppConfig.DefaultMimeTypes");
+        String allTypes = Launcher.RESOURCES.getString("WebAppConfig.DefaultMimeTypes");
         StringTokenizer mappingST = new StringTokenizer(allTypes, ":", false);
         for (; mappingST.hasMoreTokens();) {
             String mapping = mappingST.nextToken();
@@ -288,8 +285,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         }
 
         this.localeEncodingMap = new HashMap();
-        String encodingMapSet = this.resources
-                .getString("WebAppConfig.EncodingMap");
+        String encodingMapSet = Launcher.RESOURCES.getString("WebAppConfig.EncodingMap");
         StringTokenizer st = new StringTokenizer(encodingMapSet, ";");
         for (; st.hasMoreTokens();) {
             String token = st.nextToken();
@@ -363,7 +359,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 // Construct the servlet instances
                 else if (nodeName.equals(ELEM_SERVLET)) {
                     ServletConfiguration instance = new ServletConfiguration(
-                            this, this.resources, child);
+                            this, child);
                     this.servletInstances.put(instance.getServletName(),
                             instance);
                     if (instance.getLoadOnStartup() >= 0)
@@ -373,7 +369,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 // Construct the servlet instances
                 else if (nodeName.equals(ELEM_FILTER)) {
                     FilterConfiguration instance = new FilterConfiguration(
-                            this, this.loader, this.resources, child);
+                            this, this.loader, child);
                     this.filterInstances
                             .put(instance.getFilterName(), instance);
                 }
@@ -398,10 +394,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                                     contextListeners, requestAttributeListeners, requestListeners,
                                     sessionActivationListeners, sessionAttributeListeners, 
                                     sessionListeners);
-                            Logger.log(Logger.DEBUG, this.resources,
+                            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                                     "WebAppConfig.AddListener", listenerClass);
                         } catch (Throwable err) {
-                            Logger.log(Logger.WARNING, this.resources,
+                            Logger.log(Logger.WARNING, Launcher.RESOURCES,
                                     "WebAppConfig.InvalidListener",
                                     listenerClass);
                         }
@@ -468,9 +464,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
                     Mapping mapping = null;
                     if (servletName != null) {
-                        mapping = Mapping.createFromLink(filterName, servletName, resources);
+                        mapping = Mapping.createFromLink(filterName, servletName);
                     } else if (urlPattern != null) {
-                        mapping = Mapping.createFromURL(filterName, urlPattern, resources);
+                        mapping = Mapping.createFromURL(filterName, urlPattern);
                     } else {
                         throw new WinstoneException("Error in filter mapping - no pattern and no servlet name");
                     }
@@ -530,8 +526,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             this.errorPagesByException.put(exceptionClass,
                                     location.trim());
                         } catch (ClassNotFoundException err) {
-                            Logger
-                                    .log(Logger.ERROR, resources,
+                            Logger.log(Logger.ERROR, Launcher.RESOURCES,
                                             "WebAppConfig.ExceptionNotFound",
                                             exception);
                         }
@@ -557,7 +552,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     if ((extension != null) && (mimeType != null))
                         this.mimeTypes.put(extension.toLowerCase(), mimeType);
                     else
-                        Logger.log(Logger.WARNING, this.resources,
+                        Logger.log(Logger.WARNING, Launcher.RESOURCES,
                                 "WebAppConfig.InvalidMimeMapping",
                                 new String[] { extension, mimeType });
                 }
@@ -582,7 +577,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     if ((name != null) && (value != null))
                         this.initParameters.put(name, value);
                     else
-                        Logger.log(Logger.WARNING, this.resources,
+                        Logger.log(Logger.WARNING, Launcher.RESOURCES,
                                 "WebAppConfig.InvalidInitParam", new String[] {
                                         name, value });
                 }
@@ -633,7 +628,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         
         // If not distributable, remove the cluster reference
         if (!distributable && (cluster != null)) {
-            Logger.log(Logger.INFO, this.resources,
+            Logger.log(Logger.INFO, Launcher.RESOURCES,
                     "WebAppConfig.ClusterOffNotDistributable", this.contextName);
         } else {
             this.cluster = cluster;
@@ -665,28 +660,24 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 // Build the realm
                 Class realmClass = Class.forName(realmClassName);
                 Constructor realmConstr = realmClass
-                        .getConstructor(new Class[] {
-                                WinstoneResourceBundle.class, Set.class,
-                                Map.class });
+                        .getConstructor(new Class[] {Set.class, Map.class });
                 this.authenticationRealm = (AuthenticationRealm) realmConstr
-                        .newInstance(new Object[] { resources, rolesAllowed,
-                                startupArgs });
+                        .newInstance(new Object[] { rolesAllowed, startupArgs });
 
                 // Build the authentication handler
                 Class authClass = Class.forName(authClassName);
                 Constructor authConstr = authClass
                         .getConstructor(new Class[] { Node.class, List.class,
-                                Set.class, WinstoneResourceBundle.class,
-                                AuthenticationRealm.class });
+                                Set.class, AuthenticationRealm.class });
                 this.authenticationHandler = (AuthenticationHandler) authConstr
                         .newInstance(new Object[] { loginConfigNode,
-                                constraintNodes, rolesAllowed, resources,
+                                constraintNodes, rolesAllowed,
                                 authenticationRealm });
             } catch (ClassNotFoundException err) {
-                Logger.log(Logger.DEBUG, this.resources,
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                         "WebAppConfig.AuthDisabled", authMethod);
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, this.resources,
+                Logger.log(Logger.ERROR, Launcher.RESOURCES,
                         "WebAppConfig.AuthError", new String[] { authClassName,
                                 realmClassName }, err);
             }
@@ -706,10 +697,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 if (this.jndiManager != null)
                     this.jndiManager.setup();
             } catch (ClassNotFoundException err) {
-                Logger.log(Logger.DEBUG, this.resources,
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                         "WebAppConfig.JNDIDisabled");
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, this.resources,
+                Logger.log(Logger.ERROR, Launcher.RESOURCES,
                         "WebAppConfig.JNDIError", jndiMgrClassName, err);
             }
 
@@ -782,7 +773,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             staticParams.put("prefix", this.prefix);
             staticParams.put("directoryList", "" + useDirLists);
             ServletConfiguration defaultServlet = new ServletConfiguration(
-                    this, this.resources,  this.defaultServletName, DEFAULT_SERVLET_CLASS,
+                    this,  this.defaultServletName, DEFAULT_SERVLET_CLASS,
                     staticParams, 0);
             // commented cause it should be called during startup servlet
 //          defaultServlet.getRequestDispatcher(this.filterInstances); 
@@ -793,7 +784,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // If we don't have an instance of the default servlet, mount the inbuilt one
         if (this.servletInstances.get(this.errorServletName) == null) {
             ServletConfiguration errorServlet = new ServletConfiguration(
-                    this, this.resources,  this.errorServletName, ERROR_SERVLET_CLASS,
+                    this,  this.errorServletName, ERROR_SERVLET_CLASS,
                     new HashMap(), 0);
             // commented cause it should be called during startup servlet
 //          errorServlet.getRequestDispatcher(this.filterInstances); 
@@ -819,13 +810,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 setAttribute("org.apache.catalina.jsp_classpath",
                         (cp.length() > 0 ? cp.substring(0, cp.length() - 1) : ""));
             } catch (IOException err) {
-                Logger.log(Logger.ERROR, resources, "WebAppConfig.ErrorSettingJSPPaths", err);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ErrorSettingJSPPaths", err);
             }
 
             Map jspParams = new HashMap();
             addJspServletParams(jspParams);
             ServletConfiguration sc = new ServletConfiguration(this,
-                    this.resources, JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
+                    JSP_SERVLET_NAME, JSP_SERVLET_CLASS, jspParams, 3);
             this.servletInstances.put(JSP_SERVLET_NAME, sc);
             startupServlets.add(sc);
             for (Iterator mapIt = jspMappings.iterator(); mapIt.hasNext(); ) {
@@ -844,7 +835,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             invokerParams.put("prefix", this.prefix);
             invokerParams.put("invokerPrefix", invokerPrefix);
             ServletConfiguration sc = new ServletConfiguration(this,
-                    this.resources,  INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, 
+                    INVOKER_SERVLET_NAME, INVOKER_SERVLET_CLASS, 
                     invokerParams, 3);
             this.servletInstances.put(INVOKER_SERVLET_NAME, sc);
             processMapping(INVOKER_SERVLET_NAME, invokerPrefix + Mapping.STAR,
@@ -864,7 +855,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             for (int n = 0; n < this.contextListeners.length; n++)
                 this.contextListeners[n].contextInitialized(new ServletContextEvent(this));
         } catch (Throwable err) {
-            Logger.log(Logger.ERROR, resources, "WebAppConfig.ContextStartupError", this.contextName, err);
+            Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ContextStartupError", this.contextName, err);
             this.contextStartupError = err;
         }
 
@@ -875,7 +866,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 try {
                     config.getFilter();
                 } catch (ServletException err) {
-                    Logger.log(Logger.ERROR, resources, "WebAppConfig.FilterStartupError", 
+                    Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.FilterStartupError", 
                             config.getFilterName(), err);
                 }
             }
@@ -904,12 +895,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             // Classes folder
             File classesFolder = new File(webInfFolder, CLASSES);
             if (classesFolder.exists()) {
-                Logger.log(Logger.DEBUG, resources,
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                         "WinstoneClassLoader.WebAppClasses");
                 urlList.add(new URL("file", "", classesFolder.getCanonicalPath() + "/"));
                 classPathFileList.add(classesFolder);
             } else {
-                Logger.log(Logger.WARNING, resources,
+                Logger.log(Logger.WARNING, Launcher.RESOURCES,
                         "WinstoneClassLoader.NoWebAppClasses", 
                         classesFolder.toString());
             }
@@ -921,22 +912,22 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 for (int n = 0; n < jars.length; n++) {
                     String jarName = jars[n].getCanonicalPath().toLowerCase();
                     if (jarName.endsWith(".jar") || jarName.endsWith(".zip")) {
-                        Logger.log(Logger.DEBUG, resources,
+                        Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                                 "WinstoneClassLoader.WebAppLib", jars[n].getName());
                         urlList.add(jars[n].toURL());
                         classPathFileList.add(jars[n]);
                     }
                 }
             } else {
-                Logger.log(Logger.WARNING, resources,
+                Logger.log(Logger.WARNING, Launcher.RESOURCES,
                         "WinstoneClassLoader.NoWebAppLib", libFolder
                                 .toString());
             }
         } catch (MalformedURLException err) {
-            throw new WinstoneException(resources
+            throw new WinstoneException(Launcher.RESOURCES
                     .getString("WinstoneClassLoader.BadURL"), err);
         } catch (IOException err) {
-            throw new WinstoneException(resources
+            throw new WinstoneException(Launcher.RESOURCES
                     .getString("WinstoneClassLoader.IOException"), err);
         }
 
@@ -958,7 +949,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 outputCL = (ClassLoader) reloadConstr.newInstance(new Object[] { 
                         jarURLs, parentClassLoader});
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources, "WebAppConfig.CLError", err);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.CLError", err);
             }
         }
 
@@ -966,7 +957,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             outputCL = new URLClassLoader(jarURLs, parentClassLoader);
         }
 
-        Logger.log(Logger.MAX, resources, "WebAppConfig.WebInfClassLoader", outputCL.toString());
+        Logger.log(Logger.MAX, Launcher.RESOURCES, "WebAppConfig.WebInfClassLoader", outputCL.toString());
         return outputCL;
     }
     
@@ -1081,7 +1072,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             try {
                 ((FilterConfiguration) i.next()).destroy();
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ShutdownError", err);
             }
         }
         this.filterInstances.clear();
@@ -1091,7 +1082,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             try {
                 ((ServletConfiguration) i.next()).destroy();
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ShutdownError", err);
             }
         }
         this.servletInstances.clear();
@@ -1102,7 +1093,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             try {
                 ((WinstoneSession) i.next()).invalidate();
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ShutdownError", err);
             }
         }
         this.sessions.clear();
@@ -1113,7 +1104,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 this.contextListeners[n].contextDestroyed(new ServletContextEvent(this));
                 this.contextListeners[n] = null;
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ShutdownError", err);
             }
         }
         this.contextListeners = null;
@@ -1125,7 +1116,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 //                Method methDestroy = this.loader.getClass().getMethod("destroy", new Class[0]);
 //                methDestroy.invoke(this.loader, new Object[0]);
 //            } catch (Throwable err) {
-//                Logger.log(Logger.ERROR, resources, "WebAppConfig.ShutdownError", err);
+//                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ShutdownError", err);
 //            }
             this.loader = null;
         }
@@ -1162,9 +1153,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         
         Mapping urlPattern = null;
         try {
-            urlPattern = Mapping.createFromURL(name, pattern, resources);
+            urlPattern = Mapping.createFromURL(name, pattern);
         } catch (WinstoneException err) {
-            Logger.log(Logger.WARNING, resources, "WebAppConfig.ErrorMapURL",
+            Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebAppConfig.ErrorMapURL",
                     err.getMessage());
             return;
         }
@@ -1179,7 +1170,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         } else if (urlPattern.getPatternType() == Mapping.DEFAULT_SERVLET) {
             this.defaultServletName = name;
         } else {
-            Logger.log(Logger.WARNING, resources, "WebAppConfig.InvalidMount",
+            Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebAppConfig.InvalidMount",
                     new String[] { name, pattern });
         }
     }
@@ -1190,7 +1181,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      */
     private ServletConfiguration urlMatch(String path,
             StringBuffer servletPath, StringBuffer pathInfo) {
-        Logger.log(Logger.FULL_DEBUG, resources, "WebAppConfig.URLMatch", path);
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WebAppConfig.URLMatch", path);
 
         // Check exact matches first
         String exact = (String) this.exactServletMatchMounts.get(path);
@@ -1215,7 +1206,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // return default servlet
         // servletPath.append(""); // unneeded
         if (this.servletInstances.get(this.defaultServletName) == null)
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "WebAppConfig.MatchedNonExistServlet",
                     this.defaultServletName));
         pathInfo.append(path);
@@ -1281,7 +1272,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         session.setSessionActivationListeners(this.sessionActivationListeners);
         session.setSessionAttributeListeners(this.sessionAttributeListeners);
         session.setSessionListeners(this.sessionListeners);
-        session.setResources(this.resources);
     }
 
     public void removeServletConfigurationAndMappings(ServletConfiguration config) {
@@ -1347,7 +1337,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
     // Server info
     public String getServerInfo() {
-        return resources.getString("ServerVersion");
+        return Launcher.RESOURCES.getString("ServerVersion");
     }
 
     public int getMajorVersion() {
@@ -1396,7 +1386,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     public javax.servlet.RequestDispatcher getNamedDispatcher(String name) {
         ServletConfiguration servlet = (ServletConfiguration) this.servletInstances.get(name);
         if (servlet != null) {
-            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
+            RequestDispatcher rd = new RequestDispatcher(this, servlet);
             if (rd != null) {
                 rd.setForNamedDispatcher(this.filterPatternsForward, this.filterPatternsInclude);
                 return rd;
@@ -1431,7 +1421,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         StringBuffer pathInfo = new StringBuffer();
         ServletConfiguration servlet = urlMatch(uriInsideWebapp, servletPath, pathInfo);
         if (servlet != null) {
-            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
+            RequestDispatcher rd = new RequestDispatcher(this, servlet);
             if (rd != null) {
                 rd.setForURLDispatcher(servletPath.toString(), pathInfo.toString()
                         .equals("") ? null : pathInfo.toString(), queryString,
@@ -1458,7 +1448,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (!uriInsideWebapp.equals("") && !uriInsideWebapp.startsWith("/")) {
             return this.getErrorDispatcherByCode(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    resources.getString("WebAppConfig.InvalidURI", uriInsideWebapp),
+                    Launcher.RESOURCES.getString("WebAppConfig.InvalidURI", uriInsideWebapp),
                     null);
         } else if (this.contextStartupError != null) {
             StringWriter sw = new StringWriter();
@@ -1470,7 +1460,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 //            return null;
             return this.getErrorDispatcherByCode(
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    resources.getString("WebAppConfig.ErrorDuringStartup", sw.toString()), 
+                    Launcher.RESOURCES.getString("WebAppConfig.ErrorDuringStartup", sw.toString()), 
                     this.contextStartupError);
         }
 
@@ -1504,7 +1494,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 if (res.exists() && res.isDirectory()) {
                     // Check for the send back with slash case
                     if (!pathInfo.toString().endsWith("/")) {
-                        Logger.log(Logger.FULL_DEBUG, resources,
+                        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                                 "WebAppConfig.FoundNonSlashDirectory", pathInfo
                                         .toString());
                         response.sendRedirect(this.prefix
@@ -1516,7 +1506,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     }
 
                     // Check for welcome files
-                    Logger.log(Logger.FULL_DEBUG, resources,
+                    Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WebAppConfig.CheckWelcomeFile", servletPath
                                     .toString()
                                     + pathInfo.toString());
@@ -1533,7 +1523,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 }
             }
 
-            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
+            RequestDispatcher rd = new RequestDispatcher(this, servlet);
             rd.setForInitialDispatcher(servletPath.toString(), 
                     pathInfo.toString().equals("") ? null : pathInfo.toString(), queryString,
                     uriInsideWebapp, this.filterPatternsRequest, this.authenticationHandler);
@@ -1542,7 +1532,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         
         // If we are here, return a 404
         return this.getErrorDispatcherByCode(HttpServletResponse.SC_NOT_FOUND,
-                resources.getString("StaticResourceServlet.PathNotFound", 
+                Launcher.RESOURCES.getString("StaticResourceServlet.PathNotFound", 
                         uriInsideWebapp), null);
     }
 
@@ -1563,7 +1553,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             }
             for (int n = 0; n < exceptionClasses.length; n++) {
 
-                Logger.log(Logger.FULL_DEBUG, resources,
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "WinstoneResponse.TestingException",
                         new String[] {this.errorPagesByExceptionKeysSorted[n].getName(),
                             errWrapper.getClass().getName()});
@@ -1577,13 +1567,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             return rd;
                         }
                     } else {
-                        Logger.log(Logger.WARNING, resources, 
+                        Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                                 "WinstoneResponse.SkippingException",
                                 new String[] {exceptionClasses[n].getName(),
                                     (String) this.errorPagesByException.get(exceptionClasses[n]) });
                     }
                 } else {
-                    Logger.log(Logger.WARNING, resources, 
+                    Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                             "WinstoneResponse.ExceptionNotMatched", 
                             exceptionClasses[n].getName());
                 }
@@ -1616,7 +1606,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         ServletConfiguration errorServlet = (ServletConfiguration) 
                     this.servletInstances.get(this.errorServletName);
         if (errorServlet != null) {
-            RequestDispatcher rd = new RequestDispatcher(this, errorServlet, this.resources);
+            RequestDispatcher rd = new RequestDispatcher(this, errorServlet);
             if (rd != null) {
                 rd.setForErrorDispatcher(null, null, null, statusCode, 
                         summaryMessage, exception, null, this.filterPatternsError);
@@ -1625,7 +1615,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         }
         
         // Otherwise log and return null
-        Logger.log(Logger.ERROR, resources, "WebAppConfig.NoErrorServlet", "" + statusCode, exception);
+        Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.NoErrorServlet", "" + statusCode, exception);
         return null;
     }
 
@@ -1649,7 +1639,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         StringBuffer pathInfo = new StringBuffer();
         ServletConfiguration servlet = urlMatch(errorURI, servletPath, pathInfo);
         if (servlet != null) {
-            RequestDispatcher rd = new RequestDispatcher(this, servlet, this.resources);
+            RequestDispatcher rd = new RequestDispatcher(this, servlet);
             if (rd != null) {
                 rd.setForErrorDispatcher(servletPath.toString(), 
                         pathInfo.toString().equals("") ? null : pathInfo.toString(), 
@@ -1692,7 +1682,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (path == null) {
             return null;
         } else if (!path.startsWith("/")) {
-            throw new MalformedURLException(resources.getString(
+            throw new MalformedURLException(Launcher.RESOURCES.getString(
                     "WebAppConfig.BadResourcePath", path));
         } else if (path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
@@ -1706,7 +1696,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             URL res = this.getResource(path);
             return res == null ? null : res.openStream();
         } catch (IOException err) {
-            throw new WinstoneException(resources
+            throw new WinstoneException(Launcher.RESOURCES
                     .getString("WebAppConfig.ErrorOpeningStream"), err);
         }
     }
@@ -1733,7 +1723,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (path == null)
             return null;
         else if (!path.startsWith("/"))
-            throw new WinstoneException(resources.getString(
+            throw new WinstoneException(Launcher.RESOURCES.getString(
                     "WebAppConfig.BadResourcePath", path));
         else {
             String workingPath = null;

@@ -35,7 +35,6 @@ import javax.naming.OperationNotSupportedException;
 import javax.naming.spi.NamingManager;
 
 import winstone.Logger;
-import winstone.WinstoneResourceBundle;
 
 /**
  * The main jndi context implementation class.
@@ -47,21 +46,19 @@ public class WinstoneContext implements Context {
     static final String PREFIX = "java:";
     static final String FIRST_CHILD = "comp";
     static final String BODGED_PREFIX = "java:comp";
-    private static final String LOCAL_RESOURCE_FILE = "winstone.jndi.LocalStrings";
+    
     private Hashtable environment;
     private Hashtable bindings;
     private final static NameParser nameParser = new WinstoneNameParser();
     private WinstoneContext parent;
     private String myAbsoluteName;
     private Object contextLock;
-    private WinstoneResourceBundle resources;
 
     /**
      * Constructor - sets up environment
      */
     public WinstoneContext(Map sourceEnvironment, WinstoneContext parent,
             String absoluteName, Object contextLock) throws NamingException {
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
         this.environment = new Hashtable();
         List sourceKeys = new ArrayList(sourceEnvironment.keySet());
         for (Iterator i = sourceKeys.iterator(); i.hasNext();) {
@@ -72,7 +69,7 @@ public class WinstoneContext implements Context {
         this.myAbsoluteName = absoluteName;
         this.contextLock = contextLock;
         this.bindings = new Hashtable();
-        Logger.log(Logger.FULL_DEBUG, this.resources,
+        Logger.log(Logger.FULL_DEBUG, ContainerJNDIManager.JNDI_RESOURCES,
                 "WinstoneContext.Initialised", this.myAbsoluteName);
     }
 
@@ -80,8 +77,7 @@ public class WinstoneContext implements Context {
      * Constructor - sets up environment and copies the bindings across
      */
     protected WinstoneContext(Map sourceEnvironment, WinstoneContext parent,
-            String absoluteName, Object contextLock, Hashtable bindings,
-            WinstoneResourceBundle resources) throws NamingException {
+            String absoluteName, Object contextLock, Hashtable bindings) throws NamingException {
         this.environment = new Hashtable();
         List sourceKeys = new ArrayList(sourceEnvironment.keySet());
         for (Iterator i = sourceKeys.iterator(); i.hasNext();) {
@@ -92,9 +88,8 @@ public class WinstoneContext implements Context {
         this.myAbsoluteName = absoluteName;
         this.contextLock = contextLock;
         this.bindings = bindings;
-        this.resources = resources;
-        Logger.log(Logger.FULL_DEBUG, this.resources, "WinstoneContext.Copied",
-                this.myAbsoluteName);
+        Logger.log(Logger.FULL_DEBUG, ContainerJNDIManager.JNDI_RESOURCES, 
+                "WinstoneContext.Copied", this.myAbsoluteName);
     }
 
     public void close() throws NamingException {
@@ -138,7 +133,7 @@ public class WinstoneContext implements Context {
             else if (this.parent != null)
                 return null;
             else
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", name.toString()));
         } else if (name instanceof CompositeName)
             return nameParser.parse(name.toString());
@@ -161,8 +156,7 @@ public class WinstoneContext implements Context {
         // If empty name, return a copy of this Context
         else if (searchName.isEmpty())
             return new WinstoneContext(this.environment, this.parent,
-                    this.myAbsoluteName, this.contextLock, this.bindings,
-                    this.resources);
+                    this.myAbsoluteName, this.contextLock, this.bindings);
 
         String thisName = searchName.get(0);
         synchronized (this.contextLock) {
@@ -173,7 +167,7 @@ public class WinstoneContext implements Context {
             // an error if not available
             if (searchName.size() == 1) {
                 if (thisValue == null)
-                    throw new NameNotFoundException(this.resources.getString(
+                    throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                             "WinstoneContext.NameNotFound", name.toString()));
 
                 try {
@@ -181,7 +175,7 @@ public class WinstoneContext implements Context {
                             new CompositeName().add(thisName), this,
                             this.environment);
                 } catch (Exception e) {
-                    NamingException ne = new NamingException(this.resources
+                    NamingException ne = new NamingException(ContainerJNDIManager.JNDI_RESOURCES
                             .getString("WinstoneContext.FailedToGetInstance"));
                     ne.setRootCause(e);
                     throw ne;
@@ -189,13 +183,13 @@ public class WinstoneContext implements Context {
             }
 
             else if (thisValue == null)
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", thisName.toString()));
 
             // If it's not in this level and what we found is not a context,
             // complain
             else if (!(thisValue instanceof Context))
-                throw new NotContextException(this.resources.getString(
+                throw new NotContextException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NotContext", new String[] {
                                 thisName.toString(),
                                 thisValue.getClass().getName() }));
@@ -217,7 +211,7 @@ public class WinstoneContext implements Context {
     }
 
     public Object lookupLink(Name name) throws NamingException {
-        Logger.log(Logger.WARNING, this.resources,
+        Logger.log(Logger.WARNING, ContainerJNDIManager.JNDI_RESOURCES,
                 "WinstoneContext.LinkRefUnsupported");
         return lookup(name);
     }
@@ -240,7 +234,7 @@ public class WinstoneContext implements Context {
         else if (searchName.isEmpty()) {
             NamingEnumeration e = null;
             synchronized (this.contextLock) {
-                e = new WinstoneNameEnumeration(this.bindings, this.resources);
+                e = new WinstoneNameEnumeration(this.bindings);
             }
             return e;
         }
@@ -255,10 +249,10 @@ public class WinstoneContext implements Context {
                     ((Context) ctx).close();
                 }
             else if (ctx == null)
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", searchName.toString()));
             else
-                throw new NotContextException(this.resources.getString(
+                throw new NotContextException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NotContext",
                         new String[] { searchName.toString(),
                                 ctx.getClass().getName() }));
@@ -281,7 +275,7 @@ public class WinstoneContext implements Context {
             NamingEnumeration e = null;
             synchronized (this.contextLock) {
                 e = new WinstoneBindingEnumeration(this.bindings,
-                        this.environment, this, this.resources);
+                        this.environment, this);
             }
             return e;
         }
@@ -296,10 +290,10 @@ public class WinstoneContext implements Context {
                     ((Context) ctx).close();
                 }
             else if (ctx == null)
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", searchName.toString()));
             else
-                throw new NotContextException(this.resources.getString(
+                throw new NotContextException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NotContext",
                         new String[] { searchName.toString(),
                                 ctx.getClass().getName() }));
@@ -348,16 +342,16 @@ public class WinstoneContext implements Context {
             this.parent.bind(name, value, allowOverwrites);
         // If empty name, complain - we should have a child name here
         else if (bindName.isEmpty())
-            throw new NamingException(this.resources.getString(
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                     "WinstoneContext.AlreadyExists", name.toString()));
         else if (bindName.size() > 1) {
             Object ctx = lookup(bindName.get(0));
             if (!(ctx instanceof Context))
-                throw new NotContextException(this.resources.getString(
+                throw new NotContextException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NotContext", new String[] {
                                 bindName.get(0), ctx.getClass().getName() }));
             else if (ctx == null)
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", bindName.get(0)));
             else
                 try {
@@ -369,7 +363,7 @@ public class WinstoneContext implements Context {
                     ((Context) ctx).close();
                 }
         } else if ((!allowOverwrites) && this.bindings.get(name.get(0)) != null)
-            throw new NamingException(this.resources.getString(
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                     "WinstoneContext.AlreadyExists", name.toString()));
         else {
             value = NamingManager.getStateToBind(value, new CompositeName()
@@ -401,16 +395,16 @@ public class WinstoneContext implements Context {
             this.parent.unbind(name);
         // If empty name, complain - we should have a child name here
         else if (unbindName.isEmpty())
-            throw new NamingException(this.resources
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES
                     .getString("WinstoneContext.CantUnbindEmptyName"));
         else if (unbindName.size() > 1) {
             Object ctx = lookup(unbindName.get(0));
             if (!(ctx instanceof Context))
-                throw new NotContextException(this.resources.getString(
+                throw new NotContextException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NotContext", new String[] {
                                 unbindName.get(0), ctx.getClass().getName() }));
             else if (ctx == null)
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", unbindName.get(0)));
             else
                 try {
@@ -419,7 +413,7 @@ public class WinstoneContext implements Context {
                     ((Context) ctx).close();
                 }
         } else if (this.bindings.get(name.get(0)) == null)
-            throw new NamingException(this.resources.getString(
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                     "WinstoneContext.NameNotFound", name.toString()));
         else {
             synchronized (this.contextLock) {
@@ -451,16 +445,16 @@ public class WinstoneContext implements Context {
             return this.parent.createSubcontext(name);
         // If empty name, complain - we should have a child name here
         else if (childName.isEmpty())
-            throw new NamingException(this.resources.getString(
+            throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                     "WinstoneContext.AlreadyExists", name.toString()));
         else if (childName.size() > 1) {
             Object ctx = lookup(childName.get(0));
             if (!(ctx instanceof Context))
-                throw new NotContextException(this.resources.getString(
+                throw new NotContextException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NotContext", new String[] {
                                 childName.get(0), ctx.getClass().getName() }));
             else if (ctx == null)
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", childName.get(0)));
             else
                 try {
@@ -473,7 +467,7 @@ public class WinstoneContext implements Context {
         Context childContext = null;
         synchronized (this.contextLock) {
             if (this.bindings.get(childName.get(0)) != null)
-                throw new NamingException(this.resources.getString(
+                throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.AlreadyExists", childName.get(0)));
             else {
                 childContext = new WinstoneContext(this.environment, this,
@@ -500,16 +494,16 @@ public class WinstoneContext implements Context {
             if (!name.isEmpty())
                 this.parent.destroySubcontext(name.getSuffix(name.size() - 2));
             else
-                throw new NamingException(this.resources
+                throw new NamingException(ContainerJNDIManager.JNDI_RESOURCES
                         .getString("WinstoneContext.CantDestroyEmptyName"));
         } else if (childName.size() > 1) {
             Object ctx = lookup(childName.get(0));
             if (!(ctx instanceof Context))
-                throw new NotContextException(this.resources.getString(
+                throw new NotContextException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NotContext", new String[] {
                                 childName.get(0), ctx.getClass().getName() }));
             else if (ctx == null)
-                throw new NameNotFoundException(this.resources.getString(
+                throw new NameNotFoundException(ContainerJNDIManager.JNDI_RESOURCES.getString(
                         "WinstoneContext.NameNotFound", childName.get(0)));
             else
                 try {

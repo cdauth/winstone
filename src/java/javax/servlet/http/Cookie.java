@@ -91,10 +91,10 @@ public class Cookie implements Cloneable {
         } else {
             // Check for white space, comma, semicolon
             for (int n = 0; n < name.length(); n++) {
-                if (Character.isWhitespace(name.charAt(n))) {
-                    throw new IllegalArgumentException("Cookie name contains whitespace");
-                } else if (!Character.isLetterOrDigit(name.charAt(n))) {
-                    throw new IllegalArgumentException("Cookie name contains a non-alphanumeric character");
+                char c = name.charAt(n); 
+                if (c <= 0x20 || c >= 0x7f) {
+                    throw new IllegalArgumentException("Cookie name contains whitespace or " +
+                            "non-alphanumeric char: " + name.charAt(n) + " in " + name);
                 }
             }
             this.name = name;

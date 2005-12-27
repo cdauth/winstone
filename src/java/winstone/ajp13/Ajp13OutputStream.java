@@ -30,7 +30,6 @@ import javax.servlet.http.Cookie;
 import winstone.Logger;
 import winstone.WinstoneException;
 import winstone.WinstoneOutputStream;
-import winstone.WinstoneResourceBundle;
 
 /**
  * Extends the winstone output stream, so that the ajp13 protocol requirements
@@ -68,18 +67,13 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
 
     private String headerEncoding;
 
-    private WinstoneResourceBundle localResources;
-
-    public Ajp13OutputStream(OutputStream outStream,
-            WinstoneResourceBundle mainResources,
-            WinstoneResourceBundle localResources, String headerEncoding) {
-        super(outStream, false, mainResources);
-        this.localResources = localResources;
+    public Ajp13OutputStream(OutputStream outStream, String headerEncoding) {
+        super(outStream, false);
         this.headerEncoding = headerEncoding;
     }
 
     public void commit() throws IOException {
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
                 "WinstoneOutputStream.CommittedBytes", "" + this.bytesCommitted);
         this.buffer.flush();
 
@@ -93,7 +87,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
                 String header = (String) i.next();
                 int colonPos = header.indexOf(':');
                 if (colonPos == -1)
-                    throw new WinstoneException(localResources.getString(
+                    throw new WinstoneException(Ajp13Listener.AJP_RESOURCES.getString(
                             "Ajp13OutputStream.NoColonHeader", header));
                 String headerName = header.substring(0, colonPos).trim();
                 String headerValue = header.substring(colonPos + 1).trim();
@@ -110,7 +104,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
                 String cookieText = this.owner.writeCookie(cookie);
                 int colonPos = cookieText.indexOf(':');
                 if (colonPos == -1)
-                    throw new WinstoneException(localResources.getString(
+                    throw new WinstoneException(Ajp13Listener.AJP_RESOURCES.getString(
                             "Ajp13OutputStream.NoColonHeader", cookieText));
                 String headerName = cookieText.substring(0, colonPos).trim();
                 String headerValue = cookieText.substring(colonPos + 1).trim();

@@ -13,10 +13,10 @@
   <meta name="revisit-after" content="7 Days"/>
 </head>
 <body>
-<center><h1>Winstone Servlet Container v0.7.2</h1></center>
+<center><h1>Winstone Servlet Container v0.8</h1></center>
 
   <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
-  <hr width="90%" size="1" noshade="noshade"/>
+  <hr width="90%" size="1" noshade="noshade"/> 
 
 <br/>
 <center>
@@ -118,7 +118,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone-src-0.7.2.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone-src-0.8.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -129,21 +129,21 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.2.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.2.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.7.2.jar --webappsDir=&lt;location of webapps directory&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --webappsDir=&lt;location of webapps directory&gt;</code> (+ other options)
 
 <h2><a name="commandLine">Command-line options:</a></h2>
 
   <pre>
 Syntax:
-  java -jar winstone-0.7.2.jar [--option=value] [--option=value] etc
+  java -jar winstone-0.8.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile OR --webappsDir
    --webroot                = set document root folder.
@@ -246,6 +246,13 @@ Security options:
 
 <h2><a name="recent">Recent additions</a></h2>
 
+  <p>New features in v0.8:</p>
+
+  <ul>
+    <li>Expanded the features of the JDBC connection pool to include keep-alive queries
+      and block-and-retry behaviour when the pool is full</li>
+  </ul>
+        
   <p>New features in v0.7:</p>
 
   <ul>
@@ -630,6 +637,12 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
       <li><b>maxConnections</b> - Maximum number of connections allowed in the pool. Default is 20</li>
       <li><b>maxIdle</b> - Maximum number of idle connections allowed in the pool. Default is 10</li>
       <li><b>startConnections</b> - The number of connections to open the pool with. Deafault is 2</li>
+      <li><b>keepAliveSQL</b> - The sql to execute on keep-alive (or checkBeforeGet) operations. Default is empty</li>
+      <li><b>checkBeforeGet</b> - If true, executes the keepAliveSQL before any connection is returned from the pool. Default is false</li>
+      <li><b>keepAlivePeriod</b> - Execute the keepAliveSQL on all unused connection every n minutes. Default is disabled</li>
+      <li><b>killInactivePeriod</b> - Kills excess unused connections every n minutes. Default is disabled</li>
+      <li><b>retryCount</b> - When the pool is maxed out, block and retry n times. Default is 1 retry</li>
+      <li><b>retryPeriod</b> - The period (in ms) over which the retry blocks. Default is 1000ms</li>
     </ol>
 
   <p>For example to create a DataSource object at the JNDI location java:/comp/env/jdbc/connPool, use the 

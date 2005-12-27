@@ -45,10 +45,9 @@ import winstone.jndi.resourceFactories.WinstoneDataSource;
  * @version $Id$
  */
 public class ContainerJNDIManager implements JNDIManager {
-    private static final String LOCAL_RESOURCE_FILE = "winstone.jndi.LocalStrings";
+    public static final WinstoneResourceBundle JNDI_RESOURCES = new WinstoneResourceBundle("winstone.jndi.LocalStrings");
     
     protected Map objectsToCreate;
-    protected WinstoneResourceBundle resources;
 
     /**
      * Gets the relevant list of objects from the args, validating against the
@@ -57,7 +56,6 @@ public class ContainerJNDIManager implements JNDIManager {
      */
     public ContainerJNDIManager(Map args, List webXmlNodes, ClassLoader loader) {
         // Build all the objects we wanted
-        this.resources = new WinstoneResourceBundle(LOCAL_RESOURCE_FILE);
         this.objectsToCreate = new HashMap();
         
         Collection keys = new ArrayList(args != null ? args.keySet() : (Collection) new ArrayList());
@@ -69,7 +67,7 @@ public class ContainerJNDIManager implements JNDIManager {
                 String className = (String) args.get(key);
                 String value = (String) args.get("jndi.param." + resName
                         + ".value");
-                Logger.log(Logger.FULL_DEBUG, this.resources,
+                Logger.log(Logger.FULL_DEBUG, JNDI_RESOURCES,
                         "ContainerJNDIManager.CreatingResourceArgs", resName);
                 Object obj = createObject(resName.trim(), className.trim(),
                         value, args, loader);
@@ -104,18 +102,18 @@ public class ContainerJNDIManager implements JNDIManager {
                         fullName = fullName.getSuffix(1);
                     }
                     ic.bind(name, this.objectsToCreate.get(name));
-                    Logger.log(Logger.FULL_DEBUG, this.resources,
+                    Logger.log(Logger.FULL_DEBUG, JNDI_RESOURCES,
                             "ContainerJNDIManager.BoundResource", name);
                 } catch (NamingException err) {
-                    Logger.log(Logger.ERROR, this.resources,
+                    Logger.log(Logger.ERROR, JNDI_RESOURCES,
                                     "ContainerJNDIManager.ErrorBindingResource",
                                     name, err);
                 }
             }
-            Logger.log(Logger.DEBUG, this.resources, 
+            Logger.log(Logger.DEBUG, JNDI_RESOURCES, 
                     "ContainerJNDIManager.SetupComplete", "" + this.objectsToCreate.size());
         } catch (NamingException err) {
-            Logger.log(Logger.ERROR, this.resources,
+            Logger.log(Logger.ERROR, JNDI_RESOURCES,
                     "ContainerJNDIManager.ErrorGettingInitialContext", err);
         }
     }
@@ -133,20 +131,20 @@ public class ContainerJNDIManager implements JNDIManager {
                 try {
                     ic.unbind(name);
                 } catch (NamingException err) {
-                    Logger.log(Logger.ERROR, this.resources,
+                    Logger.log(Logger.ERROR, JNDI_RESOURCES,
                             "ContainerJNDIManager.ErrorUnbindingResource", name,
                             err);
                 }
                 Object unboundObject = this.objectsToCreate.get(name);
                 if (unboundObject instanceof WinstoneDataSource)
                     ((WinstoneDataSource) unboundObject).destroy();
-                Logger.log(Logger.FULL_DEBUG, this.resources,
+                Logger.log(Logger.FULL_DEBUG, JNDI_RESOURCES,
                         "ContainerJNDIManager.UnboundResource", name);
             }
-            Logger.log(Logger.DEBUG, this.resources, 
+            Logger.log(Logger.DEBUG, JNDI_RESOURCES, 
                     "ContainerJNDIManager.TeardownComplete", "" + this.objectsToCreate.size());
         } catch (NamingException err) {
-            Logger.log(Logger.ERROR, this.resources,
+            Logger.log(Logger.ERROR, JNDI_RESOURCES,
                     "ContainerJNDIManager.ErrorGettingInitialContext", err);
         }
     }
@@ -168,10 +166,9 @@ public class ContainerJNDIManager implements JNDIManager {
             // If we are working with a datasource
             if (className.equals("javax.sql.DataSource")) {
                 try {
-                    return new WinstoneDataSource(name, extractRelevantArgs(args,
-                            name), loader, this.resources);
+                    return new WinstoneDataSource(name, extractRelevantArgs(args, name), loader);
                 } catch (Throwable err) {
-                    Logger.log(Logger.ERROR, this.resources,
+                    Logger.log(Logger.ERROR, JNDI_RESOURCES,
                             "ContainerJNDIManager.ErrorBuildingDatasource", name, err);
                 }
             }
@@ -187,7 +184,7 @@ public class ContainerJNDIManager implements JNDIManager {
                             extractRelevantArgs(args, name), null });
                     //return Session.getInstance(extractRelevantArgs(args, name), null);
                 } catch (Throwable err) {
-                    Logger.log(Logger.ERROR, this.resources,
+                    Logger.log(Logger.ERROR, JNDI_RESOURCES,
                                     "ContainerJNDIManager.ErrorBuildingMailSession",
                                     name, err);
                 }
@@ -201,7 +198,7 @@ public class ContainerJNDIManager implements JNDIManager {
                             .getConstructor(new Class[] { String.class });
                     return objConstr.newInstance(new Object[] { value });
                 } catch (Throwable err) {
-                    Logger.log(Logger.ERROR, this.resources,
+                    Logger.log(Logger.ERROR, JNDI_RESOURCES,
                             "ContainerJNDIManager.ErrorBuildingObject", new String[] {
                                     name, className }, err);
                 }

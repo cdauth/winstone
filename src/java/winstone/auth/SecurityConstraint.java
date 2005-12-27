@@ -26,7 +26,6 @@ import org.w3c.dom.Node;
 
 import winstone.Logger;
 import winstone.Mapping;
-import winstone.WinstoneResourceBundle;
 
 /**
  * Models a restriction on a particular set of resources in the webapp.
@@ -51,15 +50,11 @@ public class SecurityConstraint {
     private Mapping urlPatterns[];
     private String rolesAllowed[];
     private boolean needsSSL;
-    private WinstoneResourceBundle resources;
 
     /**
      * Constructor
      */
-    public SecurityConstraint(Node elm, Set rolesAllowed,
-            WinstoneResourceBundle mainResources,
-            WinstoneResourceBundle localResources, int counter) {
-        this.resources = localResources;
+    public SecurityConstraint(Node elm, Set rolesAllowed, int counter) {
         this.needsSSL = false;
         Set localUrlPatternList = new HashSet();
         Set localMethodSetList = new HashSet();
@@ -83,7 +78,7 @@ public class SecurityConstraint {
                     if (resourceChildNodeName.equals(ELEM_URL_PATTERN))
                         localUrlPatternList.add(Mapping.createFromURL(
                                 "Security", resourceChild.getFirstChild()
-                                        .getNodeValue().trim(), mainResources));
+                                        .getNodeValue().trim()));
                     else if (resourceChildNodeName.equals(ELEM_HTTP_METHOD))
                         methodSet = (methodSet == null ? "." : methodSet)
                                 + resourceChild.getFirstChild().getNodeValue()
@@ -125,7 +120,7 @@ public class SecurityConstraint {
                 .toArray(new String[localRolesAllowed.size()]);
 
         if (this.displayName == null)
-            this.displayName = this.resources.getString(
+            this.displayName = BaseAuthenticationHandler.AUTH_RESOURCES.getString(
                     "SecurityConstraint.DefaultName", "" + counter);
     }
 
@@ -135,13 +130,13 @@ public class SecurityConstraint {
     public boolean isAllowed(HttpServletRequest request) {
         for (int n = 0; n < this.rolesAllowed.length; n++) {
             if (request.isUserInRole(this.rolesAllowed[n])) {
-                Logger.log(Logger.FULL_DEBUG, resources,
+                Logger.log(Logger.FULL_DEBUG, BaseAuthenticationHandler.AUTH_RESOURCES,
                         "SecurityConstraint.Passed", new String[] {
                                 this.displayName, this.rolesAllowed[n] });
                 return true;
             }
         }
-        Logger.log(Logger.FULL_DEBUG, resources, "SecurityConstraint.Failed",
+        Logger.log(Logger.FULL_DEBUG, BaseAuthenticationHandler.AUTH_RESOURCES, "SecurityConstraint.Failed",
                 this.displayName);
         return false;
     }

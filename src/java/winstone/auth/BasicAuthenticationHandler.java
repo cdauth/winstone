@@ -31,7 +31,6 @@ import winstone.AuthenticationPrincipal;
 import winstone.AuthenticationRealm;
 import winstone.Logger;
 import winstone.WinstoneRequest;
-import winstone.WinstoneResourceBundle;
 
 /**
  * Handles HTTP basic authentication.
@@ -42,9 +41,9 @@ import winstone.WinstoneResourceBundle;
 public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
     public BasicAuthenticationHandler(Node loginConfigNode,
             List constraintNodes, Set rolesAllowed,
-            WinstoneResourceBundle resources, AuthenticationRealm realm) {
-        super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
-        Logger.log(Logger.DEBUG, this.resources,
+            AuthenticationRealm realm) {
+        super(loginConfigNode, constraintNodes, rolesAllowed, realm);
+        Logger.log(Logger.DEBUG, AUTH_RESOURCES,
                 "BasicAuthenticationHandler.Initialised", realmName);
     }
 
@@ -57,7 +56,7 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
         // Return unauthorized, and set the realm name
         response.setHeader("WWW-Authenticate", "Basic Realm=\""
                 + this.realmName + "\"");
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, this.resources
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, AUTH_RESOURCES
                 .getString("BasicAuthenticationHandler.UnauthorizedMessage"));
     }
 
@@ -87,11 +86,11 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
                             ((WinstoneRequest) wrapper.getRequest())
                                     .setRemoteUser(principal);
                         else
-                            Logger.log(Logger.WARNING, this.resources,
+                            Logger.log(Logger.WARNING, AUTH_RESOURCES,
                                     "BasicAuthenticationHandler.CantSetUser",
                                     wrapper.getRequest().getClass().getName());
                     } else
-                        Logger.log(Logger.WARNING, this.resources,
+                        Logger.log(Logger.WARNING, AUTH_RESOURCES,
                                 "BasicAuthenticationHandler.CantSetUser",
                                 request.getClass().getName());
                 }

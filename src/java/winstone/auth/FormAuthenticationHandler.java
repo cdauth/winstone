@@ -34,7 +34,6 @@ import winstone.AuthenticationPrincipal;
 import winstone.AuthenticationRealm;
 import winstone.Logger;
 import winstone.WinstoneRequest;
-import winstone.WinstoneResourceBundle;
 import winstone.WinstoneSession;
 
 /**
@@ -69,8 +68,8 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
      */
     public FormAuthenticationHandler(Node loginConfigNode,
             List constraintNodes, Set rolesAllowed,
-            WinstoneResourceBundle resources, AuthenticationRealm realm) {
-        super(loginConfigNode, constraintNodes, rolesAllowed, resources, realm);
+            AuthenticationRealm realm) {
+        super(loginConfigNode, constraintNodes, rolesAllowed, realm);
 
         for (int n = 0; n < loginConfigNode.getChildNodes().getLength(); n++) {
             Node loginElm = loginConfigNode.getChildNodes().item(n);
@@ -88,7 +87,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                 }
             }
         }
-        Logger.log(Logger.DEBUG, this.resources,
+        Logger.log(Logger.DEBUG, AUTH_RESOURCES,
                 "FormAuthenticationHandler.Initialised", realmName);
     }
 
@@ -125,21 +124,20 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
             if (wrapper.getRequest() instanceof WinstoneRequest)
                 actualRequest = (WinstoneRequest) wrapper.getRequest();
             else
-                Logger.log(Logger.WARNING, this.resources,
+                Logger.log(Logger.WARNING, AUTH_RESOURCES,
                         "FormAuthenticationHandler.CantSetUser", wrapper
                                 .getRequest().getClass().getName());
         } else
-            Logger.log(Logger.WARNING, this.resources,
+            Logger.log(Logger.WARNING, AUTH_RESOURCES,
                     "FormAuthenticationHandler.CantSetUser", request.getClass()
                             .getName());
 
         WinstoneSession session = (WinstoneSession) actualRequest
                 .getSession(true);
-        session.setCachedRequest(new CachedRequest(actualRequest,
-                this.resources));
+        session.setCachedRequest(new CachedRequest(actualRequest));
 
         // Forward on to the login page
-        Logger.log(Logger.FULL_DEBUG, resources,
+        Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
                 "FormAuthenticationHandler.GoToLoginPage");
         javax.servlet.RequestDispatcher rd = request
                 .getRequestDispatcher(this.loginPage);
@@ -183,7 +181,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                     actualRequest = (WinstoneRequest) wrapperCheck;
                     actualRequest.setRemoteUser(principal);
                 } else
-                    Logger.log(Logger.WARNING, this.resources,
+                    Logger.log(Logger.WARNING, AUTH_RESOURCES,
                             "FormAuthenticationHandler.CantSetUser",
                             wrapperCheck.getClass().getName());
 
@@ -198,7 +196,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                     // session.setCachedRequest(null); - commented out so that
                     // refreshes will work
                 } else
-                    Logger.log(Logger.DEBUG, this.resources,
+                    Logger.log(Logger.DEBUG, AUTH_RESOURCES,
                             "FormAuthenticationHandler.NoCachedRequest");
                 
                 // do role check, since we don't know that this user has permission
@@ -228,11 +226,11 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                 if (wrapper.getRequest() instanceof WinstoneRequest)
                     actualRequest = (WinstoneRequest) wrapper.getRequest();
                 else
-                    Logger.log(Logger.WARNING, this.resources,
+                    Logger.log(Logger.WARNING, AUTH_RESOURCES,
                             "FormAuthenticationHandler.CantSetUser", wrapper
                                     .getRequest().getClass().getName());
             } else
-                Logger.log(Logger.WARNING, this.resources,
+                Logger.log(Logger.WARNING, AUTH_RESOURCES,
                         "FormAuthenticationHandler.CantSetUser", request
                                 .getClass().getName());
 
@@ -240,7 +238,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                     .getSession(false);
             if ((session != null) && (session.getAuthenticatedUser() != null)) {
                 actualRequest.setRemoteUser(session.getAuthenticatedUser());
-                Logger.log(Logger.FULL_DEBUG, this.resources,
+                Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
                         "FormAuthenticationHandler.GotUserFromSession");
             }
             return true;

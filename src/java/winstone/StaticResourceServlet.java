@@ -61,11 +61,9 @@ public class StaticResourceServlet extends HttpServlet {
     private File webRoot;
     private String prefix;
     private boolean directoryList;
-    private WinstoneResourceBundle resources;
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        this.resources = new WinstoneResourceBundle(RESOURCE_FILE);
         this.webRoot = new File(config.getInitParameter("webRoot"));
         this.prefix = config.getInitParameter("prefix");
         String dirList = config.getInitParameter("directoryList");
@@ -93,10 +91,10 @@ public class StaticResourceServlet extends HttpServlet {
             path = "";
 
         // URL decode path
-        path = WinstoneRequest.decodeURLToken(path, resources);
+        path = WinstoneRequest.decodeURLToken(path);
 
         long cachedResDate = request.getDateHeader(CACHED_RESOURCE_DATE_HEADER);
-        Logger.log(Logger.DEBUG, this.resources,
+        Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                 "StaticResourceServlet.PathRequested", new String[] {
                         getServletConfig().getServletName(), path });
 
@@ -106,25 +104,25 @@ public class StaticResourceServlet extends HttpServlet {
 
         // Send a 404 if not found
         if (!res.exists())
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, this.resources
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, Launcher.RESOURCES
                     .getString("StaticResourceServlet.PathNotFound", path));
 
         // Check we are below the webroot
         else if (!isDescendant(this.webRoot, res, this.webRoot)) {
-            Logger.log(Logger.FULL_DEBUG, resources, "StaticResourceServlet.OutsideWebroot",
+            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "StaticResourceServlet.OutsideWebroot",
                     new String[] {res.getCanonicalPath(), this.webRoot.toString()});
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, this.resources
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, Launcher.RESOURCES
                     .getString("StaticResourceServlet.PathInvalid", path));
         }
 
         // Check we are not below the web-inf
         else if (!isInclude && !isForward && isDescendant(new File(this.webRoot, "WEB-INF"), res, this.webRoot)) 
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, this.resources
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, Launcher.RESOURCES
                     .getString("StaticResourceServlet.PathInvalid", path));
 
         // Check we are not below the meta-inf
         else if (!isInclude && !isForward && isDescendant(new File(this.webRoot, "META-INF"), res, this.webRoot)) 
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, this.resources
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, Launcher.RESOURCES
                     .getString("StaticResourceServlet.PathInvalid", path));
 
         // check for the directory case
@@ -139,15 +137,15 @@ public class StaticResourceServlet extends HttpServlet {
                     generateDirectoryList(request, response, path);
                 else
                     response.sendError(HttpServletResponse.SC_FORBIDDEN,
-                            this.resources.getString("StaticResourceServlet.AccessDenied"));
+                            Launcher.RESOURCES.getString("StaticResourceServlet.AccessDenied"));
             } else
                 response.sendRedirect(this.prefix + path + "/");
         }
 
         // Send a 304 if not modified
         else if (!isInclude && (cachedResDate != -1)
-                && (cachedResDate < System.currentTimeMillis())
-                && (cachedResDate >= res.lastModified())) {
+                && (cachedResDate < (System.currentTimeMillis() / 1000L * 1000L))
+                && (cachedResDate >= (res.lastModified() / 1000L * 1000L))) {
             String mimeType = getServletContext().getMimeType(
                     res.getName().toLowerCase());
             if (mimeType != null)
@@ -167,7 +165,7 @@ public class StaticResourceServlet extends HttpServlet {
 
             response.setStatus(HttpServletResponse.SC_OK);
             response.setContentLength((int) res.length());
-            response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
+//            response.addHeader(ACCEPT_RANGES_HEADER, "bytes");
             response.addDateHeader(LAST_MODIFIED_DATE_HEADER, res.lastModified());
             OutputStream out = null;
             Writer outWriter = null;
@@ -260,25 +258,25 @@ public class StaticResourceServlet extends HttpServlet {
 
         // Build row content
         StringWriter rowString = new StringWriter();
-        String oddColour = this.resources
+        String oddColour = Launcher.RESOURCES
                 .getString("StaticResourceServlet.DirectoryList.OddColour");
-        String evenColour = this.resources
+        String evenColour = Launcher.RESOURCES
                 .getString("StaticResourceServlet.DirectoryList.EvenColour");
-        String rowTextColour = this.resources
+        String rowTextColour = Launcher.RESOURCES
                 .getString("StaticResourceServlet.DirectoryList.RowTextColour");
 
-        String directoryLabel = this.resources
+        String directoryLabel = Launcher.RESOURCES
                 .getString("StaticResourceServlet.DirectoryList.DirectoryLabel");
-        String parentDirLabel = this.resources
+        String parentDirLabel = Launcher.RESOURCES
                 .getString("StaticResourceServlet.DirectoryList.ParentDirectoryLabel");
-        String noDateLabel = this.resources
+        String noDateLabel = Launcher.RESOURCES
                 .getString("StaticResourceServlet.DirectoryList.NoDateLabel");
 
         int rowCount = 0;
 
         // Write the parent dir row
         if (!path.equals("") && !path.equals("/")) {
-            rowString.write(this.resources.getString(
+            rowString.write(Launcher.RESOURCES.getString(
                     "StaticResourceServlet.DirectoryList.Row", new String[] {
                             rowTextColour, evenColour, parentDirLabel, "..",
                             noDateLabel, directoryLabel }));
@@ -290,7 +288,7 @@ public class StaticResourceServlet extends HttpServlet {
             if (!children[n].getName().equalsIgnoreCase("web-inf") && 
                     !children[n].getName().equalsIgnoreCase("meta-inf")) {
                 File file = children[n];
-                rowString.write(this.resources.getString(
+                rowString.write(Launcher.RESOURCES.getString(
                         "StaticResourceServlet.DirectoryList.Row",
                         new String[] {
                                 rowTextColour,
@@ -306,14 +304,14 @@ public class StaticResourceServlet extends HttpServlet {
         }
         
         // Build wrapper body
-        String out = this.resources.getString("StaticResourceServlet.DirectoryList.Body",
+        String out = Launcher.RESOURCES.getString("StaticResourceServlet.DirectoryList.Body",
                 new String[] {
-                        this.resources.getString("StaticResourceServlet.DirectoryList.HeaderColour"),
-                        this.resources.getString("StaticResourceServlet.DirectoryList.HeaderTextColour"),
-                        this.resources.getString("StaticResourceServlet.DirectoryList.LabelColour"),
-                        this.resources.getString("StaticResourceServlet.DirectoryList.LabelTextColour"),
+                        Launcher.RESOURCES.getString("StaticResourceServlet.DirectoryList.HeaderColour"),
+                        Launcher.RESOURCES.getString("StaticResourceServlet.DirectoryList.HeaderTextColour"),
+                        Launcher.RESOURCES.getString("StaticResourceServlet.DirectoryList.LabelColour"),
+                        Launcher.RESOURCES.getString("StaticResourceServlet.DirectoryList.LabelTextColour"),
                         new Date() + "",
-                        this.resources.getString("ServerVersion"),
+                        Launcher.RESOURCES.getString("ServerVersion"),
                         path.equals("") ? "/" : path,
                         rowString.toString() });
 

@@ -628,6 +628,12 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
       <li><b>maxConnections</b> - Maximum number of connections allowed in the pool. Default is 20</li>
       <li><b>maxIdle</b> - Maximum number of idle connections allowed in the pool. Default is 10</li>
       <li><b>startConnections</b> - The number of connections to open the pool with. Deafault is 2</li>
+      <li><b>keepAliveSQL</b> - The sql to execute on keep-alive (or checkBeforeGet) operations. Default is empty</li>
+      <li><b>checkBeforeGet</b> - If true, executes the keepAliveSQL before any connection is returned from the pool. Default is false</li>
+      <li><b>keepAlivePeriod</b> - Execute the keepAliveSQL on all unused connection every n minutes. Default is disabled</li>
+      <li><b>killInactivePeriod</b> - Kills excess unused connections every n minutes. Default is disabled</li>
+      <li><b>retryCount</b> - When the pool is maxed out, block and retry n times. Default is 1 retry</li>
+      <li><b>retryPeriod</b> - The period (in ms) over which the retry blocks. Default is 1000ms</li>
     </ol>
 
   <p>For example to create a DataSource object at the JNDI location java:/comp/env/jdbc/connPool, use the 
