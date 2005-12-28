@@ -13,18 +13,17 @@ Long-term
      - Publish apidocs
      - Eclipse plug-in ? internal launcher plus browser window, and project level config for 
          winstone properties
-     - Check for warfile, common libs and properties file inside classpath, so that we can 
-         pack an app in a single jar
      - More accurate profiling of memory usage, object allocation etc
+     - Auto-deployer for webappsDir folder. Redeploy warfiles that have been updated or added
+     - Maven winstone plugin, so we can run maven winstone, and it will war-up and execute
      
 v0.8
 DONE - Remove resource bundles as arguments. Declare statically in class
 DONE - DB connection pool keep-alive support, etc
-     - Auto-deployer for webappsDir folder. Redeploy warfiles that have been updated or added
-     - Cache filter matching calcs for various URLs
+DONE - Cache filter matching calcs for various URLs
+DONE - Virtual host support
      - Access log. Apache style if possible, minimal config.
-     - Virtual host support
-     - Maven winstone plugin, so we can run maven winstone, and it will war-up and execute
+     - Check for warfile, common libs and properties file inside classpath, so that we can pack an app in a single jar
 
 v0.7
 DONE - Fixed load-on-startup optional content bug (thanks to Matthias Wuttke)

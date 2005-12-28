@@ -53,10 +53,10 @@ public interface Cluster {
      * @param requestType A byte indicating the request type
      * @param in Socket input stream
      * @param outSocket output stream
-     * @param webAppGroup The collection of all local webapps
+     * @param hostConfig The collection of all local webapps
      * @throws IOException
      */
     public void clusterRequest(byte requestType, InputStream in,
-            OutputStream out, Socket socket, WebAppGroup webAppGroup)
+            OutputStream out, Socket socket, HostGroup hostGroup)
             throws IOException;
 }

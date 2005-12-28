@@ -36,9 +36,10 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 import winstone.Cluster;
+import winstone.HostConfiguration;
+import winstone.HostGroup;
 import winstone.Logger;
 import winstone.WebAppConfiguration;
-import winstone.WebAppGroup;
 import winstone.WinstoneResourceBundle;
 import winstone.WinstoneSession;
 
@@ -135,8 +136,7 @@ public class SimpleCluster implements Runnable, Cluster {
      * Check if the other nodes in this cluster have a session for this
      * sessionId.
      * 
-     * @param sessionId
-     *            The id of the session to check for
+     * @param sessionId The id of the session to check for
      * @return A valid session instance
      */
     public WinstoneSession askClusterForSession(String sessionId,
@@ -146,7 +146,8 @@ public class SimpleCluster implements Runnable, Cluster {
         Collection searchThreads = new ArrayList();
         for (Iterator i = addresses.iterator(); i.hasNext();) {
             String ipPort = (String) i.next();
-            ClusterSessionSearch search = new ClusterSessionSearch(webAppConfig.getPrefix(), 
+            ClusterSessionSearch search = new ClusterSessionSearch(
+                    webAppConfig.getPrefix(), webAppConfig.getOwnerHostname(), 
                     sessionId, ipPort, this.controlPort);
             searchThreads.add(search);
         }
@@ -201,8 +202,7 @@ public class SimpleCluster implements Runnable, Cluster {
     /**
      * Given an address, retrieve the list of cluster nodes and initialise dates
      * 
-     * @param address
-     *            The address to request a node list from
+     * @param address The address to request a node list from
      */
     private void askClusterNodeForNodeList(String address) {
         try {
@@ -247,8 +247,7 @@ public class SimpleCluster implements Runnable, Cluster {
     /**
      * Given an address, send a heartbeat
      * 
-     * @param address
-     *            The address to request a node list from
+     * @param address The address to request a node list from
      */
     private void sendHeartbeat(String address) {
         try {
@@ -277,21 +276,17 @@ public class SimpleCluster implements Runnable, Cluster {
      * Accept a control socket request related to the cluster functions and
      * process the request.
      * 
-     * @param requestType
-     *            A byte indicating the request type
-     * @param in
-     *            Socket input stream
-     * @param outSocket
-     *            output stream
-     * @param webAppConfig
-     *            Instance of the web app
+     * @param requestType A byte indicating the request type
+     * @param in Socket input stream
+     * @param outSocket output stream
+     * @param webAppConfig Instance of the web app
      * @throws IOException
      */
     public void clusterRequest(byte requestType, InputStream in,
-            OutputStream out, Socket socket, WebAppGroup webAppGroup)
+            OutputStream out, Socket socket, HostGroup hostGroup)
             throws IOException {
         if (requestType == ClusterSessionSearch.SESSION_CHECK_TYPE)
-            handleClusterSessionRequest(socket, in, out, webAppGroup);
+            handleClusterSessionRequest(socket, in, out, hostGroup);
         else if (requestType == NODELIST_DOWNLOAD_TYPE)
             handleNodeListDownloadRequest(socket, in, out);
         else if (requestType == NODE_HEARTBEAT_TYPE)
@@ -305,15 +300,17 @@ public class SimpleCluster implements Runnable, Cluster {
      * Handles incoming socket requests for session search
      */
     public void handleClusterSessionRequest(Socket socket, InputStream in,
-            OutputStream out, WebAppGroup webAppGroup)
+            OutputStream out, HostGroup hostGroup)
             throws IOException {
         // Read in a string for the sessionId
         ObjectInputStream inControl = new ObjectInputStream(in);
         int port = inControl.readInt();
         String ipPortSender = socket.getInetAddress().getHostAddress() + ":" + port;
         String sessionId = inControl.readUTF();
+        String hostname = inControl.readUTF();
+        HostConfiguration hostConfig = hostGroup.getHostByName(hostname);
         String webAppPrefix = inControl.readUTF();
-        WebAppConfiguration webAppConfig = webAppGroup.getWebAppByURI(webAppPrefix);
+        WebAppConfiguration webAppConfig = hostConfig.getWebAppByURI(webAppPrefix);
         ObjectOutputStream outData = new ObjectOutputStream(out);
         if (webAppConfig == null) {
             outData.writeUTF(ClusterSessionSearch.SESSION_NOT_FOUND);

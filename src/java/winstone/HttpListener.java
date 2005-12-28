@@ -46,7 +46,7 @@ public class HttpListener implements Listener, Runnable {
     protected static int KEEP_ALIVE_TIMEOUT = 10000;
     protected static int KEEP_ALIVE_SLEEP = 20;
     protected static int KEEP_ALIVE_SLEEP_MAX = 500;
-    protected WebAppGroup webAppGroup;
+    protected HostGroup hostGroup;
     protected ObjectPool objectPool;
     protected boolean doHostnameLookups;
     protected int listenPort;
@@ -59,9 +59,9 @@ public class HttpListener implements Listener, Runnable {
     /**
      * Constructor
      */
-    public HttpListener(Map args, ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
+    public HttpListener(Map args, ObjectPool objectPool, HostGroup hostGroup) throws IOException {
         // Load resources
-        this.webAppGroup = webAppGroup;
+        this.hostGroup = hostGroup;
         this.objectPool = objectPool;
         this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args,
                 getConnectorName() + "Port", "" + getDefaultPort()));
@@ -186,7 +186,7 @@ public class HttpListener implements Listener, Runnable {
         rsp.setOutputStream(outData);
         rsp.setRequest(req);
         // rsp.updateContentTypeHeader("text/html");
-        req.setWebAppGroup(this.webAppGroup);
+        req.setHostGroup(this.hostGroup);
 
         // Set the handler's member variables so it can execute the servlet
         handler.setRequest(req);
@@ -331,8 +331,7 @@ public class HttpListener implements Listener, Runnable {
             rsp.setProtocol("HTTP/0.9");
         } else {
             fullURI = trimHostName(remainder.substring(0, spacePos).trim());
-            String protocol = remainder.substring(spacePos + 1).trim()
-                    .toUpperCase();
+            String protocol = remainder.substring(spacePos + 1).trim().toUpperCase();
             req.setProtocol(protocol);
             rsp.setProtocol(protocol);
         }

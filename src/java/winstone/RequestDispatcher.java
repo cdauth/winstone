@@ -18,6 +18,9 @@
 package winstone;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -72,8 +75,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
     
     private Mapping forwardFilterPatterns[];
     private Mapping includeFilterPatterns[];
-    private Mapping filterPatterns[];
-    private int filterPatternsEvaluated;
+    private FilterConfiguration matchingFilters[];
+    private int matchingFiltersEvaluated;
     
     private Boolean doInclude;
     private boolean isErrorDispatch;
@@ -88,14 +91,14 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         this.servletConfig = servletConfig;
         this.webAppConfig = webAppConfig;
 
-        this.filterPatternsEvaluated = 0;
+        this.matchingFiltersEvaluated = 0;
     }
 
     public void setForNamedDispatcher(Mapping forwardFilterPatterns[],
             Mapping includeFilterPatterns[]) {
         this.forwardFilterPatterns = forwardFilterPatterns;
         this.includeFilterPatterns = includeFilterPatterns;
-        this.filterPatterns = null; // set after the call to forward or include
+        this.matchingFilters = null; // set after the call to forward or include
         this.useRequestAttributes = false;
         this.isErrorDispatch = false;
     }
@@ -110,7 +113,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
         this.forwardFilterPatterns = forwardFilterPatterns;
         this.includeFilterPatterns = includeFilterPatterns;
-        this.filterPatterns = null; // set after the call to forward or include
+        this.matchingFilters = null; // set after the call to forward or include
         this.useRequestAttributes = true;
         this.isErrorDispatch = false;
     }
@@ -128,7 +131,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         this.errorException = exception;
         this.errorSummaryMessage = summaryMessage;
 
-        this.filterPatterns = errorFilterPatterns;
+        this.matchingFilters = getMatchingFilters(errorFilterPatterns, this.webAppConfig, 
+                servletPath + (pathInfo == null ? "" : pathInfo), 
+                getName(), (servletPath != null));
         this.useRequestAttributes = true;
         this.isErrorDispatch = true;
     }
@@ -141,7 +146,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         this.queryString = queryString;
         this.requestURI = requestURIInsideWebapp;
         this.authHandler = authHandler;
-        this.filterPatterns = requestFilterPatterns;
+        this.matchingFilters = getMatchingFilters(requestFilterPatterns, this.webAppConfig, 
+                servletPath + (pathInfo == null ? "" : pathInfo), 
+                getName(), (servletPath != null));
         this.useRequestAttributes = false;
         this.isErrorDispatch = false;
     }
@@ -179,12 +186,14 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
             this.doInclude = Boolean.TRUE;
         }
-        if (this.filterPatterns == null)
-            this.filterPatterns = this.includeFilterPatterns;
-
+        if (this.matchingFilters == null) {
+            this.matchingFilters = getMatchingFilters(this.includeFilterPatterns, this.webAppConfig, 
+                    this.servletPath + (this.pathInfo == null ? "" : this.pathInfo), 
+                    getName(), (this.servletPath != null));
+        }
         try {
             // Make sure the filter chain is exhausted first
-            if (this.filterPatternsEvaluated < this.filterPatterns.length) {
+            if (this.matchingFiltersEvaluated < this.matchingFilters.length) {
                 doFilter(request, response);
                 finishInclude(request, response);
             }
@@ -194,7 +203,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                     this.servletConfig.execute(request, response, 
                             this.webAppConfig.getPrefix() + this.requestURI);
                 } finally {
-                    if (this.filterPatterns.length == 0) {
+                    if (this.matchingFilters.length == 0) {
                         finishInclude(request, response);
                     }
                 }
@@ -298,8 +307,10 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 //            }
 
             // Forwards haven't set up the filter pattern set yet
-            if (this.filterPatterns == null) {
-                this.filterPatterns = this.forwardFilterPatterns;
+            if (this.matchingFilters == null) {
+                this.matchingFilters = getMatchingFilters(this.forwardFilterPatterns, this.webAppConfig, 
+                        this.servletPath + (this.pathInfo == null ? "" : this.pathInfo), 
+                        getName(), (this.servletPath != null));
             }
             
             // Otherwise we are an initial or error dispatcher, so check security if initial -
@@ -312,7 +323,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         }
 
         // Make sure the filter chain is exhausted first
-        if (this.filterPatternsEvaluated < this.filterPatterns.length)
+        if (this.matchingFiltersEvaluated < this.matchingFilters.length)
             doFilter(request, response);
         else
             this.servletConfig.execute(request, response, this.webAppConfig.getPrefix() + this.requestURI);
@@ -336,35 +347,13 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
     public void doFilter(ServletRequest request, ServletResponse response)
             throws ServletException, IOException {
         // Loop through the filter mappings until we hit the end
-        while (this.filterPatternsEvaluated < this.filterPatterns.length) {
-            // Get the pattern and eval it, bumping up the eval'd count
-            Mapping filterPattern = this.filterPatterns[this.filterPatternsEvaluated++];
-            String fullPath = this.servletPath + (this.pathInfo == null ? "" : this.pathInfo);
-
-            // If the servlet name matches this name, execute it
-            if ((filterPattern.getLinkName() != null)
-                    && filterPattern.getLinkName().equals(getName())) {
-                FilterConfiguration filter = (FilterConfiguration) this.webAppConfig.getFilters()
-                        .get(filterPattern.getMappedTo());
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                        "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
-                filter.execute(request, response, this);
-                return;
-            }
-            // If the url path matches this filters mappings
-            else if ((filterPattern.getLinkName() == null)
-                    && (this.servletPath != null)
-                    && filterPattern.match(fullPath, null, null)) {
-                FilterConfiguration filter = (FilterConfiguration) this.webAppConfig.getFilters()
-                        .get(filterPattern.getMappedTo());
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
-                        "RequestDispatcher.ExecutingFilter", filterPattern.getMappedTo());
-                filter.execute(request, response, this);
-                return;
-            } else {
-                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "RequestDispatcher.BypassingFilter",
-                        new String[] { getName(), filterPattern.toString(), fullPath });
-            }
+        while (this.matchingFiltersEvaluated < this.matchingFilters.length) {
+            
+            FilterConfiguration filter = this.matchingFilters[this.matchingFiltersEvaluated++]; 
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
+                    "RequestDispatcher.ExecutingFilter", filter.getFilterName());
+            filter.execute(request, response, this);
+            return;
         }
 
         // Forward / include as requested in the beginning
@@ -376,6 +365,53 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             forward(request, response);
     }
 
+    /**
+     * Caches the filter matching, so that if the same URL is requested twice, we don't recalculate the
+     * filter matching every time. 
+     */
+    private static FilterConfiguration[] getMatchingFilters(Mapping filterPatterns[], 
+            WebAppConfiguration webAppConfig, String fullPath, String servletName,
+            boolean isURLBasedMatch) {
+        
+        String cacheKey = null;
+        if (isURLBasedMatch) {
+            cacheKey = fullPath;
+        } else {
+            cacheKey = "Servlet:" + servletName;
+        }
+        FilterConfiguration matchingFilters[] = null;
+        Map cache = webAppConfig.getFilterMatchCache();
+        synchronized (cache) {
+            matchingFilters = (FilterConfiguration []) cache.get(cacheKey); 
+            if (matchingFilters == null) {
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, 
+                        "RequestDispatcher.CalcFilterChain", cacheKey);
+                List outFilters = new ArrayList();
+                for (int n = 0; n < filterPatterns.length; n++) {
+                    // Get the pattern and eval it, bumping up the eval'd count
+                    Mapping filterPattern = filterPatterns[n];
+
+                    // If the servlet name matches this name, execute it
+                    if ((filterPattern.getLinkName() != null)
+                            && filterPattern.getLinkName().equals(servletName)) {
+                        outFilters.add(webAppConfig.getFilters().get(filterPattern.getMappedTo()));
+                    }
+                    // If the url path matches this filters mappings
+                    else if ((filterPattern.getLinkName() == null) && isURLBasedMatch
+                            && filterPattern.match(fullPath, null, null)) {
+                        outFilters.add(webAppConfig.getFilters().get(filterPattern.getMappedTo()));
+                    }
+                }
+                matchingFilters = (FilterConfiguration []) outFilters.toArray(new FilterConfiguration[0]);
+                cache.put(cacheKey, matchingFilters);
+            } else {
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, 
+                        "RequestDispatcher.UseCachedFilterChain", cacheKey);
+            }
+        }
+        return matchingFilters;
+    }
+    
     /**
      * Unwrap back to the original container allocated request object
      */

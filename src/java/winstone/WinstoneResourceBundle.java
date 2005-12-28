@@ -92,4 +92,11 @@ public class WinstoneResourceBundle {
         out.append(input.substring(index));
         return out.toString();
     }
+    
+    public static String globalReplace(String input, String parameters[][]) {
+        if (parameters != null)
+            for (int n = 0; n < parameters.length; n++)
+                input = globalReplace(input, parameters[n][0], parameters[n][1]);
+        return input;
+    }
 }

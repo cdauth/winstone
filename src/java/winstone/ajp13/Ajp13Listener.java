@@ -34,13 +34,13 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 
+import winstone.HostGroup;
 import winstone.Launcher;
 import winstone.Listener;
 import winstone.Logger;
 import winstone.ObjectPool;
 import winstone.RequestHandlerThread;
 import winstone.WebAppConfiguration;
-import winstone.WebAppGroup;
 import winstone.WinstoneException;
 import winstone.WinstoneInputStream;
 import winstone.WinstoneOutputStream;
@@ -67,7 +67,7 @@ public class Ajp13Listener implements Listener, Runnable {
     private final static int KEEP_ALIVE_SLEEP_MAX = 500;
     private final static String TEMPORARY_URL_STASH = "winstone.ajp13.TemporaryURLAttribute";
     
-    private WebAppGroup webAppGroup;
+    private HostGroup hostGroup;
     private ObjectPool objectPool;
     private int listenPort;
     private boolean interrupted;
@@ -76,9 +76,9 @@ public class Ajp13Listener implements Listener, Runnable {
     /**
      * Constructor
      */
-    public Ajp13Listener(Map args, ObjectPool objectPool, WebAppGroup webAppGroup) {
+    public Ajp13Listener(Map args, ObjectPool objectPool, HostGroup hostGroup) {
         // Load resources
-        this.webAppGroup = webAppGroup;
+        this.hostGroup = hostGroup;
         this.objectPool = objectPool;
 
         this.listenPort = Integer.parseInt(WebAppConfiguration.stringArg(args,
@@ -161,7 +161,7 @@ public class Ajp13Listener implements Listener, Runnable {
         WinstoneRequest req = this.objectPool.getRequestFromPool();
         WinstoneResponse rsp = this.objectPool.getResponseFromPool();
         rsp.setRequest(req);
-        req.setWebAppGroup(this.webAppGroup);
+        req.setHostGroup(this.hostGroup);
         // rsp.updateContentTypeHeader("text/html");
 
         if (iAmFirst || (KEEP_ALIVE_TIMEOUT == -1))
@@ -314,8 +314,7 @@ public class Ajp13Listener implements Listener, Runnable {
                 .hasNext();) {
             String attName = (String) i.next();
             if (attName.equals("query_string")) {
-                String qs = (String) headers.getAttributes()
-                        .get("query_string");
+                String qs = (String) headers.getAttributes().get("query_string");
                 req.setQueryString(qs);
                 // req.getParameters().putAll(WinstoneRequest.extractParameters(qs,
                 // req.getEncoding(), mainResources));

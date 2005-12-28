@@ -121,7 +121,7 @@ public class WinstoneRequest implements HttpServletRequest {
     protected BufferedReader inputReader;
     protected ServletConfiguration servletConfig;
     protected WebAppConfiguration webappConfig;
-    protected WebAppGroup webappGroup;
+    protected HostGroup hostGroup;
 
     protected AuthenticationPrincipal authenticatedUser;
     protected ServletRequestAttributeListener requestAttributeListeners[];
@@ -179,7 +179,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.inputReader = null;
         this.servletConfig = null;
         this.webappConfig = null;
-        this.webappGroup = null;
+        this.hostGroup = null;
         this.serverPort = -1;
         this.remoteIP = null;
         this.remoteName = null;
@@ -251,8 +251,8 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.deadRequestedSessionId;
     }
 
-    public WebAppGroup getWebAppGroup() {
-        return this.webappGroup;
+    public HostGroup getHostGroup() {
+        return this.hostGroup;
     }
 
     public WebAppConfiguration getWebAppConfig() {
@@ -279,8 +279,8 @@ public class WinstoneRequest implements HttpServletRequest {
         this.inputData = inputData;
     }
 
-    public void setWebAppGroup(WebAppGroup webappGroup) {
-        this.webappGroup = webappGroup;
+    public void setHostGroup(HostGroup hostGroup) {
+        this.hostGroup = hostGroup;
     }
 
     public void setWebAppConfig(WebAppConfiguration webappConfig) {
@@ -577,8 +577,7 @@ public class WinstoneRequest implements HttpServletRequest {
                 this.contentType = value;
                 int semicolon = value.lastIndexOf(';');
                 if (semicolon != -1) {
-                    String encodingClause = value.substring(semicolon + 1)
-                            .trim();
+                    String encodingClause = value.substring(semicolon + 1).trim();
                     if (encodingClause.startsWith("charset="))
                         this.encoding = encodingClause.substring(8);
                 }
@@ -656,8 +655,8 @@ public class WinstoneRequest implements HttpServletRequest {
                         "WinstoneRequest.CookieFound", thisCookie.toString());
                 if (thisCookie.getName().equals(WinstoneSession.SESSION_COOKIE_NAME)) {
                     // Find a context that manages this key
-                    WebAppConfiguration ownerContext = this.webappGroup.getWebAppBySessionKey(
-                            thisCookie.getValue());
+                    HostConfiguration hostConfig = this.hostGroup.getHostByName(this.serverName);
+                    WebAppConfiguration ownerContext = hostConfig.getWebAppBySessionKey(thisCookie.getValue());
                     if (ownerContext != null) {
                         this.requestedSessionIds.put(ownerContext.getPrefix(), 
                                 thisCookie.getValue());

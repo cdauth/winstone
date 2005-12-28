@@ -43,12 +43,12 @@ import org.w3c.dom.Node;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class WebAppGroup {
+public class HostConfiguration {
     
-    static final String WEB_ROOT = "webroot";
-    static final String WEB_INF = "WEB-INF";
-    static final String WEB_XML = "web.xml";
+    private static final String WEB_INF = "WEB-INF";
+    private static final String WEB_XML = "web.xml";
 
+    private String hostname;
     private Map args;
     private Map webapps;
     private Cluster cluster;
@@ -56,9 +56,9 @@ public class WebAppGroup {
     private ClassLoader commonLibCL;
     private File commonLibCLPaths[];
     
-    public WebAppGroup(Cluster cluster,
-            ObjectPool objectPool, ClassLoader commonLibCL, 
-            File commonLibCLPaths[], Map args) throws IOException {
+    public HostConfiguration(String hostname, Cluster cluster, ObjectPool objectPool, ClassLoader commonLibCL, 
+            File commonLibCLPaths[], Map args, String webappsDirName) throws IOException {
+        this.hostname = hostname;
         this.args = args;
         this.webapps = new Hashtable();
         this.cluster = cluster;
@@ -69,7 +69,6 @@ public class WebAppGroup {
         // Is this the single or multiple configuration ? Check args
         String warfile = (String) args.get("warfile");
         String webroot = (String) args.get("webroot");
-        String webappsDirName = (String) args.get("webappsDir");
         
         // If single-webapp mode
         if ((webappsDirName == null) && ((warfile != null) || (webroot != null))) {
@@ -85,7 +84,7 @@ public class WebAppGroup {
         else {
             initMultiWebappDir(webappsDirName);
         }
-        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WebAppGroup.InitComplete", 
+        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostConfig.InitComplete", 
                 new String[] {this.webapps.size() + "", this.webapps.keySet() + ""});
     }
 
@@ -116,12 +115,12 @@ public class WebAppGroup {
         if (webInfFolder.exists()) {
             File webXmlFile = new File(webInfFolder, WEB_XML);
             if (webXmlFile.exists()) {
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "Launcher.ParsingWebXml");
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostConfig.ParsingWebXml");
                 Document webXMLDoc = new WebXmlParser(this.commonLibCL)
                         .parseStreamToXML(webXmlFile);
                 webXMLParentNode = webXMLDoc.getDocumentElement();
                 Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                        "Launcher.WebXmlParseComplete");
+                        "HostConfig.WebXmlParseComplete");
             }
         }
 
@@ -130,6 +129,10 @@ public class WebAppGroup {
                 .getCanonicalPath(), prefix, this.objectPool, this.args,
                 webXMLParentNode, this.commonLibCL,
                 this.commonLibCLPaths, contextName);
+    }
+    
+    public String getHostname() {
+        return this.hostname;
     }
     
     /**
@@ -161,7 +164,7 @@ public class WebAppGroup {
             destroyWebApp(prefix);
             this.webapps.put(prefix, initWebApp(prefix, new File(webRoot), contextName));
         } else {
-            throw new WinstoneException(Launcher.RESOURCES.getString("WebAppGroup.PrefixUnknown", prefix));
+            throw new WinstoneException(Launcher.RESOURCES.getString("HostConfig.PrefixUnknown", prefix));
         }
     }    
     
@@ -173,13 +176,13 @@ public class WebAppGroup {
     protected File getWebRoot(String requestedWebroot, String warfileName) throws IOException {
         if (warfileName != null) {
             Logger.log(Logger.INFO, Launcher.RESOURCES,
-                    "Launcher.BeginningWarExtraction");
+                    "HostConfig.BeginningWarExtraction");
 
             // open the war file
             File warfileRef = new File(warfileName);
             if (!warfileRef.exists() || !warfileRef.isFile())
                 throw new WinstoneException(Launcher.RESOURCES.getString(
-                        "Launcher.WarFileInvalid", warfileName));
+                        "HostConfig.WarFileInvalid", warfileName));
 
             // Get the webroot folder (or a temp dir if none supplied)
             File unzippedDir = null;
@@ -193,10 +196,10 @@ public class WebAppGroup {
             if (unzippedDir.exists()) {
                 if (!unzippedDir.isDirectory()) {
                     throw new WinstoneException(Launcher.RESOURCES.getString(
-                            "Launcher.WebRootNotDirectory", unzippedDir.getPath()));
+                            "HostConfig.WebRootNotDirectory", unzippedDir.getPath()));
                 } else {
                     Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                            "Launcher.WebRootExists", unzippedDir.getCanonicalPath());
+                            "HostConfig.WebRootExists", unzippedDir.getCanonicalPath());
                 }
             } else {
                 unzippedDir.mkdirs();
@@ -244,9 +247,9 @@ public class WebAppGroup {
         }
         File webappsDir = new File(webappsDirName);
         if (!webappsDir.exists()) {
-            throw new WinstoneException(Launcher.RESOURCES.getString("WebAppGroup.WebAppDirNotFound", webappsDirName));
+            throw new WinstoneException(Launcher.RESOURCES.getString("HostConfig.WebAppDirNotFound", webappsDirName));
         } else if (!webappsDir.isDirectory()) {
-            throw new WinstoneException(Launcher.RESOURCES.getString("WebAppGroup.WebAppDirIsNotDirectory", webappsDirName));
+            throw new WinstoneException(Launcher.RESOURCES.getString("HostConfig.WebAppDirIsNotDirectory", webappsDirName));
         } else {
             File children[] = webappsDir.listFiles();
             for (int n = 0; n < children.length; n++) {
@@ -256,13 +259,13 @@ public class WebAppGroup {
                 if (children[n].isDirectory()) {
                     File matchingWarFile = new File(webappsDir, children[n].getName() + ".war");
                     if (matchingWarFile.exists() && matchingWarFile.isFile()) {
-                        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WebAppGroup.SkippingWarfileDir", childName);
+                        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostConfig.SkippingWarfileDir", childName);
                     } else {
                         String prefix = childName.equalsIgnoreCase("ROOT") ? "" : "/" + childName; 
                         if (!this.webapps.containsKey(prefix)) {
                             WebAppConfiguration webAppConfig = initWebApp(prefix, children[n], childName);
                             this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
-                            Logger.log(Logger.INFO, Launcher.RESOURCES, "WebAppGroup.DeployingWebapp", childName);
+                            Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
                         }
                     }
                 } else if (childName.endsWith(".war")) {
@@ -276,7 +279,7 @@ public class WebAppGroup {
                                         getWebRoot(new File(webappsDir, outputName).getCanonicalPath(),
                                                 children[n].getCanonicalPath()), outputName);
                         this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
-                        Logger.log(Logger.INFO, Launcher.RESOURCES, "WebAppGroup.DeployingWebapp", childName);
+                        Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
                     }
                 }
             }

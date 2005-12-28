@@ -37,11 +37,11 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 
+import winstone.HostGroup;
 import winstone.HttpListener;
 import winstone.Logger;
 import winstone.ObjectPool;
 import winstone.WebAppConfiguration;
-import winstone.WebAppGroup;
 import winstone.WinstoneException;
 import winstone.WinstoneRequest;
 import winstone.WinstoneResourceBundle;
@@ -62,8 +62,8 @@ public class HttpsListener extends HttpListener {
     /**
      * Constructor
      */
-    public HttpsListener(Map args, ObjectPool objectPool, WebAppGroup webAppGroup) throws IOException {
-        super(args, objectPool, webAppGroup);
+    public HttpsListener(Map args, ObjectPool objectPool, HostGroup hostGroup) throws IOException {
+        super(args, objectPool, hostGroup);
         this.keystore = WebAppConfiguration.stringArg(args, getConnectorName()
                 + "KeyStore", "winstone.ks");
         this.password = WebAppConfiguration.stringArg(args, getConnectorName()
@@ -77,7 +77,7 @@ public class HttpsListener extends HttpListener {
      * SSL connector.
      */
     protected int getDefaultPort() {
-        return -1;
+        return -1; // https disabled by default
     }
 
     /**

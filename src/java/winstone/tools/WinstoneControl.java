@@ -99,6 +99,7 @@ public class WinstoneControl {
             OutputStream out = socket.getOutputStream();
             out.write(Launcher.RELOAD_TYPE);
             ObjectOutputStream objOut = new ObjectOutputStream(out);
+            objOut.writeUTF(host);
             objOut.writeUTF(webappName);
             objOut.close();
             out.close();

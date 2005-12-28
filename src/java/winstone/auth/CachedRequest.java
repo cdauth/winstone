@@ -71,7 +71,7 @@ public class CachedRequest extends WinstoneRequest {
         this.deadRequestedSessionId = request.getDeadRequestedSessionId();
         this.servletConfig = request.getServletConfig();
         this.webappConfig = request.getWebAppConfig();
-        this.webappGroup = request.getWebAppGroup();
+        this.hostGroup = request.getHostGroup();
         this.encoding = request.getEncoding();
         this.parsedParameters = request.getParsedParameters();
         InputStream in = request.getInputStream();
@@ -127,6 +127,6 @@ public class CachedRequest extends WinstoneRequest {
         request.setInputStream(this.inputData);
         request.setServletConfig(this.servletConfig);
         request.setWebAppConfig(this.webappConfig);
-        request.setWebAppGroup(this.webappGroup);
+        request.setHostGroup(this.hostGroup);
     }
 }

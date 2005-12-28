@@ -160,6 +160,10 @@ public class WinstoneResponse implements HttpServletResponse {
         this.statusCode = statusCode;
     }
     
+    public WinstoneOutputStream getWinstoneOutputStream() {
+        return this.outputStream;
+    }
+    
     public void setOutputStream(WinstoneOutputStream outData) {
         this.outputStream = outData;
     }
@@ -317,10 +321,11 @@ public class WinstoneResponse implements HttpServletResponse {
             return;
 
         // Write out the new session cookie if it's present
+        HostConfiguration hostConfig = req.getHostGroup().getHostByName(req.getServerName());
         for (Iterator i = req.getCurrentSessionIds().keySet().iterator(); i.hasNext(); ) {
             String prefix = (String) i.next();
             String sessionId = (String) req.getCurrentSessionIds().get(prefix);
-            WebAppConfiguration ownerContext = req.getWebAppGroup().getWebAppByURI(prefix);
+            WebAppConfiguration ownerContext = hostConfig.getWebAppByURI(prefix);
             if (ownerContext != null) {
                 WinstoneSession session = ownerContext.getSessionById(sessionId, true);
                 if ((session != null) && session.isNew()) {
@@ -702,6 +707,10 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public int getStatus() {
         return this.statusCode;
+    }
+
+    public Integer getErrorStatusCode() {
+        return this.errorStatusCode;
     }
 
     public void setStatus(int sc) {

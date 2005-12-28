@@ -113,15 +113,16 @@ public class RequestHandlerThread implements Runnable {
                         long headerParseTime = getRequestProcessTime();
                         iAmFirst = false;
 
+                        HostConfiguration hostConfig = req.getHostGroup().getHostByName(req.getServerName());
                         Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                                 "RequestHandlerThread.StartRequest",
-                                "" + requestId);
+                                new String[] {"" + requestId, hostConfig.getHostname()});
 
                         // Get the URI from the request, check for prefix, then
                         // match it to a requestDispatcher
-                        WebAppConfiguration webAppConfig = req.getWebAppGroup().getWebAppByURI(servletURI);
+                        WebAppConfiguration webAppConfig = hostConfig.getWebAppByURI(servletURI);
                         if (webAppConfig == null) {
-                            webAppConfig = req.getWebAppGroup().getWebAppByURI("/");    
+                            webAppConfig = hostConfig.getWebAppByURI("/");    
                         }
                         if (webAppConfig == null) {
                             Logger.log(Logger.WARNING, Launcher.RESOURCES,
@@ -131,6 +132,7 @@ public class RequestHandlerThread implements Runnable {
                                     Launcher.RESOURCES.getString("RequestHandlerThread.UnknownWebappPage", servletURI));
                             rsp.flushBuffer();
                             rsp.verifyContentLength();
+                            writeToAccessLog(servletURI, req, rsp, null);
 
                             // Process keep-alive
                             continueFlag = this.listener.processKeepAlive(req, rsp, inSocket);
@@ -154,6 +156,8 @@ public class RequestHandlerThread implements Runnable {
                         // Lookup a dispatcher, then process with it
                         processRequest(webAppConfig, req, rsp, 
                                 webAppConfig.getServletURIFromRequestURI(servletURI));
+                        writeToAccessLog(servletURI, req, rsp, webAppConfig);
+
                         this.outData.finishResponse();
                         this.inData.finishRequest();
 
@@ -315,6 +319,15 @@ public class RequestHandlerThread implements Runnable {
     public void destroy() {
         if (this.thread.isAlive()) {
             this.thread.interrupt();
+        }
+    }
+    
+    protected void writeToAccessLog(String originalURL, WinstoneRequest request, WinstoneResponse response,
+            WebAppConfiguration webAppConfig) {
+        // Log a row containing appropriate data
+        AccessLogger logger = webAppConfig.getAccessLogger();
+        if (logger != null) {
+            logger.log(originalURL, request, response);
         }
     }
 }

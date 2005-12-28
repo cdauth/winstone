@@ -129,7 +129,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     
     static final String JSP_SERVLET_CLASS = "org.apache.jasper.servlet.JspServlet";
     
-    private WebAppGroup ownerWebappGroup;
+    private HostConfiguration ownerHostConfig;
     private Cluster cluster;
     private String webRoot;
     private String prefix;
@@ -167,7 +167,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private String defaultServletName;
     private String errorServletName;
     private JNDIManager jndiManager;
-
+    private AccessLogger accessLogger;
+    private Map filterMatchCache;
+    
     public static boolean booleanArg(Map args, String name, boolean defaultTrue) {
         String value = (String) args.get(name);
         if (defaultTrue)
@@ -187,10 +189,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     /**
      * Constructor. This parses the xml and sets up for basic routing
      */
-    public WebAppConfiguration(WebAppGroup ownerWebappGroup, Cluster cluster, String webRoot,
+    public WebAppConfiguration(HostConfiguration ownerHostConfig, Cluster cluster, String webRoot,
             String prefix, ObjectPool objectPool, Map startupArgs, Node elm,
             ClassLoader parentClassLoader, File parentClassPaths[], String contextName) {
-        this.ownerWebappGroup = ownerWebappGroup;
+        this.ownerHostConfig = ownerHostConfig;
         this.webRoot = webRoot;
         this.prefix = prefix;
         this.contextName = contextName;
@@ -232,6 +234,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         this.servletInstances = new HashMap();
         this.filterInstances = new HashMap();
+        this.filterMatchCache = new HashMap();
 
         List contextAttributeListeners = new ArrayList();
         List contextListeners = new ArrayList();
@@ -302,8 +305,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         jspMappings.add(JSPX_SERVLET_MAPPING);
 
         // Add required context atttributes
-        File tmpDir = new File(new File(System.getProperty("java.io.tmpdir"), 
-                "winstone.tmp"), contextName); 
+        File tmpDir = new File(new File(new File(System.getProperty("java.io.tmpdir"), 
+                "winstone.tmp"), ownerHostConfig.getHostname()), contextName); 
         tmpDir.mkdirs();
         this.attributes.put("javax.servlet.context.tempdir", tmpDir);
 
@@ -370,8 +373,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 else if (nodeName.equals(ELEM_FILTER)) {
                     FilterConfiguration instance = new FilterConfiguration(
                             this, this.loader, child);
-                    this.filterInstances
-                            .put(instance.getFilterName(), instance);
+                    this.filterInstances.put(instance.getFilterName(), instance);
                 }
 
                 // Construct the servlet instances
@@ -686,7 +688,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Instantiate the JNDI manager
         String jndiMgrClassName = stringArg(startupArgs, "webappJndiClassName",
                 DEFAULT_JNDI_MGR_CLASS).trim();
-        if (useJNDI)
+        if (useJNDI) {
             try {
                 // Build the realm
                 Class jndiMgrClass = Class.forName(jndiMgrClassName, true, this.loader);
@@ -703,7 +705,26 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 Logger.log(Logger.ERROR, Launcher.RESOURCES,
                         "WebAppConfig.JNDIError", jndiMgrClassName, err);
             }
-
+        }
+        
+        String loggerClassName = stringArg(startupArgs, "accessLoggerClassName", "").trim();
+        if (!loggerClassName.equals("")) {
+            try {
+                // Build the realm
+                Class loggerClass = Class.forName(loggerClassName, true, this.loader);
+                Constructor loggerConstr = loggerClass.getConstructor(new Class[] { 
+                        WebAppConfiguration.class, Map.class });
+                this.accessLogger = (AccessLogger) loggerConstr.newInstance(new Object[] {
+                        this, startupArgs});
+            } catch (Throwable err) {
+                Logger.log(Logger.ERROR, Launcher.RESOURCES,
+                        "WebAppConfig.LoggerError", loggerClassName, err);
+            }
+        } else {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WebAppConfig.LoggerDisabled");
+            
+        }
+        
         // Add the default index.html welcomeFile if none are supplied
         if (localWelcomeFiles.isEmpty()) {
             if (useJasper) {
@@ -993,6 +1014,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         return this.loader;
     }
 
+    public AccessLogger getAccessLogger() {
+        return this.accessLogger;
+    }
+
     public Map getFilters() {
         return this.filterInstances;
     }
@@ -1025,6 +1050,14 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 //        return this.distributable;
 //    }
 
+    public Map getFilterMatchCache() {
+        return this.filterMatchCache;
+    }
+    
+    public String getOwnerHostname() {
+        return this.ownerHostConfig.getHostname();
+    }
+    
     public ServletRequestListener[] getRequestListeners() {
         return this.requestListeners;
     }
@@ -1067,6 +1100,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * Iterates through each of the servlets/filters and calls destroy on them
      */
     public void destroy() {
+        synchronized (this.filterMatchCache) {
+            this.filterMatchCache.clear();
+        }
+        
         Collection filterInstances = new ArrayList(this.filterInstances.values());
         for (Iterator i = filterInstances.iterator(); i.hasNext();) {
             try {
@@ -1126,6 +1163,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             this.jndiManager.tearDown();
             this.jndiManager = null;
         }
+
+        // Kill JNDI manager if we have one
+        if (this.accessLogger != null) {
+            this.accessLogger.destroy();
+            this.accessLogger = null;
+        }
     }
 
     /**
@@ -1135,7 +1178,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * environments.
      */
     public void resetClassLoader() throws IOException {
-        this.ownerWebappGroup.reloadWebApp(getPrefix());
+        this.ownerHostConfig.reloadWebApp(getPrefix());
     }
 
     /**
@@ -1350,7 +1393,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
     // Weird mostly deprecated crap to do with getting servlet instances
     public javax.servlet.ServletContext getContext(String uri) {
-        return this.ownerWebappGroup.getWebAppByURI(uri);
+        return this.ownerHostConfig.getWebAppByURI(uri);
     }
 
     public String getServletContextName() {
@@ -1454,10 +1497,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw, true);
             this.contextStartupError.printStackTrace(pw);
-//            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-//                    resources.getString("WebAppConfig.ErrorDuringStartup", sw
-//                            .toString()));
-//            return null;
             return this.getErrorDispatcherByCode(
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     Launcher.RESOURCES.getString("WebAppConfig.ErrorDuringStartup", sw.toString()), 

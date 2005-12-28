@@ -78,6 +78,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     public int getOutputStreamLength() {
         return this.bytesCommitted + this.bufferPosition;
     }
+
+    public int getBytesCommitted() {
+        return this.bytesCommitted;
+    }
     
     public void setDisregardMode(boolean disregard) {
         this.disregardMode = disregard;

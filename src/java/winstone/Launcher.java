@@ -61,7 +61,7 @@ public class Launcher implements Runnable {
     private Thread controlThread;
     public final static WinstoneResourceBundle RESOURCES = new WinstoneResourceBundle("winstone.LocalStrings");
     private int controlPort;
-    private WebAppGroup webAppGroup;
+    private HostGroup hostGroup;
     private ObjectPool objectPool;
     private List listeners;
     private Map args;
@@ -198,7 +198,7 @@ public class Launcher implements Runnable {
         // Instantiate the JNDI manager
         
         // Open the web apps
-        this.webAppGroup = new WebAppGroup(this.cluster, this.objectPool, commonLibCL, 
+        this.hostGroup = new HostGroup(this.cluster, this.objectPool, commonLibCL, 
                 (File []) commonLibCLPaths.toArray(new File[0]), args);
 
         // Create connectors (http, https and ajp)
@@ -225,10 +225,10 @@ public class Launcher implements Runnable {
             Class listenerClass = Class.forName(listenerClassName);
             Constructor listenerConstructor = listenerClass
                     .getConstructor(new Class[] { Map.class,
-                            ObjectPool.class, WebAppGroup.class});
+                            ObjectPool.class, HostGroup.class});
             Listener listener = (Listener) listenerConstructor
                     .newInstance(new Object[] { args, this.objectPool, 
-                            this.webAppGroup });
+                            this.hostGroup });
             this.listeners.add(listener);
         } catch (Throwable err) {
             Logger.log(Logger.DEBUG, RESOURCES, 
@@ -305,14 +305,16 @@ public class Launcher implements Runnable {
                 shutdown();
             } else if ((byte) reqType == RELOAD_TYPE) {
                 inControl = new ObjectInputStream(inSocket);
+                String host = inControl.readUTF();
                 String prefix = inControl.readUTF();
-                Logger.log(Logger.INFO, RESOURCES, "Launcher.ReloadRequestReceived", prefix);
-                this.webAppGroup.reloadWebApp(prefix);
+                Logger.log(Logger.INFO, RESOURCES, "Launcher.ReloadRequestReceived", host + prefix);
+                HostConfiguration hostConfig = this.hostGroup.getHostByName(host);
+                hostConfig.reloadWebApp(prefix);
             } else if (this.cluster != null) {
                 outSocket = csAccepted.getOutputStream();
                 this.cluster.clusterRequest((byte) reqType,
                         inSocket, outSocket, csAccepted,
-                        this.webAppGroup);
+                        this.hostGroup);
             }
         } finally {
             if (inControl != null) {
@@ -334,7 +336,7 @@ public class Launcher implements Runnable {
         this.objectPool.destroy();
         if (this.cluster != null)
             this.cluster.destroy();
-        this.webAppGroup.destroy();
+        this.hostGroup.destroy();
         if (this.globalJndiManager != null) {
             this.globalJndiManager.tearDown();
         }
@@ -405,7 +407,8 @@ public class Launcher implements Runnable {
             }
         }
 
-        if (!args.containsKey("webroot") && !args.containsKey("warfile") && !args.containsKey("webappsDir"))
+        if (!args.containsKey("webroot") && !args.containsKey("warfile") 
+                && !args.containsKey("webappsDir")&& !args.containsKey("hostsDir"))
             printUsage();
         else {
             if (args.containsKey("usage") || args.containsKey("help"))

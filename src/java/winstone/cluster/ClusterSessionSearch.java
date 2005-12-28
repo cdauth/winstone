@@ -38,6 +38,7 @@ public class ClusterSessionSearch implements Runnable {
     private boolean isFinished;
     private boolean interrupted;
     private WinstoneSession result;
+    private String searchWebAppHostname;
     private String searchWebAppPrefix;
     private String searchId;
     private String searchAddressPort;
@@ -46,9 +47,10 @@ public class ClusterSessionSearch implements Runnable {
     /**
      * Sets up for a threaded search
      */
-    public ClusterSessionSearch(String webAppPrefix, String sessionId, 
+    public ClusterSessionSearch(String webAppPrefix, String hostName, String sessionId, 
             String ipPort, int controlPort) {
         this.isFinished = false;
+        this.searchWebAppHostname = hostName;
         this.searchWebAppPrefix = webAppPrefix;
         this.interrupted = false;
         this.searchId = sessionId;
@@ -80,6 +82,7 @@ public class ClusterSessionSearch implements Runnable {
             ObjectOutputStream outControl = new ObjectOutputStream(out);
             outControl.writeInt(this.controlPort);
             outControl.writeUTF(this.searchId);
+            outControl.writeUTF(this.searchWebAppHostname);
             outControl.writeUTF(this.searchWebAppPrefix);
             outControl.flush();
             InputStream in = controlConnection.getInputStream();
