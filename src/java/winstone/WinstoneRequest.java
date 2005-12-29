@@ -553,9 +553,9 @@ public class WinstoneRequest implements HttpServletRequest {
             int nextColonPos = value.indexOf(':');
 
             // Add it to out headers if it's not a cookie
-            if (!name.equalsIgnoreCase(IN_COOKIE_HEADER1)
-                    && !name.equalsIgnoreCase(IN_COOKIE_HEADER2))
-                outHeaderList.add(header);
+            outHeaderList.add(header);
+//            if (!name.equalsIgnoreCase(IN_COOKIE_HEADER1)
+//                    && !name.equalsIgnoreCase(IN_COOKIE_HEADER2))
 
             if (name.equalsIgnoreCase(AUTHORIZATION_HEADER))
                 this.authorization = value;
