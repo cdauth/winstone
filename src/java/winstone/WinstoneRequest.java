@@ -594,10 +594,18 @@ public class WinstoneRequest implements HttpServletRequest {
         }
     }
 
+    private static String nextToken(StringTokenizer st) {
+        if (st.hasMoreTokens()) {
+            return st.nextToken();
+        } else {
+            return null;
+        }
+    }
+    
     private void parseCookieLine(String headerValue, List cookieList) {
         StringTokenizer st = new StringTokenizer(headerValue, ";", false);
         int version = 0;
-        String cookieLine = st.nextToken();
+        String cookieLine = nextToken(st);
 
         // check cookie version flag
         if (cookieLine.startsWith("$Version=")) {
@@ -608,7 +616,7 @@ public class WinstoneRequest implements HttpServletRequest {
             } catch (NumberFormatException err) {
                 version = 0;
             }
-            cookieLine = st.nextToken();
+            cookieLine = nextToken(st);
         }
 
         // process remainder - parameters
@@ -617,10 +625,7 @@ public class WinstoneRequest implements HttpServletRequest {
             int equalPos = cookieLine.indexOf('=');
             if (equalPos == -1) {
                 // next token
-                if (st.hasMoreTokens())
-                    cookieLine = st.nextToken();
-                else
-                    cookieLine = null;
+                cookieLine = nextToken(st);
             } else {
                 String name = cookieLine.substring(0, equalPos);
                 String value = extractFromQuotes(cookieLine.substring(equalPos + 1));
@@ -630,26 +635,19 @@ public class WinstoneRequest implements HttpServletRequest {
                 cookieList.add(thisCookie);
 
                 // check for path / domain / port
-                if (st.hasMoreTokens()) {
-                    cookieLine = st.nextToken();
-                    while ((cookieLine != null) && cookieLine.trim().startsWith("$")) {
-                        cookieLine = cookieLine.trim();
-                        equalPos = cookieLine.indexOf('=');
-                        String attrValue = equalPos == -1 ? "" : cookieLine
-                                .substring(equalPos + 1).trim();
-                        if (cookieLine.startsWith("$Path"))
-                            thisCookie.setPath(extractFromQuotes(attrValue));
-                        else if (cookieLine.startsWith("$Domain"))
-                            thisCookie.setDomain(extractFromQuotes(attrValue));
-
-                        // next part
-                        if (st.hasMoreTokens())
-                            cookieLine = st.nextToken();
-                        else
-                            cookieLine = null;
+                cookieLine = nextToken(st);
+                while ((cookieLine != null) && cookieLine.trim().startsWith("$")) {
+                    cookieLine = cookieLine.trim();
+                    equalPos = cookieLine.indexOf('=');
+                    String attrValue = equalPos == -1 ? "" : cookieLine
+                            .substring(equalPos + 1).trim();
+                    if (cookieLine.startsWith("$Path")) {
+                        thisCookie.setPath(extractFromQuotes(attrValue));
+                    } else if (cookieLine.startsWith("$Domain")) {
+                        thisCookie.setDomain(extractFromQuotes(attrValue));
                     }
-                } else
-                    cookieLine = null;
+                    cookieLine = nextToken(st);
+                }
 
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "WinstoneRequest.CookieFound", thisCookie.toString());
