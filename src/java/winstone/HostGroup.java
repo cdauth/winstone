@@ -92,7 +92,7 @@ public class HostGroup {
     protected void initHost(String webappsDirName, String hostname, Cluster cluster, 
             ObjectPool objectPool, ClassLoader commonLibCL, 
             File commonLibCLPaths[], Map args) throws IOException {
-        Logger.log(Logger.INFO, Launcher.RESOURCES, "HostGroup.DeployingHost", hostname);
+        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostGroup.DeployingHost", hostname);
         HostConfiguration config = new HostConfiguration(hostname, cluster, objectPool, commonLibCL, 
                 commonLibCLPaths, args, webappsDirName);
         this.hostConfigs.put(hostname, config);
