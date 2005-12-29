@@ -1530,7 +1530,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 }
 
                 File res = new File(webRoot, directoryPath);
-                if (res.exists() && res.isDirectory()) {
+                if (res.exists() && res.isDirectory() && 
+                        (request.getMethod().equals("GET") || request.getMethod().equals("HEAD"))) {
                     // Check for the send back with slash case
                     if (!pathInfo.toString().endsWith("/")) {
                         Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
