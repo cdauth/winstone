@@ -1,8 +1,8 @@
 <html>
 <head>
   <title>Winstone Servlet Container</title>
-  <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 154kb jar file"/>
-  <meta name="keywords" content="servlets, servlet, jsp, java, jdk, jre, winstone, small, fast, reliable, open source, gpl, gcj, jndi, xml"/>
+  <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 159kb jar file"/>
+  <meta name="keywords" content="servlets, servlet, servlet container, jsp, java, container, jdk, jre, winstone, small, fast, reliable, open source, gpl, gcj, jndi, xml"/>
   <meta name="author" content="Rick Knowles"/>
   <meta name="language" content="English"/>
   <meta name="charset" content="ISO-8859-1"/>
@@ -41,6 +41,7 @@
     <li><a href="#using">Using Winstone</a></li>
     <li><a href="#commandLine">Command-line options</a></li>
     <li><a href="#configFile">Configuration file</a></li>
+    <li><a href="#deployChoices">Deployment choices</a></li>
     <li><a href="#caveats">Caveats</a></li>
     <li><a href="#security">Security Warnings</a></li>
     <li><a href="#recent">Recent Additions</a></li>
@@ -55,6 +56,7 @@
     <li><a href="#controlPort">Control port functions/protocol</a></li>
     <li><a href="#jndi">JNDI support</a></li>
     <li><a href="#https">HTTPS support</a></li>
+    <li><a href="#accessLog">Access logging</a></li>
   </ul>
 
 <h2><a name="whatIs">What is Winstone ?</a></h2>
@@ -72,7 +74,7 @@
   <p>The original goals in writing Winstone were:</p>
     <ul>
       <li>Supply fast, reliable servlet container functionality for a single webapp per server</li>
-      <li>Keep the size of the core distribution jar as low as possible (currently 154KB)</li>
+      <li>Keep the size of the core distribution jar as low as possible (currently 159KB)</li>
       <li>Keep configuration files to an absolute minimum, using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -139,16 +141,21 @@
 
     &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --webappsDir=&lt;location of webapps directory&gt;</code> (+ other options)
 
+  <p> - OR - </p>
+
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --hostsDir=&lt;location of hosts directory&gt;</code> (+ other options)
+
 <h2><a name="commandLine">Command-line options:</a></h2>
 
   <pre>
 Syntax:
   java -jar winstone-0.8.jar [--option=value] [--option=value] etc
 
-Required options: either --webroot OR --warfile OR --webappsDir
+Required options: either --webroot OR --warfile OR --webappsDir OR --hostsDir
    --webroot                = set document root folder.
    --warfile                = set location of warfile to extract from.
    --webappsDir             = set directory for multiple webapps to be deployed from
+   --hostsDir               = set directory for name-based virtual hosts to be deployed from
 
 Other options:
    --javaHome               = Override the JAVA_HOME variable
@@ -187,21 +194,31 @@ Other options:
    --invokerPrefix          = set the invoker prefix. Default is /servlet/
    --simulateModUniqueId    = simulate the apache mod_unique_id function. Default is false
    --usage / --help         = show this message
-
+    
 Cluster options:
    --useCluster             = enable cluster support (true/false). Default is false
-   --clusterNodes           = a list of node addresses (eg IP:ControlPort,IP:ControlPort,etc)
+   --clusterClassName       = Set the cluster class to use. Defaults to SimpleCluster class
+   --clusterNodes           = a comma separated list of node addresses (IP:ControlPort,IP:ControlPort,etc)
 
 JNDI options:
-   --useJNDI                 = enable JNDI support (true/false). Default is false
-   --jndi.resource.&lt;name&gt;    = set the class to be used for the resource marked &lt;name&gt;
-   --jndi.param.&lt;name&gt;.&lt;att&gt; = set an attribute &lt;att&gt; for the resource marked &lt;name&gt;
+   --useJNDI                      = enable JNDI support (true/false). Default is false
+   --containerJndiClassName       = Set the container wide JNDI manager class to use. Defaults to ContainerJNDIManager
+   --webappJndiClassName          = Set the web-app JNDI manager class to use. Defaults to WebAppJNDIManager
+   --jndi.resource.&lt;name&gt;         = set the class to be used for the resource marked &lt;name&gt;
+   --jndi.param.&lt;name&gt;.&lt;att&gt;      = set an attribute &lt;att&gt; for the resource marked &lt;name&gt;
 
 Security options:
-   --realmClass                = Set the authentication realm class. Default = ArgumentsRealm
-   --argumentsRealm.passwd.&lt;u&gt; = Password for user &lt;u&gt;. (for ArgumentsRealm)
-   --argumentsRealm.roles.&lt;u&gt;  = Roles for user &lt;u&gt; (comma-separated) (for ArgumentsRealm)
-   --fileRealm.configFile      = File containing users/passwds/roles. (for FileRealm)
+   --realmClassName               = Set the realm class to use for user authentication. Defaults to ArgumentsRealm class
+
+   --argumentsRealm.passwd.&lt;user&gt; = Password for user &lt;user&gt;. (for ArgumentsRealm)
+   --argumentsRealm.roles.&lt;user&gt;  = Roles for user &lt;user&gt; (comma-separated) (for ArgumentsRealm)
+
+   --fileRealm.configFile         = File containing users/passwds/roles. Only valid for the FileRealm realm class
+
+Access logging:
+   --accessLoggerClassName        = Set the access logger class to use for user authentication. Defaults to disabled
+   --simpleAccessLogger.format    = The log format to use. Supports combined/common/resin/custom (SimpleAccessLogger only)
+   --simpleAccessLogger.file      = The location pattern for the log file(SimpleAccessLogger only)
 </pre>
 
 <h2><a name="configFile">Configuration file</a></h2>
@@ -216,6 +233,38 @@ Security options:
   <p>This is just intended as a handy feature for people who want to cache regular startup options, rather
     than using batch files.</p>
 
+<h2><a name="deployChoices">Deployment choices</a></h2>
+
+  <p>The <b>simplest way</b> to use winstone is with a single webapp. To do this, just supply the warfile or webroot 
+    directory as an argument:</p>
+    <ul>
+      <li><code>java -jar winstone.jar &lt;webroot or warfile&gt;</code>, (this method auto-detects the type) or</li>
+      <li><code>java -jar winstone.jar --webroot=&lt;webroot&gt;</code>, or</li>
+      <li><code>java -jar winstone.jar --warfile=&lt;warfile&gt;</code></li>
+    </ul>
+  <p>If you need to support <b>multiple webapps</b>, use the <code>--webappsDir</code> switch, to which you pass a 
+    directory that contains multiple warfiles/webroots.</p>
+    <ul>
+      <li><code>java -jar winstone.jar --webappsDir=&lt;dir containing multiple webroots&gt;</code></li>
+    </ul>        
+  <p>The directory becomes the prefix name for that webapp (so hello becomes /hello, etc). The directory named
+    ROOT becomes the no-prefix webapp.</p>
+  <p>So, for example, if you had a directory <i>/usr/local/webapps</i> which contained sub-directories ROOT 
+    and test, if you executed <code>java -jar winstone.jar --webappsDir=/usr/local/webapps</code>, you would 
+    find that the test folder would act as a webroot for requests prefixed with <code>/test</code>, while
+    other requests would go to the webapp in the ROOT folder</p>
+  <p>From v0.8, if you need <b>multiple hosts (sometimes called <i>name-based virtual hosting</i>)</b>, there is a
+    new option <code>--hostsDir</code>. This acts in a similar way to the <code>--webappsDir</code> switch,
+    but it defines an extra level of sub-directories, the top being a per-host directory and the second a 
+    per-webapp directory as with <code>--webappsDir</code>.</p>
+  <p>The directory name becomes the host name: that is, a directory named "www.blah.com" will only serve 
+    requests with the host header www.blah.com, unless it is the default host. If a directory named "default"
+    is found, it becomes the default host. If no default directory is found, the first directory in the list 
+    (alphabetically) becomes the default host.</p>
+    <ul>
+      <li><code>java -jar winstone.jar --hostsDir=&lt;dir containing multiple host directories&gt;</code></li>
+    </ul>        
+        
 <h2><a name="caveats">Caveats</a></h2>
 
   <p>As a result of the design goals, there are some things Winstone doesn't do</p>
@@ -239,7 +288,7 @@ Security options:
 
   <p>If you enable the controlPort, be aware that there is no password protection at all on this port. 
     Anyone who can get access to this port can stop or restart the server. I plan to 
-    add some simple authentication to this at some point, but not just yet.</p>
+    add some simple authentication to this at some point, but I'll wait until someone asks for it.</p>
 
   <p>The controlPort is disabled by default. If you choose not to enable it, the only way to shut
     Winstone down is to kill the process (either by Ctrl-C or kill command).</p>
@@ -249,8 +298,16 @@ Security options:
   <p>New features in v0.8:</p>
 
   <ul>
-    <li>Expanded the features of the JDBC connection pool to include keep-alive queries
+    <li>Expanded the features of the JDBC connection pool to include <b>keep-alive</b> queries
       and block-and-retry behaviour when the pool is full</li>
+    <li>Added filter match caching (performance improvement)</li>
+    <li><b>Name-based virtual hosting</b>. Using the <code>--hostsDir</code> switch, you can define a 
+      directory that contains directories named by hostname, each of which acts like a <code>--webappsDir</code>. 
+      See <a href="#deployChoices">above</a> for more details.</li>
+    <li><b>Access logging</b>. Disabled by default, but enabled with the switch 
+      <code>--accessLoggerClassName=winstone.accesslog.SimpleAccessLogger</code>. You can provide your
+      own logging implementation, but the simple access logger contains Apache Combined/Common format
+      logging and Resin format logging, so it should suffice for most cases. See <a href="#accessLog">below</a> for more details.</li>
   </ul>
         
   <p>New features in v0.7:</p>
@@ -585,7 +642,6 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
    in are the shutdown and reload options. Luckily there is a wrapper class for accessing these functions, named
    <code>winstone.tools.WinstoneControl</code>. Try the following to get a usage statement:</p>
      <pre>&nbsp;&nbsp;java -cp winstone.jar winstone.tools.WinstoneControl</pre>
-  
 
 <h2><a name="jndi">JNDI support</a></h2>
 
@@ -691,6 +747,40 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
       point the name on your certificate to 127.0.0.1, then try to browse to 
       https://(name on certificate)/</li>
   </ol>
+
+<h2><a name="accessLog">Access Logging</a></h2>
+
+  <p>From v0.8, there's an option to allow access logging. It's disabled by default, but can be enabled 
+    by defining a logging implementation class, with --accessLoggerClassName. The class defined must be 
+    an implementation of the interface winstone.AccessLogger, and is defined container wide, but instantiated
+    once per webapp.</p>
+        
+  <p>The supplied logger is called winstone.accesslog.SimpleAccessLogger. It supports Apache style combined/common
+    format logs, as well as Resin format (which is actually just Apache common style plus a user agent). 
+    Configuration options are:
+  </p>
+  <ul>
+    <li><b>--simpleAccessLogger.format</b>: Either "combined", "common", "resin" or a pattern made up of wildcards. 
+      For example, the combined format string is:
+        <pre>###ip### - ###user### ###time### "###uriLine###" ###status### ###size### "###referer###" "###userAgent###"</pre>
+      but you can re-arrange this to be any pattern of the above wildcards with the --accessLoggerFormat 
+      switch. Defaults to "combined"</li>
+    <li><b>--simpleAccessLogger.file</b>: A pattern for defining the files to log to. The default value is 
+      <code>logs/###host###/###webapp###_access.log</code>, which splits the log files for different webapps
+      and hosts into directories. The wildcards <code>###host###</code> and <code>###webapp###</code> can be 
+      moved around or even omitted. Omitting the wildcard will mean the access logs will be combined into 
+      shared files (since the file name will be the same)</li>
+  </ul>
+  
+  <p>For example, to enable Apache Combined style logging to separate files, use a command line like:</p>
+        <pre>java -jar winstone.jar --hostsDir=&lt;vhostsDir&gt;
+                       --accessLoggerClassName=winstone.accesslog.SimpleAccessLogger</pre>
+  <p>Or to log just the date and URI for all hosts/webapps to a single file, use a command line like:</p>
+        <pre>java -jar winstone.jar --hostsDir=&lt;vhostsDir&gt;
+                       --accessLoggerClassName=winstone.accesslog.SimpleAccessLogger
+                       --simpleAccessLogger.format=###date###\ ###uriLine###
+                       --simpleAccessLogger.file=/mylogs/access_log.txt</pre>
+    
       </td>
     </tr>
   </table>

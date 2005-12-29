@@ -160,8 +160,10 @@ public class Launcher implements Runnable {
                 Logger.log(Logger.INFO, RESOURCES,
                         "Launcher.ClusterOffNoControlPort");
             } else {
+                String clusterClassName = WebAppConfiguration.stringArg(args, "clusterClassName",
+                        CLUSTER_CLASS).trim();
                 try {
-                    Class clusterClass = Class.forName(CLUSTER_CLASS);
+                    Class clusterClass = Class.forName(clusterClassName);
                     Constructor clusterConstructor = clusterClass
                             .getConstructor(new Class[] { Map.class, Integer.class });
                     this.cluster = (Cluster) clusterConstructor

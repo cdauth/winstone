@@ -61,7 +61,7 @@ public class SimpleAccessLogger implements AccessLogger {
         this.webAppConfig = webAppConfig;
         
         // Get pattern
-        String patternType = WebAppConfiguration.stringArg(startupArgs, "accessLoggerPattern", "combined");
+        String patternType = WebAppConfiguration.stringArg(startupArgs, "simpleAccessLogger.format", "combined");
         if (patternType.equalsIgnoreCase("combined")) {
             this.pattern = COMBINED;
         } else if (patternType.equalsIgnoreCase("common")) {
@@ -73,7 +73,7 @@ public class SimpleAccessLogger implements AccessLogger {
         }
         
         // Get filename
-        String filePattern = WebAppConfiguration.stringArg(startupArgs, "accessLoggerFile", 
+        String filePattern = WebAppConfiguration.stringArg(startupArgs, "simpleAccessLogger.file", 
                 "logs/###host###/###webapp###_access.log");
         this.fileName = WinstoneResourceBundle.globalReplace(filePattern, 
                 new String [][] {{"###host###", webAppConfig.getOwnerHostname()},

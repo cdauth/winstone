@@ -652,7 +652,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             else
                 authMethod = WinstoneResourceBundle.globalReplace(authMethod,
                         "-", "");
-            String realmClassName = stringArg(startupArgs, "realmClass",
+            String realmClassName = stringArg(startupArgs, "realmClassName",
                     DEFAULT_REALM_CLASS).trim();
             String authClassName = "winstone.auth."
                     + authMethod.substring(0, 1).toUpperCase()
