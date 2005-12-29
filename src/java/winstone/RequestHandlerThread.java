@@ -324,10 +324,12 @@ public class RequestHandlerThread implements Runnable {
     
     protected void writeToAccessLog(String originalURL, WinstoneRequest request, WinstoneResponse response,
             WebAppConfiguration webAppConfig) {
-        // Log a row containing appropriate data
-        AccessLogger logger = webAppConfig.getAccessLogger();
-        if (logger != null) {
-            logger.log(originalURL, request, response);
+        if (webAppConfig != null) {
+            // Log a row containing appropriate data
+            AccessLogger logger = webAppConfig.getAccessLogger();
+            if (logger != null) {
+                logger.log(originalURL, request, response);
+            }
         }
     }
 }

@@ -69,7 +69,7 @@ public class WinstoneResponse implements HttpServletResponse {
     static final String OUT_COOKIE_HEADER1 = "Set-Cookie";
     static final String OUT_COOKIE_HEADER2 = "Set-Cookie2";
     static final String X_POWERED_BY_HEADER = "X-Powered-By";
-    static final String POWERED_BY_WINSTONE = "Servlet/2.4 (Winstone/0.7)";
+    static final String POWERED_BY_WINSTONE = "Servlet/2.4 (Winstone/0.8)";
 
     private int statusCode;
     private WinstoneRequest req;
