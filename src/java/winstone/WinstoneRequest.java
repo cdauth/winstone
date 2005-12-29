@@ -896,6 +896,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public void setCharacterEncoding(String encoding) throws UnsupportedEncodingException {
+        "blah".getBytes(encoding); // throws an exception if the encoding is unsupported
         Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneRequest.SetCharEncoding",
                 new String[] { this.encoding, encoding });
         this.encoding = encoding;

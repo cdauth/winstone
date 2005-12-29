@@ -88,6 +88,8 @@ public class Cookie implements Cloneable {
             throw new IllegalArgumentException("Cookie name contains a semicolon");
         } else if (name.indexOf(",") != -1) {
             throw new IllegalArgumentException("Cookie name contains a comma");
+        } else if (name.startsWith("$")) {
+            throw new IllegalArgumentException("Cookie name starts with $");
         } else {
             // Check for white space, comma, semicolon
             for (int n = 0; n < name.length(); n++) {
