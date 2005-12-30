@@ -103,14 +103,14 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
 
             // Construct the servlet instances
             if (nodeName.equals(ELEM_NAME))
-                this.servletName = child.getFirstChild().getNodeValue().trim();
+                this.servletName = WebAppConfiguration.getTextFromNode(child);
             else if (nodeName.equals(ELEM_CLASS))
-                this.classFile = child.getFirstChild().getNodeValue().trim();
+                this.classFile = WebAppConfiguration.getTextFromNode(child);
             else if (nodeName.equals(ELEM_JSP_FILE))
-                this.jspFile = child.getFirstChild().getNodeValue().trim();
+                this.jspFile = WebAppConfiguration.getTextFromNode(child);
             else if (nodeName.equals(ELEM_LOAD_ON_STARTUP)) {
-                String index = child.getFirstChild() == null ? "-1" : child
-                        .getFirstChild().getNodeValue().trim();
+                String index = child.getFirstChild() == null ? "-1" : 
+                    WebAppConfiguration.getTextFromNode(child);
                 this.loadOnStartup = Integer.parseInt(index);
             } else if (nodeName.equals(ELEM_INIT_PARAM)) {
                 String paramName = null;
@@ -120,9 +120,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     if (paramNode.getNodeType() != Node.ELEMENT_NODE)
                         continue;
                     else if (paramNode.getNodeName().equals(ELEM_INIT_PARAM_NAME))
-                        paramName = paramNode.getFirstChild().getNodeValue().trim();
+                        paramName = WebAppConfiguration.getTextFromNode(paramNode);
                     else if (paramNode.getNodeName().equals(ELEM_INIT_PARAM_VALUE))
-                        paramValue = paramNode.getFirstChild().getNodeValue().trim();
+                        paramValue = WebAppConfiguration.getTextFromNode(paramNode);
                 }
                 if ((paramName != null) && (paramValue != null))
                     this.initParameters.put(paramName, paramValue);
@@ -131,7 +131,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     Node roleElm = child.getChildNodes().item(m);
                     if ((roleElm.getNodeType() == Node.ELEMENT_NODE)
                             && (roleElm.getNodeName().equals(ELEM_ROLE_NAME)))
-                        this.runAsRole = roleElm.getFirstChild().getNodeValue().trim();
+                        this.runAsRole = WebAppConfiguration.getTextFromNode(roleElm);
                 }
             } else if (nodeName.equals(ELEM_SECURITY_ROLE_REF)) {
                 String name = null;
@@ -141,9 +141,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     if (roleRefNode.getNodeType() != Node.ELEMENT_NODE)
                         continue;
                     else if (roleRefNode.getNodeName().equals(ELEM_ROLE_NAME))
-                        name = roleRefNode.getFirstChild().getNodeValue().trim();
+                        name = WebAppConfiguration.getTextFromNode(roleRefNode);
                     else if (roleRefNode.getNodeName().equals(ELEM_ROLE_LINK))
-                        link = roleRefNode.getFirstChild().getNodeValue().trim();
+                        link = WebAppConfiguration.getTextFromNode(roleRefNode);
                 }
                 if ((name != null) && (link != null))
                     this.initParameters.put(name, link);

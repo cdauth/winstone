@@ -269,7 +269,13 @@ public class WinstoneResponse implements HttpServletResponse {
                 remainder.append(clause);
             }
         }
-        return localEncoding;
+        if ((localEncoding == null) || 
+                !localEncoding.startsWith("\"") || 
+                !localEncoding.endsWith("\"")) {
+            return null;
+        } else {
+            return localEncoding.substring(1, localEncoding.length() - 1);
+        }
     } 
     
     /**
@@ -629,7 +635,13 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void addHeader(String name, String value) {
-        if (this.includeOutputStreams.isEmpty() && !isCommitted()) {
+        if (!this.includeOutputStreams.isEmpty()) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.HeaderInInclude", 
+                    new String[] {name, value});  
+        } else if (isCommitted()) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.HeaderAfterCommitted", 
+                    new String[] {name, value});  
+        } else {
             if (name.equals(CONTENT_TYPE_HEADER)) {
                 StringBuffer remainderHeader = new StringBuffer();
                 String headerEncoding = getCharsetFromContentTypeHeader(
@@ -658,7 +670,13 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setHeader(String name, String value) {
-        if (this.includeOutputStreams.isEmpty() && !isCommitted()) {
+        if (!this.includeOutputStreams.isEmpty()) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.HeaderInInclude", 
+                    new String[] {name, value});  
+        } else if (isCommitted()) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.HeaderAfterCommitted", 
+                    new String[] {name, value});
+        } else {
             boolean found = false;
             for (int n = 0; (n < this.headers.size()) && !found; n++) {
                 String header = (String) this.headers.get(n);

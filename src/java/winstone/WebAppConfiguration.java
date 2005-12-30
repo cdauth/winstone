@@ -186,6 +186,22 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         return Integer.parseInt(stringArg(args, name, "" + defaultValue));
     }
 
+    public static String getTextFromNode(Node node) {
+        if (node == null) {
+            return null;
+        }
+        Node child = node.getFirstChild();
+        if (child == null) {
+            return "";
+        }
+        String textNode = child.getNodeValue();
+        if (textNode == null) {
+            return "";
+        } else {
+            return textNode.trim();
+        }
+    }
+    
     /**
      * Constructor. This parses the xml and sets up for basic routing
      */
@@ -320,8 +336,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 String nodeName = child.getNodeName();
 
                 if (nodeName.equals(ELEM_DISPLAY_NAME))
-                    this.displayName = child.getFirstChild().getNodeValue()
-                            .trim();
+                    this.displayName = getTextFromNode(child);
 
                 else if (nodeName.equals(ELEM_DISTRIBUTABLE))
                     distributable = true;
@@ -340,10 +355,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     for (int m = 0; m < child.getChildNodes().getLength(); m++) {
                         Node timeoutElm = child.getChildNodes().item(m);
                         if ((timeoutElm.getNodeType() == Node.ELEMENT_NODE)
-                                && (timeoutElm.getNodeName()
-                                        .equals(ELEM_SESSION_TIMEOUT)))
-                            this.sessionTimeout = new Integer(timeoutElm
-                                    .getFirstChild().getNodeValue().trim());
+                                && (timeoutElm.getNodeName().equals(ELEM_SESSION_TIMEOUT))) {
+                            String timeoutStr = getTextFromNode(child);
+                            if (!timeoutStr.equals("")) {
+                                this.sessionTimeout = Integer.valueOf(timeoutStr);
+                            }
+                        }
                     }
                 }
 
@@ -354,8 +371,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         if ((roleElm.getNodeType() == Node.ELEMENT_NODE)
                                 && (roleElm.getNodeName()
                                         .equals(ELEM_ROLE_NAME)))
-                            rolesAllowed.add(roleElm.getFirstChild()
-                                    .getNodeValue().trim());
+                            rolesAllowed.add(getTextFromNode(roleElm));
                     }
                 }
 
@@ -384,8 +400,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         if ((listenerElm.getNodeType() == Node.ELEMENT_NODE)
                                 && (listenerElm.getNodeName()
                                         .equals(ELEM_LISTENER_CLASS)))
-                            listenerClass = listenerElm.getFirstChild()
-                                    .getNodeValue().trim();
+                            listenerClass = getTextFromNode(listenerElm);
                     }
                     if (listenerClass != null)
                         try {
@@ -417,11 +432,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             continue;
                         String mapNodeName = mapChild.getNodeName();
                         if (mapNodeName.equals(ELEM_SERVLET_NAME))
-                            name = mapChild.getFirstChild().getNodeValue()
-                                    .trim();
+                            name = getTextFromNode(mapChild);
                         else if (mapNodeName.equals(ELEM_URL_PATTERN))
-                            pattern = mapChild.getFirstChild().getNodeValue()
-                                    .trim();
+                            pattern = getTextFromNode(mapChild);
                     }
                     processMapping(name, pattern, this.exactServletMatchMounts,
                             localFolderPatterns, localExtensionPatterns);
@@ -444,13 +457,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             continue;
                         String mapNodeName = mapChild.getNodeName();
                         if (mapNodeName.equals(ELEM_FILTER_NAME))
-                            filterName = mapChild.getFirstChild().getNodeValue().trim();
+                            filterName = getTextFromNode(mapChild);
                         else if (mapNodeName.equals(ELEM_SERVLET_NAME))
-                            servletName = mapChild.getFirstChild().getNodeValue().trim();
+                            servletName = getTextFromNode(mapChild);
                         else if (mapNodeName.equals(ELEM_URL_PATTERN))
-                            urlPattern = mapChild.getFirstChild().getNodeValue().trim();
+                            urlPattern = getTextFromNode(mapChild);
                         else if (mapNodeName.equals(ELEM_DISPATCHER)) {
-                            String dispatcherValue = mapChild.getFirstChild().getNodeValue().trim();
+                            String dispatcherValue = getTextFromNode(mapChild);
                             if (dispatcherValue.equals(DISPATCHER_REQUEST))
                                 onRequest = true;
                             else if (dispatcherValue.equals(DISPATCHER_FORWARD))
@@ -488,10 +501,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     for (int m = 0; m < child.getChildNodes().getLength(); m++) {
                         Node welcomeFile = child.getChildNodes().item(m);
                         if ((welcomeFile.getNodeType() == Node.ELEMENT_NODE)
-                                && welcomeFile.getNodeName().equals(ELEM_WELCOME_FILE)
-                                && (welcomeFile.getFirstChild() != null)) {
-                            localWelcomeFiles.add(welcomeFile.getFirstChild()
-                                    .getNodeValue().trim());
+                                && welcomeFile.getNodeName().equals(ELEM_WELCOME_FILE)) {
+                            String welcomeStr = getTextFromNode(welcomeFile);
+                            if (!welcomeStr.equals("")) {
+                                localWelcomeFiles.add(welcomeStr);
+                            }
                         }
                     }
                 }
@@ -509,14 +523,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             continue;
                         String errorChildName = errorChild.getNodeName();
                         if (errorChildName.equals(ELEM_ERROR_CODE))
-                            code = errorChild.getFirstChild().getNodeValue()
-                                    .trim();
+                            code = getTextFromNode(errorChild);
                         else if (errorChildName.equals(ELEM_EXCEPTION_TYPE))
-                            exception = errorChild.getFirstChild()
-                                    .getNodeValue().trim();
+                            exception = getTextFromNode(errorChild);
                         else if (errorChildName.equals(ELEM_ERROR_LOCATION))
-                            location = errorChild.getFirstChild()
-                                    .getNodeValue().trim();
+                            location = getTextFromNode(errorChild);
                     }
                     if ((code != null) && (location != null))
                         this.errorPagesByCode.put(code.trim(), location.trim());
@@ -544,12 +555,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             continue;
                         else if (mimeTypeNode.getNodeName().equals(
                                 ELEM_MIME_EXTENSION))
-                            extension = mimeTypeNode.getFirstChild()
-                                    .getNodeValue().trim();
+                            extension = getTextFromNode(mimeTypeNode);
                         else if (mimeTypeNode.getNodeName().equals(
                                 ELEM_MIME_TYPE))
-                            mimeType = mimeTypeNode.getFirstChild()
-                                    .getNodeValue().trim();
+                            mimeType = getTextFromNode(mimeTypeNode);
                     }
                     if ((extension != null) && (mimeType != null))
                         this.mimeTypes.put(extension.toLowerCase(), mimeType);
@@ -569,12 +578,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             continue;
                         else if (contextParamNode.getNodeName().equals(
                                 ELEM_PARAM_NAME))
-                            name = contextParamNode.getFirstChild()
-                                    .getNodeValue().trim();
+                            name = getTextFromNode(contextParamNode);
                         else if (contextParamNode.getNodeName().equals(
                                 ELEM_PARAM_VALUE))
-                            value = contextParamNode.getFirstChild()
-                                    .getNodeValue().trim();
+                            value = getTextFromNode(contextParamNode);
                     }
                     if ((name != null) && (value != null))
                         this.initParameters.put(name, value);
@@ -591,18 +598,18 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         if (mappingNode.getNodeType() != Node.ELEMENT_NODE)
                             continue;
                         else if (mappingNode.getNodeName().equals(ELEM_LOCALE_ENC_MAPPING)) {
-                            String localeName = null;
-                            String encoding = null;
+                            String localeName = "";
+                            String encoding = "";
                             for (int l = 0; l < mappingNode.getChildNodes().getLength(); l++) {
                                 Node mappingChildNode = mappingNode.getChildNodes().item(l);
                                 if (mappingChildNode.getNodeType() != Node.ELEMENT_NODE)
                                     continue;
                                 else if (mappingChildNode.getNodeName().equals(ELEM_LOCALE))
-                                    localeName = mappingChildNode.getFirstChild().getNodeValue();
+                                    localeName = getTextFromNode(mappingChildNode);
                                 else if (mappingChildNode.getNodeName().equals(ELEM_ENCODING))
-                                    encoding = mappingChildNode.getFirstChild().getNodeValue();
+                                    encoding = getTextFromNode(mappingChildNode);
                             }
-                            if ((encoding != null) && (localeName != null))
+                            if (!encoding.equals("") && !localeName.equals(""))
                                 this.localeEncodingMap.put(localeName, encoding);
                         }
                     }
@@ -617,9 +624,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             for (int l = 0; l < propertyGroupNode.getChildNodes().getLength(); l++) {
                                 Node urlPatternNode = propertyGroupNode.getChildNodes().item(l);
                                 if ((urlPatternNode.getNodeType() == Node.ELEMENT_NODE)
-                                        && urlPatternNode.getNodeName().equals(ELEM_URL_PATTERN)
-                                        && (urlPatternNode.getFirstChild() != null)) {
-                                    jspMappings.add(urlPatternNode.getFirstChild().getNodeValue().trim());
+                                        && urlPatternNode.getNodeName().equals(ELEM_URL_PATTERN)) {
+                                    String jm = getTextFromNode(urlPatternNode);
+                                    if (!jm.equals("")) {
+                                        jspMappings.add(jm);
+                                    }
                                 }
                             }
                         }
@@ -641,10 +650,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (!constraintNodes.isEmpty() && (loginConfigNode != null)) {
             String authMethod = null;
             for (int n = 0; n < loginConfigNode.getChildNodes().getLength(); n++)
-                if (loginConfigNode.getChildNodes().item(n).getNodeName()
-                        .equals("auth-method"))
-                    authMethod = loginConfigNode.getChildNodes().item(n)
-                            .getFirstChild().getNodeValue();
+                if (loginConfigNode.getChildNodes().item(n).getNodeName().equals("auth-method"))
+                    authMethod = getTextFromNode(loginConfigNode.getChildNodes().item(n));
 
             // Load the appropriate auth class
             if (authMethod == null)

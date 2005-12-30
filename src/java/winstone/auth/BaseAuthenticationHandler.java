@@ -32,6 +32,7 @@ import org.w3c.dom.Node;
 import winstone.AuthenticationHandler;
 import winstone.AuthenticationRealm;
 import winstone.Logger;
+import winstone.WebAppConfiguration;
 import winstone.WinstoneResourceBundle;
 
 /**
@@ -65,7 +66,7 @@ public abstract class BaseAuthenticationHandler implements
             if (loginElm.getNodeType() != Node.ELEMENT_NODE)
                 continue;
             else if (loginElm.getNodeName().equals(ELEM_REALM_NAME))
-                realmName = loginElm.getFirstChild().getNodeValue().trim();
+                realmName = WebAppConfiguration.getTextFromNode(loginElm);
         }
 
         // Build security constraints

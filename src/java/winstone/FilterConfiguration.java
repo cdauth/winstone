@@ -77,9 +77,9 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
 
             // Construct the servlet instances
             if (nodeName.equals(ELEM_NAME))
-                this.filterName = child.getFirstChild().getNodeValue().trim();
+                this.filterName = WebAppConfiguration.getTextFromNode(child);
             else if (nodeName.equals(ELEM_CLASS))
-                this.classFile = child.getFirstChild().getNodeValue().trim();
+                this.classFile = WebAppConfiguration.getTextFromNode(child);
             else if (nodeName.equals(ELEM_INIT_PARAM)) {
                 String paramName = null;
                 String paramValue = null;
@@ -89,12 +89,10 @@ public class FilterConfiguration implements javax.servlet.FilterConfig {
                         continue;
                     else if (paramNode.getNodeName().equals(
                             ELEM_INIT_PARAM_NAME))
-                        paramName = paramNode.getFirstChild().getNodeValue()
-                                .trim();
+                        paramName = WebAppConfiguration.getTextFromNode(paramNode);
                     else if (paramNode.getNodeName().equals(
                             ELEM_INIT_PARAM_VALUE))
-                        paramValue = paramNode.getFirstChild().getNodeValue()
-                                .trim();
+                        paramValue = WebAppConfiguration.getTextFromNode(paramNode);
                 }
                 if ((paramName != null) && (paramValue != null))
                     this.initParameters.put(paramName, paramValue);

@@ -24,6 +24,7 @@ import java.util.Map;
 import org.w3c.dom.Node;
 
 import winstone.Logger;
+import winstone.WebAppConfiguration;
 
 /**
  * Implements a simple web.xml + command line arguments style jndi manager
@@ -62,18 +63,12 @@ public class WebAppJNDIManager extends ContainerJNDIManager {
                         Node envNode = node.getChildNodes().item(m);
                         if (envNode.getNodeType() != Node.ELEMENT_NODE)
                             continue;
-                        else if (envNode.getNodeName().equals(
-                                ELEM_ENV_ENTRY_NAME))
-                            name = envNode.getFirstChild().getNodeValue()
-                                    .trim();
-                        else if (envNode.getNodeName().equals(
-                                ELEM_ENV_ENTRY_TYPE))
-                            type = envNode.getFirstChild().getNodeValue()
-                                    .trim();
-                        else if (envNode.getNodeName().equals(
-                                ELEM_ENV_ENTRY_VALUE))
-                            value = envNode.getFirstChild().getNodeValue()
-                                    .trim();
+                        else if (envNode.getNodeName().equals(ELEM_ENV_ENTRY_NAME))
+                            name = WebAppConfiguration.getTextFromNode(envNode);
+                        else if (envNode.getNodeName().equals(ELEM_ENV_ENTRY_TYPE))
+                            type = WebAppConfiguration.getTextFromNode(envNode);
+                        else if (envNode.getNodeName().equals(ELEM_ENV_ENTRY_VALUE))
+                            value = WebAppConfiguration.getTextFromNode(envNode);
                     }
                     if ((name != null) && (type != null) && (value != null)) {
                         Logger.log(Logger.FULL_DEBUG, JNDI_RESOURCES,
