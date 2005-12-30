@@ -19,6 +19,7 @@ package winstone;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -484,6 +485,25 @@ public class WinstoneRequest implements HttpServletRequest {
         }
         return workspace.toString();
     }
+    
+    public void discardRequestBody() {
+        if (getContentLength() > 0) {
+            try {
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ForceBodyParsing");
+                // If body not parsed
+                if ((this.parsedParameters == null) || 
+                        (this.parsedParameters.equals(Boolean.FALSE))) {
+                    // read full stream length
+                    InputStream in = getInputStream();
+                    byte buffer[] = new byte[2048];
+                    while (in.read(buffer) != -1)
+                        ;
+                }
+            } catch (IOException err) {
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ErrorForceBodyParsing", err);
+            }
+        }
+    }    
 
     /**
      * This takes the parameters in the body of the request and puts them into

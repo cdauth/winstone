@@ -19,7 +19,6 @@ package winstone;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -277,40 +276,19 @@ public class WinstoneResponse implements HttpServletResponse {
             return localEncoding.substring(1, localEncoding.length() - 1);
         }
     } 
-    
-    /**
-     * A check to ensure correct content length values
-     */
-    public void verifyContentLength() throws IOException {
-        String length = getHeader(CONTENT_LENGTH_HEADER);
-        if (length != null) {
-            int contentLength = 0;
-            try {
-                contentLength = Integer.parseInt(length);
-            } catch (Throwable err) {
-                return;
-            }
-            int bodyBytes = this.outputStream.getOutputStreamLength();
-            if (contentLength != bodyBytes)
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                        "WinstoneResponse.ShortOutput", new String[] {
-                                contentLength + "", bodyBytes + "" });
-        }
-    }
 
     /**
      * This ensures the bare minimum correct http headers are present
      */
     public void validateHeaders() {
-        forceBodyParsing();
         String lengthHeader = getHeader(CONTENT_LENGTH_HEADER);
-        if (lengthHeader == null) {
+        if ((lengthHeader == null) && (getStatus() >= 300)) {
             int bodyBytes = this.outputStream.getOutputStreamLength();
             if (getBufferSize() > bodyBytes) {
                 setContentLength(bodyBytes);
             }
         }
-        this.setHeader(KEEP_ALIVE_HEADER, !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
+        setHeader(KEEP_ALIVE_HEADER, !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
         String contentType = getHeader(CONTENT_TYPE_HEADER);
         if ((contentType == null) && (this.statusCode != SC_MOVED_TEMPORARILY)) {
             // Bypass normal encoding
@@ -778,34 +756,15 @@ public class WinstoneResponse implements HttpServletResponse {
                 fullLocation.append(location);
             }
         }
-        forceBodyParsing();
+        if (this.req != null) {
+            this.req.discardRequestBody();
+        }
         this.statusCode = HttpServletResponse.SC_MOVED_TEMPORARILY;
         setHeader(LOCATION_HEADER, fullLocation.toString());
         setContentLength(0);
         getWriter().flush();
     }
 
-    private void forceBodyParsing() {
-        if (this.req == null) {
-            return;
-        } else if (this.req.getContentLength() > 0) {
-            try {
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ForceBodyParsing");
-                // If body not parsed
-                if ((this.req.getParsedParameters() == null) || 
-                        (this.req.getParsedParameters().equals(Boolean.FALSE))) {
-                    // read full stream length
-                    InputStream in = this.req.getInputStream();
-                    byte buffer[] = new byte[2048];
-                    while (in.read(buffer) != -1)
-                        ;
-                }
-            } catch (IOException err) {
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ErrorForceBodyParsing", err);
-            }
-        }
-    }
-    
     public void sendError(int sc) throws IOException {
         sendError(sc, null);
     }

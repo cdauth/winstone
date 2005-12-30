@@ -131,6 +131,7 @@ public class RequestHandlerThread implements Runnable {
                             rsp.sendError(WinstoneResponse.SC_NOT_FOUND, 
                                     Launcher.RESOURCES.getString("RequestHandlerThread.UnknownWebappPage", servletURI));
                             rsp.flushBuffer();
+                            req.discardRequestBody();
                             writeToAccessLog(servletURI, req, rsp, null);
 
                             // Process keep-alive
@@ -271,6 +272,7 @@ public class RequestHandlerThread implements Runnable {
 //            rsp.sendUntrappedError(err, req, rd != null ? rd.getName() : null);
         }
         rsp.flushBuffer();
+        req.discardRequestBody();
     }
 
     /**
