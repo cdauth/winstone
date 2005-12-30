@@ -224,8 +224,8 @@ public class WinstoneResponse implements HttpServletResponse {
         included.setResponse(null); // for garbage collection
         body.flush();
         String underlyingEncoding = getCharacterEncoding();
-        String bodyBlock = (underlyingEncoding != null ? new String(
-                body.toByteArray(), underlyingEncoding)
+        String bodyBlock = (underlyingEncoding != null 
+                ? new String(body.toByteArray(), underlyingEncoding)
                 : new String(body.toByteArray()));
 
         // Try to write the body in
@@ -272,7 +272,7 @@ public class WinstoneResponse implements HttpServletResponse {
         if ((localEncoding == null) || 
                 !localEncoding.startsWith("\"") || 
                 !localEncoding.endsWith("\"")) {
-            return null;
+            return localEncoding;
         } else {
             return localEncoding.substring(1, localEncoding.length() - 1);
         }

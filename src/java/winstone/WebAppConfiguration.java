@@ -1194,13 +1194,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private void processMapping(String name, String pattern, Map exactPatterns,
             List folderPatterns, List extensionPatterns) {
         
-        // Compatibility hack - add a leading slash if one is not found and not 
-        // an extension mapping
-        if (!pattern.equals("") && !pattern.startsWith(Mapping.STAR) && 
-                !pattern.startsWith(Mapping.SLASH)) {
-            pattern = Mapping.SLASH + pattern;
-        }
-        
         Mapping urlPattern = null;
         try {
             urlPattern = Mapping.createFromURL(name, pattern);
@@ -1259,7 +1252,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             throw new WinstoneException(Launcher.RESOURCES.getString(
                     "WebAppConfig.MatchedNonExistServlet",
                     this.defaultServletName));
-        pathInfo.append(path);
+//        pathInfo.append(path);
+        servletPath.append(path);
         return (ServletConfiguration) this.servletInstances.get(this.defaultServletName);
     }
 
@@ -1522,13 +1516,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Return the dispatcher
         StringBuffer servletPath = new StringBuffer();
         StringBuffer pathInfo = new StringBuffer();
-        ServletConfiguration servlet = urlMatch(uriInsideWebapp, servletPath,
-                pathInfo);
+        ServletConfiguration servlet = urlMatch(uriInsideWebapp, servletPath, pathInfo);
         if (servlet != null) {
             // If the default servlet was returned, we should check for welcome files
-            if (servlet.equals(this.servletInstances.get(this.defaultServletName))) {
+            if (servlet.getServletName().equals(this.defaultServletName)) {
                 // Is path a directory ?
-                String directoryPath = pathInfo.toString();
+                String directoryPath = servletPath.toString();
                 if (directoryPath.endsWith("/")) {
                     directoryPath = directoryPath.substring(0, directoryPath.length() - 1);
                 }
@@ -1540,10 +1533,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 if (res.exists() && res.isDirectory() && 
                         (request.getMethod().equals("GET") || request.getMethod().equals("HEAD"))) {
                     // Check for the send back with slash case
-                    if (!pathInfo.toString().endsWith("/")) {
+                    if (!servletPath.toString().endsWith("/")) {
                         Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
-                                "WebAppConfig.FoundNonSlashDirectory", pathInfo
-                                        .toString());
+                                "WebAppConfig.FoundNonSlashDirectory", servletPath.toString());
                         response.sendRedirect(this.prefix
                                 + servletPath.toString()
                                 + pathInfo.toString()
@@ -1554,8 +1546,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
                     // Check for welcome files
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
-                            "WebAppConfig.CheckWelcomeFile", servletPath
-                                    .toString()
+                            "WebAppConfig.CheckWelcomeFile", servletPath.toString()
                                     + pathInfo.toString());
                     String welcomeFile = matchWelcomeFiles(servletPath.toString()
                             + pathInfo.toString(), request);

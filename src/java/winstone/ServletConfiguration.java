@@ -113,8 +113,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     WebAppConfiguration.getTextFromNode(child);
                 this.loadOnStartup = Integer.parseInt(index);
             } else if (nodeName.equals(ELEM_INIT_PARAM)) {
-                String paramName = null;
-                String paramValue = null;
+                String paramName = "";
+                String paramValue = "";
                 for (int k = 0; k < child.getChildNodes().getLength(); k++) {
                     Node paramNode = child.getChildNodes().item(k);
                     if (paramNode.getNodeType() != Node.ELEMENT_NODE)
@@ -124,8 +124,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     else if (paramNode.getNodeName().equals(ELEM_INIT_PARAM_VALUE))
                         paramValue = WebAppConfiguration.getTextFromNode(paramNode);
                 }
-                if ((paramName != null) && (paramValue != null))
+                if (!paramName.equals("")) {
                     this.initParameters.put(paramName, paramValue);
+                }
             } else if (nodeName.equals(ELEM_RUN_AS)) {
                 for (int m = 0; m < child.getChildNodes().getLength(); m++) {
                     Node roleElm = child.getChildNodes().item(m);
@@ -134,8 +135,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                         this.runAsRole = WebAppConfiguration.getTextFromNode(roleElm);
                 }
             } else if (nodeName.equals(ELEM_SECURITY_ROLE_REF)) {
-                String name = null;
-                String link = null;
+                String name = "";
+                String link = "";
                 for (int k = 0; k < child.getChildNodes().getLength(); k++) {
                     Node roleRefNode = child.getChildNodes().item(k);
                     if (roleRefNode.getNodeType() != Node.ELEMENT_NODE)
@@ -145,7 +146,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                     else if (roleRefNode.getNodeName().equals(ELEM_ROLE_LINK))
                         link = WebAppConfiguration.getTextFromNode(roleRefNode);
                 }
-                if ((name != null) && (link != null))
+                if (!name.equals("") && !link.equals(""))
                     this.initParameters.put(name, link);
             }
         }

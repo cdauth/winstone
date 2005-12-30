@@ -49,8 +49,8 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class StaticResourceServlet extends HttpServlet {
     // final String JSP_FILE = "org.apache.catalina.jsp_file";
-    final static String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
-    final static String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
+    final static String FORWARD_SERVLET_PATH = "javax.servlet.forward.servlet_path";
+    final static String INCLUDE_SERVLET_PATH = "javax.servlet.include.servlet_path";
     final static String CACHED_RESOURCE_DATE_HEADER = "If-Modified-Since";
     final static String LAST_MODIFIED_DATE_HEADER = "Last-Modified";
     final static String RANGE_HEADER = "Range";
@@ -79,16 +79,15 @@ public class StaticResourceServlet extends HttpServlet {
 
     public void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        boolean isInclude = (request.getAttribute(INCLUDE_PATH_INFO) != null);
-        boolean isForward = (request.getAttribute(FORWARD_PATH_INFO) != null);
+        boolean isInclude = (request.getAttribute(INCLUDE_SERVLET_PATH) != null);
+        boolean isForward = (request.getAttribute(FORWARD_SERVLET_PATH) != null);
         String path = null;
 
         if (isInclude)
-            path = (String) request.getAttribute(INCLUDE_PATH_INFO);
-        else if (request.getPathInfo() != null)
-            path = request.getPathInfo();
-        else
-            path = "";
+            path = (String) request.getAttribute(INCLUDE_SERVLET_PATH);
+        else  {
+            path = request.getServletPath();
+        }
 
         // URL decode path
         path = WinstoneRequest.decodeURLToken(path);

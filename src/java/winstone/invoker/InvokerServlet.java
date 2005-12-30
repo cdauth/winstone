@@ -116,13 +116,13 @@ public class InvokerServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse rsp)
             throws ServletException, IOException {
         boolean isInclude = (req.getAttribute(INCLUDE_PATH_INFO) != null);
-        boolean isForward = (req.getAttribute(FORWARD_PATH_INFO) != null);
+//        boolean isForward = (req.getAttribute(FORWARD_PATH_INFO) != null);
         String servletName = null;
 
         if (isInclude)
             servletName = (String) req.getAttribute(INCLUDE_PATH_INFO);
-        else if (isForward)
-            servletName = (String) req.getAttribute(FORWARD_PATH_INFO);
+//        else if (isForward)
+//            servletName = (String) req.getAttribute(FORWARD_PATH_INFO);
         else if (req.getPathInfo() != null)
             servletName = req.getPathInfo();
         else

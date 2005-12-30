@@ -53,14 +53,27 @@ public class Mapping implements java.util.Comparator {
         if ((pattern == null) || (mappedTo == null))
             throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
-
+        
+        // Compatibility hack - add a leading slash if one is not found and not 
+        // an extension mapping
+        if (!pattern.equals("") && !pattern.startsWith(STAR) && 
+                !pattern.startsWith(SLASH)) {
+            pattern = SLASH + pattern;
+        }
+        
         Mapping me = new Mapping(mappedTo);
 
         int firstStarPos = pattern.indexOf(STAR);
         int lastStarPos = pattern.lastIndexOf(STAR);
         int patternLength = pattern.length();
 
-        if (firstStarPos == -1) {
+        // check for default servlet, ie mapping = exactly /
+        if (pattern.equals(SLASH)) {
+            me.urlPattern = "";
+            me.patternType = DEFAULT_SERVLET;
+        }
+
+        else if (firstStarPos == -1) {
             me.urlPattern = pattern;
             me.patternType = EXACT_PATTERN;
         }
@@ -70,14 +83,8 @@ public class Mapping implements java.util.Comparator {
             throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
 
-        // check for default servlet, ie mapping = exactly /*
-        else if (pattern.equals(SLASH + STAR) || pattern.equals(SLASH)) {
-            me.urlPattern = "";
-            me.patternType = DEFAULT_SERVLET;
-        }
-
         // check for folder style mapping (ends in /*)
-        else if (pattern.indexOf(SLASH + STAR) == (patternLength - (SLASH + STAR).length())) {
+        else  if (pattern.indexOf(SLASH + STAR) == (patternLength - (SLASH + STAR).length())) {
             me.urlPattern = pattern.substring(0, pattern.length()
                     - (SLASH + STAR).length());
             me.patternType = FOLDER_PATTERN;
@@ -155,8 +162,7 @@ public class Mapping implements java.util.Comparator {
                 if (servletPath != null)
                     servletPath.append(this.urlPattern);
                 if (pathInfo != null)
-                    pathInfo.append(inputPattern.substring(this.urlPattern
-                            .length()));
+                    pathInfo.append(inputPattern.substring(this.urlPattern.length()));
                 return true;
             } else
                 return false;
@@ -168,8 +174,7 @@ public class Mapping implements java.util.Comparator {
                 return false;
             String fileName = inputPattern.substring(slashPos + 1);
             if ((this.isPatternFirst && fileName.startsWith(this.urlPattern))
-                    || (!this.isPatternFirst && fileName
-                            .endsWith(this.urlPattern))) {
+                    || (!this.isPatternFirst && fileName.endsWith(this.urlPattern))) {
                 if (servletPath != null)
                     servletPath.append(inputPattern);
                 return true;
@@ -185,8 +190,8 @@ public class Mapping implements java.util.Comparator {
                 return false;
 
         case DEFAULT_SERVLET:
-            if (pathInfo != null)
-                pathInfo.append(inputPattern);
+            if (servletPath != null)
+                servletPath.append(inputPattern);
             return true;
 
         default:
