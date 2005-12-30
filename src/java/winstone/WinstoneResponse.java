@@ -788,19 +788,21 @@ public class WinstoneResponse implements HttpServletResponse {
     private void forceBodyParsing() {
         if (this.req == null) {
             return;
-        } else try {
-            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ForceBodyParsing");
-            // If body not parsed
-            if ((this.req.getParsedParameters() == null) || 
-                    (this.req.getParsedParameters().equals(Boolean.FALSE))) {
-                // read full stream length
-                InputStream in = this.req.getInputStream();
-                byte buffer[] = new byte[2048];
-                while (in.read(buffer) != -1)
-                    ;
+        } else if (this.req.getContentLength() > 0) {
+            try {
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ForceBodyParsing");
+                // If body not parsed
+                if ((this.req.getParsedParameters() == null) || 
+                        (this.req.getParsedParameters().equals(Boolean.FALSE))) {
+                    // read full stream length
+                    InputStream in = this.req.getInputStream();
+                    byte buffer[] = new byte[2048];
+                    while (in.read(buffer) != -1)
+                        ;
+                }
+            } catch (IOException err) {
+                Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ErrorForceBodyParsing", err);
             }
-        } catch (IOException err) {
-            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ErrorForceBodyParsing", err);
         }
     }
     
