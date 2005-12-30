@@ -302,10 +302,15 @@ public class WinstoneResponse implements HttpServletResponse {
      * This ensures the bare minimum correct http headers are present
      */
     public void validateHeaders() {
-        // rsp.setHeader(ENCODING_HEADER, "chunked");
-        String contentLength = getHeader(CONTENT_LENGTH_HEADER);
-        this.setHeader(KEEP_ALIVE_HEADER, (contentLength != null)
-                && !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
+        forceBodyParsing();
+        String lengthHeader = getHeader(CONTENT_LENGTH_HEADER);
+        if (lengthHeader == null) {
+            int bodyBytes = this.outputStream.getOutputStreamLength();
+            if (getBufferSize() > bodyBytes) {
+                setContentLength(bodyBytes);
+            }
+        }
+        this.setHeader(KEEP_ALIVE_HEADER, !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
         String contentType = getHeader(CONTENT_TYPE_HEADER);
         if ((contentType == null) && (this.statusCode != SC_MOVED_TEMPORARILY)) {
             // Bypass normal encoding
@@ -457,15 +462,16 @@ public class WinstoneResponse implements HttpServletResponse {
      */
     public boolean closeAfterRequest() {
         String inKeepAliveHeader = this.reqKeepAliveHeader;
-        String outKeepAliveHeader = this.getHeader(KEEP_ALIVE_HEADER);
+        String outKeepAliveHeader = getHeader(KEEP_ALIVE_HEADER);
+        boolean hasContentLength = (getHeader(CONTENT_LENGTH_HEADER) != null);
         if (this.protocol.startsWith("HTTP/0"))
             return true;
         else if ((inKeepAliveHeader == null) && (outKeepAliveHeader == null))
-            return this.protocol.equals("HTTP/1.0") ? true : false;
+            return this.protocol.equals("HTTP/1.0") ? true : !hasContentLength;
         else if (outKeepAliveHeader != null)
-            return outKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE);
+            return outKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE) || !hasContentLength;
         else if (inKeepAliveHeader != null)
-            return inKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE);
+            return inKeepAliveHeader.equalsIgnoreCase(KEEP_ALIVE_CLOSE) || !hasContentLength;
         else
             return false;
     }
@@ -772,24 +778,32 @@ public class WinstoneResponse implements HttpServletResponse {
                 fullLocation.append(location);
             }
         }
-
-        // If body not parsed
-        if (this.req.getParsedParameters() == null) {
-            this.req.getParameterNames(); // dummy to force parsing of the request
-        } else if (this.req.getParsedParameters().equals(Boolean.FALSE)) {
-            // read full stream length
-            InputStream in = this.req.getInputStream();
-            byte buffer[] = new byte[2048];
-            while (in.read(buffer) != -1)
-                ;
-        }
-
+        forceBodyParsing();
         this.statusCode = HttpServletResponse.SC_MOVED_TEMPORARILY;
         setHeader(LOCATION_HEADER, fullLocation.toString());
         setContentLength(0);
         getWriter().flush();
     }
 
+    private void forceBodyParsing() {
+        if (this.req == null) {
+            return;
+        } else try {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ForceBodyParsing");
+            // If body not parsed
+            if ((this.req.getParsedParameters() == null) || 
+                    (this.req.getParsedParameters().equals(Boolean.FALSE))) {
+                // read full stream length
+                InputStream in = this.req.getInputStream();
+                byte buffer[] = new byte[2048];
+                while (in.read(buffer) != -1)
+                    ;
+            }
+        } catch (IOException err) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ErrorForceBodyParsing", err);
+        }
+    }
+    
     public void sendError(int sc) throws IOException {
         sendError(sc, null);
     }
@@ -826,7 +840,6 @@ public class WinstoneResponse implements HttpServletResponse {
                 }
             }
         }
-        
         // If we are here there was no webapp and/or no request object, so 
         // show the default error page
         if (this.errorStatusCode == null) {

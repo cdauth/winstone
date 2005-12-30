@@ -115,7 +115,6 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         // If we haven't written the headers yet, write them out
         if (!this.committed && !this.bodyOnly) {
             this.owner.validateHeaders();
-            this.owner.verifyContentLength();
             this.committed = true;
 
             Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.CommittingOutputStream");

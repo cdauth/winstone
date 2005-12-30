@@ -493,7 +493,7 @@ public class WinstoneRequest implements HttpServletRequest {
         if ((parsedParameters != null) && !parsedParameters.booleanValue()) {
             Logger.log(Logger.WARNING, Launcher.RESOURCES,
                     "WinstoneRequest.BothMethods");
-            this.parsedParameters = new Boolean(true);
+            this.parsedParameters = Boolean.TRUE;
         } else if (parsedParameters == null) {
             Map workingParameters = new HashMap();
             try {
@@ -528,7 +528,7 @@ public class WinstoneRequest implements HttpServletRequest {
                 } 
                 
                 this.parameters.putAll(workingParameters);
-                this.parsedParameters = new Boolean(true);
+                this.parsedParameters = Boolean.TRUE;
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, Launcher.RESOURCES,
                         "WinstoneRequest.ErrorBodyParameters", err);
