@@ -133,7 +133,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
         this.matchingFilters = getMatchingFilters(errorFilterPatterns, this.webAppConfig, 
                 servletPath + (pathInfo == null ? "" : pathInfo), 
-                getName(), (servletPath != null));
+                getName(), "ERROR", (servletPath != null));
         this.useRequestAttributes = true;
         this.isErrorDispatch = true;
     }
@@ -148,7 +148,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         this.authHandler = authHandler;
         this.matchingFilters = getMatchingFilters(requestFilterPatterns, this.webAppConfig, 
                 servletPath + (pathInfo == null ? "" : pathInfo), 
-                getName(), (servletPath != null));
+                getName(), "REQUEST", (servletPath != null));
         this.useRequestAttributes = false;
         this.isErrorDispatch = false;
     }
@@ -189,7 +189,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         if (this.matchingFilters == null) {
             this.matchingFilters = getMatchingFilters(this.includeFilterPatterns, this.webAppConfig, 
                     this.servletPath + (this.pathInfo == null ? "" : this.pathInfo), 
-                    getName(), (this.servletPath != null));
+                    getName(), "INCLUDE", (this.servletPath != null));
         }
         try {
             // Make sure the filter chain is exhausted first
@@ -310,7 +310,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             if (this.matchingFilters == null) {
                 this.matchingFilters = getMatchingFilters(this.forwardFilterPatterns, this.webAppConfig, 
                         this.servletPath + (this.pathInfo == null ? "" : this.pathInfo), 
-                        getName(), (this.servletPath != null));
+                        getName(), "FORWARD", (this.servletPath != null));
             }
             
             // Otherwise we are an initial or error dispatcher, so check security if initial -
@@ -371,13 +371,13 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
      */
     private static FilterConfiguration[] getMatchingFilters(Mapping filterPatterns[], 
             WebAppConfiguration webAppConfig, String fullPath, String servletName,
-            boolean isURLBasedMatch) {
+            String filterChainType, boolean isURLBasedMatch) {
         
         String cacheKey = null;
         if (isURLBasedMatch) {
-            cacheKey = fullPath;
+            cacheKey = filterChainType + ":" + fullPath;
         } else {
-            cacheKey = "Servlet:" + servletName;
+            cacheKey = filterChainType + ":Servlet:" + servletName;
         }
         FilterConfiguration matchingFilters[] = null;
         Map cache = webAppConfig.getFilterMatchCache();
