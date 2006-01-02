@@ -108,12 +108,9 @@ public class SecurityConstraint {
                 }
             }
         }
-        this.urlPatterns = (Mapping[]) localUrlPatternList
-                .toArray(new Mapping[localUrlPatternList.size()]);
-        this.methodSets = (String[]) localMethodSetList
-                .toArray(new String[localMethodSetList.size()]);
-        this.rolesAllowed = (String[]) localRolesAllowed
-                .toArray(new String[localRolesAllowed.size()]);
+        this.urlPatterns = (Mapping[]) localUrlPatternList.toArray(new Mapping[0]);
+        this.methodSets = (String[]) localMethodSetList.toArray(new String[0]);
+        this.rolesAllowed = (String[]) localRolesAllowed.toArray(new String[0]);
 
         if (this.displayName == null)
             this.displayName = BaseAuthenticationHandler.AUTH_RESOURCES.getString(

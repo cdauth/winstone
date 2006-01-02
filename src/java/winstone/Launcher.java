@@ -142,7 +142,7 @@ public class Launcher implements Runnable {
         } else {
             Logger.log(Logger.DEBUG, RESOURCES, "Launcher.NoCommonLib");
         }
-        ClassLoader commonLibCL = new URLClassLoader((URL[]) jars.toArray(new URL[jars.size()]), 
+        ClassLoader commonLibCL = new URLClassLoader((URL[]) jars.toArray(new URL[0]), 
                 getClass().getClassLoader());
         
         Logger.log(Logger.MAX, RESOURCES, "Launcher.CLClassLoader",

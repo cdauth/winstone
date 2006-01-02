@@ -393,8 +393,7 @@ public class WinstoneSession implements HttpSession, Serializable {
      * @deprecated
      */
     public String[] getValueNames() {
-        return (String[]) this.sessionData.keySet().toArray(
-                new String[this.sessionData.size()]);
+        return (String[]) this.sessionData.keySet().toArray(new String[0]);
     }
 
     /**

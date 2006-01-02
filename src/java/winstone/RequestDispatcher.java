@@ -375,7 +375,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         
         String cacheKey = null;
         if (isURLBasedMatch) {
-            cacheKey = filterChainType + ":" + fullPath;
+            cacheKey = filterChainType + ":URI:" + fullPath;
         } else {
             cacheKey = filterChainType + ":Servlet:" + servletName;
         }

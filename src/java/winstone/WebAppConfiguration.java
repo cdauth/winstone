@@ -742,14 +742,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // Put the name filters after the url filters, then convert to string
         // arrays
-        this.filterPatternsRequest = (Mapping[]) lfpRequest
-                .toArray(new Mapping[lfpRequest.size()]);
-        this.filterPatternsForward = (Mapping[]) lfpForward
-                .toArray(new Mapping[lfpForward.size()]);
-        this.filterPatternsInclude = (Mapping[]) lfpInclude
-                .toArray(new Mapping[lfpInclude.size()]);
-        this.filterPatternsError = (Mapping[]) lfpError
-                .toArray(new Mapping[lfpError.size()]);
+        this.filterPatternsRequest = (Mapping[]) lfpRequest.toArray(new Mapping[0]);
+        this.filterPatternsForward = (Mapping[]) lfpForward.toArray(new Mapping[0]);
+        this.filterPatternsInclude = (Mapping[]) lfpInclude.toArray(new Mapping[0]);
+        this.filterPatternsError = (Mapping[]) lfpError.toArray(new Mapping[0]);
 
         if (this.filterPatternsRequest.length > 0)
             Arrays.sort(this.filterPatternsRequest,
@@ -763,28 +759,26 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (this.filterPatternsError.length > 0)
             Arrays.sort(this.filterPatternsError, this.filterPatternsError[0]);
 
-        this.welcomeFiles = (String[]) localWelcomeFiles
-                .toArray(new String[localWelcomeFiles.size()]);
+        this.welcomeFiles = (String[]) localWelcomeFiles.toArray(new String[0]);
         this.errorPagesByExceptionKeysSorted = (Class[]) localErrorPagesByExceptionList
-                .toArray(new Class[localErrorPagesByExceptionList.size()]);
+                .toArray(new Class[0]);
         Arrays.sort(this.errorPagesByExceptionKeysSorted, this);
 
         // Put the listeners into their arrays
         this.contextAttributeListeners = (ServletContextAttributeListener[]) contextAttributeListeners
-                .toArray(new ServletContextAttributeListener[contextAttributeListeners
-                        .size()]);
+                .toArray(new ServletContextAttributeListener[0]);
         this.contextListeners = (ServletContextListener[]) contextListeners
-                .toArray(new ServletContextListener[contextListeners.size()]);
+                .toArray(new ServletContextListener[0]);
         this.requestListeners = (ServletRequestListener[]) requestListeners
-                .toArray(new ServletRequestListener[requestListeners.size()]);
+                .toArray(new ServletRequestListener[0]);
         this.requestAttributeListeners = (ServletRequestAttributeListener[]) requestAttributeListeners
-                .toArray(new ServletRequestAttributeListener[requestAttributeListeners.size()]);
+                .toArray(new ServletRequestAttributeListener[0]);
         this.sessionActivationListeners = (HttpSessionActivationListener[]) sessionActivationListeners
-                .toArray(new HttpSessionActivationListener[sessionActivationListeners.size()]);
+                .toArray(new HttpSessionActivationListener[0]);
         this.sessionAttributeListeners = (HttpSessionAttributeListener[]) sessionAttributeListeners
-                .toArray(new HttpSessionAttributeListener[sessionAttributeListeners.size()]);
+                .toArray(new HttpSessionAttributeListener[0]);
         this.sessionListeners = (HttpSessionListener[]) sessionListeners
-                .toArray(new HttpSessionListener[sessionListeners.size()]);
+                .toArray(new HttpSessionListener[0]);
 
         // If we haven't explicitly mapped the default servlet, map it here
         if (this.defaultServletName == null)
@@ -873,8 +867,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // Sort the folder patterns so the longest paths are first
         localFolderPatterns.addAll(localExtensionPatterns);
-        this.patternMatches = (Mapping[]) localFolderPatterns
-                .toArray(new Mapping[localFolderPatterns.size()]);
+        this.patternMatches = (Mapping[]) localFolderPatterns.toArray(new Mapping[0]);
         if (this.patternMatches.length > 0)
             Arrays.sort(this.patternMatches, this.patternMatches[0]);
 

@@ -605,12 +605,11 @@ public class WinstoneRequest implements HttpServletRequest {
                     || name.equalsIgnoreCase(IN_COOKIE_HEADER2))
                 parseCookieLine(value, cookieList);
         }
-        this.headers = (String[]) outHeaderList
-                .toArray(new String[outHeaderList.size()]);
+        this.headers = (String[]) outHeaderList.toArray(new String[0]);
         if (cookieList.isEmpty()) {
             this.cookies = null;
         } else {
-            this.cookies = (Cookie[]) cookieList.toArray(new Cookie[cookieList.size()]);
+            this.cookies = (Cookie[]) cookieList.toArray(new Cookie[0]);
         }
     }
 
@@ -761,8 +760,7 @@ public class WinstoneRequest implements HttpServletRequest {
         }
 
         // Extract and build the list
-        Float orderKeys[] = (Float[]) new ArrayList(localeEntries.keySet())
-                .toArray(new Float[localeEntries.size()]);
+        Float orderKeys[] = (Float[]) localeEntries.keySet().toArray(new Float[0]);
         Arrays.sort(orderKeys);
         List outputLocaleList = new ArrayList();
         for (int n = 0; n < orderKeys.length; n++) {
