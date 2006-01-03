@@ -72,8 +72,7 @@ public class Launcher implements Runnable {
      * Constructor - initialises the web app, object pools, control port and the
      * available protocol listeners.
      */
-    public Launcher(Map args)
-            throws IOException {
+    public Launcher(Map args) throws IOException {
         
         // Set jndi resource handler if not set (workaround for JamVM bug)
         if (System.getProperty("java.naming.factory.initial") == null) {
@@ -213,6 +212,8 @@ public class Launcher implements Runnable {
                 "Launcher.ThreadName", "" + this.controlPort));
         this.controlThread.setDaemon(false);
         this.controlThread.start();
+
+        Runtime.getRuntime().addShutdownHook(new ShutdownHook(this));
 
     }
 
@@ -357,43 +358,50 @@ public class Launcher implements Runnable {
      * listener thread. For now, just shut it down with a control-C.
      */
     public static void main(String argv[]) throws IOException {
-        // Get command line args
-        String configFilename = RESOURCES
-                .getString("Launcher.DefaultPropertyFile");
-        String firstNonSwitchArgument = null;
         Map args = new HashMap();
+        
+        // Load embedded properties file 
+        String embeddedPropertiesFilename = RESOURCES.getString(
+                "Launcher.EmbeddedPropertiesFile");
+        
+        InputStream embeddedPropsStream = Launcher.class.getResourceAsStream(
+                embeddedPropertiesFilename);
+        if (embeddedPropsStream != null) {
+            loadPropsFromStream(embeddedPropsStream, args);
+            embeddedPropsStream.close();
+        }
+        
+        // Get command line args
+        String configFilename = RESOURCES.getString("Launcher.DefaultPropertyFile");
+        String firstNonSwitchArgument = null;
         for (int n = 0; n < argv.length; n++) {
             String option = argv[n];
             if (option.startsWith("--")) {
                 int equalPos = option.indexOf('=');
-                String paramName = option.substring(2, equalPos == -1 ? option
-                        .length() : equalPos);
-                String paramValue = (equalPos == -1 ? "true" : option
-                        .substring(equalPos + 1));
-                args.put(paramName, paramValue);
-                if (paramName.equals("config"))
-                    configFilename = paramValue;
-            } else
+                String paramName = option.substring(2, 
+                        equalPos == -1 ? option.length() : equalPos);
+                if (equalPos != -1) {
+                    args.put(paramName, option.substring(equalPos + 1));
+                } else {
+                    args.put(paramName, "true");
+                }
+                if (paramName.equals("config")) {
+                    configFilename = (String) args.get(paramName);
+                }
+            } else {
                 firstNonSwitchArgument = option;
+            }
         }
 
         // Load default props if available
         File configFile = new File(configFilename);
         if (configFile.exists() && configFile.isFile()) {
             InputStream inConfig = new FileInputStream(configFile);
-            Properties props = new Properties();
-            props.load(inConfig);
+            loadPropsFromStream(inConfig, args);
             inConfig.close();
-            for (Iterator i = props.keySet().iterator(); i.hasNext(); ) {
-                String key = (String) i.next();
-                if (!args.containsKey(key.trim())) {
-                    args.put(key.trim(), props.getProperty(key).trim());
-                }
-            }
             initLogger(args);
             Logger.log(Logger.DEBUG, RESOURCES, "Launcher.UsingPropertyFile",
                     configFilename);
-
         } else {
             initLogger(args);
         }
@@ -402,31 +410,73 @@ public class Launcher implements Runnable {
         if (firstNonSwitchArgument != null) {
             File webapp = new File(firstNonSwitchArgument);
             if (webapp.exists()) {
-                if (webapp.isDirectory())
+                if (webapp.isDirectory()) {
                     args.put("webroot", firstNonSwitchArgument);
-                else if (webapp.isFile())
+                } else if (webapp.isFile()) {
                     args.put("warfile", firstNonSwitchArgument);
+                }
             }
         }
-
-        if (!args.containsKey("webroot") && !args.containsKey("warfile") 
-                && !args.containsKey("webappsDir")&& !args.containsKey("hostsDir"))
+        
+        if (args.containsKey("usage") || args.containsKey("help")) {
             printUsage();
-        else {
-            if (args.containsKey("usage") || args.containsKey("help"))
-                printUsage();
-
-            try {
-                Launcher launcher = new Launcher(args);
-                Runtime.getRuntime().addShutdownHook(new ShutdownHook(launcher));
-            } catch (WinstoneException err) {
-                System.err.println(err.getMessage());
-                err.printStackTrace();
-            }
+            return;
         }
+
+        String embeddedWarfileName = RESOURCES.getString("Launcher.EmbeddedWarFile");
+        InputStream embeddedWarfile = Launcher.class.getResourceAsStream(
+                embeddedWarfileName);
+        if (embeddedWarfile != null) {
+            File tempWarfile = File.createTempFile("embedded", ".war");
+            tempWarfile.getParentFile().mkdirs();
+            tempWarfile.deleteOnExit();
+
+            String embeddedWebroot = RESOURCES.getString("Launcher.EmbeddedWebroot");
+            File tempWebroot = new File(tempWarfile.getParentFile(), embeddedWebroot);
+            tempWebroot.mkdirs();
+            
+            Logger.log(Logger.DEBUG, RESOURCES, "Launcher.CopyingEmbeddedWarfile",
+                    tempWarfile.getAbsolutePath());
+            OutputStream out = new FileOutputStream(tempWarfile, true);
+            int read = 0;
+            byte buffer[] = new byte[2048];
+            while ((read = embeddedWarfile.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            out.close();
+            embeddedWarfile.close();
+            
+            args.put("warfile", tempWarfile.getAbsolutePath());
+            args.put("webroot", tempWebroot.getAbsolutePath());
+            args.remove("webappsDir");
+            args.remove("hostsDir");
+        }
+        
+        // Check for embedded warfile
+        if (!args.containsKey("webroot") && !args.containsKey("warfile") 
+                && !args.containsKey("webappsDir")&& !args.containsKey("hostsDir")) {
+            System.out.println("Nothing");
+            printUsage();
+            return;
+        }
+        
+        // Launch
+        new Launcher(args);
     }
     
-    private static void initLogger(Map args) throws IOException {
+    private static void loadPropsFromStream(InputStream inConfig, Map args) throws IOException {
+        Properties props = new Properties();
+        props.load(inConfig);
+        for (Iterator i = props.keySet().iterator(); i.hasNext(); ) {
+            String key = (String) i.next();
+            if (!args.containsKey(key.trim())) {
+                args.put(key.trim(), props.getProperty(key).trim());
+            }
+        }
+        props.clear();
+    }
+    
+    public static void initLogger(Map args) throws IOException {
         // Reset the log level
         int logLevel = WebAppConfiguration.intArg(args, "debug", Logger.INFO);
         boolean showThrowingLineNo = WebAppConfiguration.booleanArg(args, "logThrowingLineNo", false);

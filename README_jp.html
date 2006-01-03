@@ -3,7 +3,7 @@
 <head>
   <meta http-equiv="content-type" content="text/html;charset=euc-jp" />
   <title>Winstoneサーブレトコンテーナー (日本語)</title>
-  <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 154kb jar file"/>
+  <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 160kb jar file"/>
   <meta name="keywords" content="servlets, servlet, jsp, java, jdk, jre, winstone, small, fast, reliable, open source, gpl, gcj, jndi, xml"/>
   <meta name="author" content="Rick Knowles"/>
   <meta name="language" content="Japanese"/>
@@ -59,6 +59,7 @@
     <li><a href="#jndi">JNDIの設定</a></li>
     <li><a href="#https">HTTPSの設定</a></li>
     <li><a href="#accessLog">Access logging</a></li>
+    <li><a href="#embedding">Embedding Winstone</a></li>
   </ul>
 
 <h2><a name="whatIs">Winstoneとは ?</a></h2>
@@ -75,7 +76,7 @@
   <p>最初のゴールはこうでした:</p>
     <ul>
       <li>1つのウェブ適用に速い安定したコンテナー機能を供給します。</li>
-      <li>配信したJARファイルのサイズは最小限の物にしています『現在 154KB』</li>
+      <li>配信したJARファイルのサイズは最小限の物にしています『現在 160KB』</li>
       <li>設定ファイルを増やして、using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
@@ -301,7 +302,7 @@ Access logging:
 
   <ul>
     <li>Expanded the features of the JDBC connection pool to include <b>keep-alive</b> queries
-      and block-and-retry behaviour when the pool is full</li>
+      and block-and-retry behaviour when the pool has been exhausted.</li>
     <li>Added filter match caching (performance improvement)</li>
     <li><b>Name-based virtual hosting</b>. Using the <code>--hostsDir</code> switch, you can define a 
       directory that contains directories named by hostname, each of which acts like a <code>--webappsDir</code>. 
@@ -309,7 +310,11 @@ Access logging:
     <li><b>Access logging</b>. Disabled by default, but enabled with the switch 
       <code>--accessLoggerClassName=winstone.accesslog.SimpleAccessLogger</code>. You can provide your
       own logging implementation, but the simple access logger contains Apache Combined/Common format
-      logging and Resin format logging, so it should suffice for most cases. See <a href="#accessLog">below</a> for more details.</li>
+      logging and Resin format logging, so it should suffice for most cases. See 
+        <a href="#accessLog">below</a> for more details.</li>
+    <li><b>Better embedding support</b>. You can now embed warfiles and properties file inside the
+      winstone jar itself, for an all-in-one application jar. See <a href="#embedding">below</a> 
+      for more details.</li>
   </ul>
         
   <p>New features in v0.7:</p>
@@ -783,6 +788,34 @@ java -jar winstone.jar ...&lt; other options &gt; ... \
                        --accessLoggerClassName=winstone.accesslog.SimpleAccessLogger
                        --simpleAccessLogger.format=###date###\ ###uriLine###
                        --simpleAccessLogger.file=/mylogs/access_log.txt</pre>
+                       
+<h2><a name="embedding">Embedding Winstone</a></h2>
+  <p>The design of Winstone has always allowed its easy embedding within another application. It's as simple
+    as:</p>
+  <pre> // at startup
+Map args = new HashMap();
+args.put("webroot", "&lt;my webroot dir&gt;"); // or any other command line args, eg port
+Launcher.initLogger(args);
+Launcher winstone = new Launcher(args); // spawns threads, so your application doesn't block
+
+... (your application code)
+
+// before shutdown
+winstone.shutdown(); </pre>
+
+  <p>From v0.8 though, there is also the ability to embed in the opposite direction: that is, to 
+    <b>embed your warfile into the winstone JAR itself</b>. This allows an all-in-one container plus 
+    web-application JAR file to be downloaded, and then unpacked at execution time.</p>
+  <p>To use this, simply unpack the winstone JAR, and place your WAR file inside the unpacked 
+    folder at the top level (with the same parent as the folder named "winstone"). Then rename
+    your WAR file to "embedded.war", and repack the jar as before (make sure to preserve the 
+    META-INF and manifest).</p>
+  <p>Now if you type: <code>"java -jar winstone.jar"</code>, your application should
+    automatically deploy as the ROOT web application. Try <code>http://localhost:8080/</code> to 
+    check it out.</p>
+  <p>If you need to add any default command-line arguments (eg ports or prefixes), you can embed 
+    a properties file in exactly the same way, except that the file must be named 
+    "embedded.properties".</p>
       </td>
     </tr>
   </table>

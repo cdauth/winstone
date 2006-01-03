@@ -24,7 +24,7 @@ DONE - Cache filter matching calcs for various URLs
 DONE - Virtual host support
 DONE - Access log. Apache style if possible, minimal config.
 DONE - Fix for davenport and jakarta slide webdav applications
-     - Check for warfile, common libs and properties file inside classpath, so that we can pack an app in a single jar
+DONE - Check for warfile, properties file inside classpath, so that we can pack an app in a single jar
 
 v0.7
 DONE - Fixed load-on-startup optional content bug (thanks to Matthias Wuttke)
