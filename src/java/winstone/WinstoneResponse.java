@@ -47,7 +47,7 @@ import javax.servlet.http.HttpServletResponse;
  *          Exp $
  */
 public class WinstoneResponse implements HttpServletResponse {
-    protected static DateFormat df = new SimpleDateFormat(
+    protected static final DateFormat df = new SimpleDateFormat(
             "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
     static {
         df.setTimeZone(TimeZone.getTimeZone("GMT"));
