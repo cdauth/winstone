@@ -283,7 +283,10 @@ public class WinstoneResponse implements HttpServletResponse {
     public void validateHeaders() {
         // Need this block for WebDAV support. "Connection:close" header is ignored
         String lengthHeader = getHeader(CONTENT_LENGTH_HEADER);
-        if ((lengthHeader == null) && (getStatus() >= 300)) {
+        String oldKeepAliveHeader = getHeader(KEEP_ALIVE_HEADER);
+        if ((lengthHeader == null) && 
+                ((oldKeepAliveHeader == null) || oldKeepAliveHeader.equals(KEEP_ALIVE_OPEN))) {
+//        if ((lengthHeader == null) && (getStatus() >= 300)) {
             int bodyBytes = this.outputStream.getOutputStreamLength();
             if (getBufferSize() > bodyBytes) {
                 setContentLength(bodyBytes);
@@ -294,7 +297,7 @@ public class WinstoneResponse implements HttpServletResponse {
         String contentType = getHeader(CONTENT_TYPE_HEADER);
         if ((contentType == null) && (this.statusCode != SC_MOVED_TEMPORARILY)) {
             // Bypass normal encoding
-            this.setHeader(CONTENT_TYPE_HEADER, "text/html" + 
+            setHeader(CONTENT_TYPE_HEADER, "text/html" + 
                     (this.currentEncoding == null ? "" : ";charset=" + this.currentEncoding));
         }
         if (getHeader(DATE_HEADER) == null)
@@ -634,7 +637,7 @@ public class WinstoneResponse implements HttpServletResponse {
                         value, remainderHeader);
                 if ((headerEncoding != null) && 
                         (this.outPrintWriters.get(getTopOutputStream()) == null)) {
-                    value = remainderHeader.toString() + ";charset=" + headerEncoding;
+                    value = remainderHeader.toString() + "; charset=" + headerEncoding;
                     this.explicitlySetEncoding = headerEncoding;
                     this.currentEncoding = headerEncoding;
                 } else {
@@ -673,13 +676,13 @@ public class WinstoneResponse implements HttpServletResponse {
                                 value, remainderHeader);
                         if ((headerEncoding != null) && 
                                 (this.outPrintWriters.get(getTopOutputStream()) == null)) {
-                            value = remainderHeader.toString() + ";charset=" + headerEncoding;
+                            value = remainderHeader.toString() + "; charset=" + headerEncoding;
                             this.explicitlySetEncoding = headerEncoding;
                             this.currentEncoding = headerEncoding;
                         } else {
                             value = remainderHeader.toString() + 
                                 (this.currentEncoding == null ? "" : 
-                                    ";charset=" + this.currentEncoding); 
+                                    "; charset=" + this.currentEncoding); 
                         }
                     }
 
