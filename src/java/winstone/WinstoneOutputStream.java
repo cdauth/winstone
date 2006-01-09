@@ -135,8 +135,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             }
 
             if (!this.owner.getHeaders().isEmpty()) {
-                for (Iterator i = this.owner.getCookies().iterator(); i
-                        .hasNext();) {
+                for (Iterator i = this.owner.getCookies().iterator(); i.hasNext();) {
                     Cookie cookie = (Cookie) i.next();
                     String cookieText = this.owner.writeCookie(cookie);
                     headerStream.println(cookieText);
@@ -190,6 +189,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     }
 
     public void flush() throws IOException {
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.Flushing");
         if (this.disregardMode) {
             return;
         }
