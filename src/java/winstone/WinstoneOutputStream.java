@@ -20,7 +20,6 @@ package winstone;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Iterator;
 
 import javax.servlet.http.Cookie;
@@ -32,7 +31,8 @@ import javax.servlet.http.Cookie;
  * @version $Id$
  */
 public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
-    final int DEFAULT_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
+    private static final byte[] CR_LF = "\r\n".getBytes();
     protected OutputStream outStream;
     protected int bufferSize;
     protected int bufferPosition;
@@ -119,17 +119,17 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
 
             Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.CommittingOutputStream");
             
-            PrintStream headerStream = new PrintStream(this.outStream, true);
-            String statusLine = this.owner.getProtocol() + " "
-                    + this.owner.getStatus();
-            headerStream.println(statusLine);
+            String statusLine = this.owner.getProtocol() + " " + this.owner.getStatus();
+            this.outStream.write(statusLine.getBytes("8859_1"));
+            this.outStream.write(CR_LF);
             Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                     "WinstoneOutputStream.ResponseStatus", statusLine);
 
             // Write headers and cookies
             for (Iterator i = this.owner.getHeaders().iterator(); i.hasNext();) {
                 String header = (String) i.next();
-                headerStream.println(header);
+                this.outStream.write(header.getBytes("8859_1"));
+                this.outStream.write(CR_LF);
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "WinstoneOutputStream.Header", header);
             }
@@ -138,13 +138,14 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
                 for (Iterator i = this.owner.getCookies().iterator(); i.hasNext();) {
                     Cookie cookie = (Cookie) i.next();
                     String cookieText = this.owner.writeCookie(cookie);
-                    headerStream.println(cookieText);
+                    this.outStream.write(cookieText.getBytes("8859_1"));
+                    this.outStream.write(CR_LF);
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneOutputStream.Header", cookieText);
                 }
             }
-            headerStream.println();
-            headerStream.flush();
+            this.outStream.write(CR_LF);
+            this.outStream.flush();
             // Logger.log(Logger.FULL_DEBUG,
             // Launcher.RESOURCES.getString("HttpProtocol.OutHeaders") + out.toString());
         }

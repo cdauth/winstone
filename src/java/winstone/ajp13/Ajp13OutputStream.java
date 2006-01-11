@@ -93,9 +93,11 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
                 String headerValue = header.substring(colonPos + 1).trim();
                 byte headerCode[] = (byte[]) headerCodes.get(headerName
                         .toLowerCase());
-                headerArrayStream
-                        .write(headerCode == null ? getStringBlock(headerName)
-                                : headerCode);
+                if (headerCode == null) {
+                    headerArrayStream.write(getStringBlock(headerName));
+                } else {
+                    headerArrayStream.write(headerCode);
+                }
                 headerArrayStream.write(getStringBlock(headerValue));
             }
 
@@ -108,11 +110,12 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
                             "Ajp13OutputStream.NoColonHeader", cookieText));
                 String headerName = cookieText.substring(0, colonPos).trim();
                 String headerValue = cookieText.substring(colonPos + 1).trim();
-                byte headerCode[] = (byte[]) headerCodes.get(headerName
-                        .toLowerCase());
-                headerArrayStream
-                        .write(headerCode == null ? getStringBlock(headerName)
-                                : headerCode);
+                byte headerCode[] = (byte[]) headerCodes.get(headerName.toLowerCase());
+                if (headerCode == null) {
+                    headerArrayStream.write(getStringBlock(headerName));
+                } else {
+                    headerArrayStream.write(headerCode);
+                }
                 headerArrayStream.write(getStringBlock(headerValue));
             }
 
@@ -148,8 +151,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
             setIntBlock(packetLength + 4, responsePacket, 2);
             responsePacket[4] = CONTAINER_SEND_BODY_CHUNK;
             setIntBlock(packetLength, responsePacket, 5);
-            System.arraycopy(bufferContents, position, responsePacket, 7,
-                    packetLength);
+            System.arraycopy(bufferContents, position, responsePacket, 7, packetLength);
             responsePacket[packetLength + 7] = 0x00;
             position += packetLength;
 
