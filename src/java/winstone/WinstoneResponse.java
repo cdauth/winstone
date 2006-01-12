@@ -104,6 +104,8 @@ public class WinstoneResponse implements HttpServletResponse {
         this.explicitlySetEncoding = null;
         this.protocol = null;
         this.reqKeepAliveHeader = null;
+        
+        this.headers.add(SERVER_HEADER + ": " + Launcher.RESOURCES.getString("ServerVersion"));
     }
 
     /**
@@ -126,6 +128,8 @@ public class WinstoneResponse implements HttpServletResponse {
         this.locale = null; //Locale.getDefault();
         this.explicitlySetEncoding = null;
         this.currentEncoding = null;
+        
+        this.headers.add(SERVER_HEADER + ": " + Launcher.RESOURCES.getString("ServerVersion"));
     }
 
     private String getEncodingFromLocale(Locale loc) {
@@ -280,7 +284,7 @@ public class WinstoneResponse implements HttpServletResponse {
     /**
      * This ensures the bare minimum correct http headers are present
      */
-    public void validateHeaders() {
+    public void validateHeaders() {        
         // Need this block for WebDAV support. "Connection:close" header is ignored
         String lengthHeader = getHeader(CONTENT_LENGTH_HEADER);
 //        String oldKeepAliveHeader = getHeader(KEEP_ALIVE_HEADER);
