@@ -94,7 +94,8 @@ public class WinstoneDataSource implements DataSource, Runnable {
         // Extract pool management properties
         this.keepAliveSQL = WebAppConfiguration.stringArg(args, "keepAliveSQL", "");
         this.keepAlivePeriod = WebAppConfiguration.intArg(args, "keepAlivePeriod", -1);
-        this.checkBeforeGet = WebAppConfiguration.booleanArg(args, "checkBeforeGet", false);
+        this.checkBeforeGet = WebAppConfiguration.booleanArg(args, "checkBeforeGet", 
+                !this.keepAliveSQL.equals(""));
         this.killInactivePeriod = WebAppConfiguration.intArg(args, "killInactivePeriod", -1);
 
         this.url = WebAppConfiguration.stringArg(args, "url", null);
