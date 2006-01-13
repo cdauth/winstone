@@ -197,4 +197,14 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         super.flush();
         this.commit();
     }
+
+    public void close() throws IOException {
+        if (!isCommitted() && !this.disregardMode &&
+                (this.owner.getHeader(WinstoneResponse.CONTENT_LENGTH_HEADER) == null)) {
+            if (this.owner != null) {
+                this.owner.setContentLength(getOutputStreamLength());
+            }
+        }
+        flush();
+    }
 }
