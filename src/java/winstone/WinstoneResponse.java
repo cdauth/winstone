@@ -104,8 +104,6 @@ public class WinstoneResponse implements HttpServletResponse {
         this.explicitlySetEncoding = null;
         this.protocol = null;
         this.reqKeepAliveHeader = null;
-        
-        this.headers.add(SERVER_HEADER + ": " + Launcher.RESOURCES.getString("ServerVersion"));
     }
 
     /**
@@ -128,8 +126,6 @@ public class WinstoneResponse implements HttpServletResponse {
         this.locale = null; //Locale.getDefault();
         this.explicitlySetEncoding = null;
         this.currentEncoding = null;
-        
-        this.headers.add(SERVER_HEADER + ": " + Launcher.RESOURCES.getString("ServerVersion"));
     }
 
     private String getEncodingFromLocale(Locale loc) {

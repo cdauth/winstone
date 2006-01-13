@@ -193,6 +193,12 @@ public class HttpListener implements Listener, Runnable {
         handler.setResponse(rsp);
         handler.setInStream(inData);
         handler.setOutStream(outData);
+        
+        // If using this listener, we must set the server header now, because it
+        // must be the first header. Ajp13 listener can defer to the Apache Server
+        // header
+        rsp.setHeader(WinstoneResponse.SERVER_HEADER, 
+                Launcher.RESOURCES.getString("ServerVersion"));
     }
 
     /**
