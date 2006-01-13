@@ -49,6 +49,6 @@ public class CountRequestsServlet extends HttpServlet {
         ServletOutputStream out = response.getOutputStream();
         out.println("<html><body>This servlet has been accessed via GET "
                 + numberOfGets + " times</body></html>");
-        out.close();
+        out.flush();
     }
 }

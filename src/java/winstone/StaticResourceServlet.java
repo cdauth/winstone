@@ -151,7 +151,7 @@ public class StaticResourceServlet extends HttpServlet {
                 response.setContentType(mimeType);
             response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
             response.setContentLength(0);
-            response.getOutputStream().close();
+            response.flushBuffer();
         }
 
         // Write out the resource if not range or is included

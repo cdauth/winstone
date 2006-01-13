@@ -209,11 +209,10 @@ public class SimpleCluster implements Runnable, Cluster {
             int colonPos = address.indexOf(':');
             String ipAddress = address.substring(0, colonPos);
             String port = address.substring(colonPos + 1);
-            Socket clusterListSocket = new Socket(ipAddress, Integer
-                    .parseInt(port));
+            Socket clusterListSocket = new Socket(ipAddress, 
+                    Integer.parseInt(port));
             this.clusterAddresses.put(clusterListSocket.getInetAddress()
-                    .getHostAddress()
-                    + ":" + port, new Date());
+                    .getHostAddress() + ":" + port, new Date());
             InputStream in = clusterListSocket.getInputStream();
             OutputStream out = clusterListSocket.getOutputStream();
             out.write(NODELIST_DOWNLOAD_TYPE);
@@ -254,8 +253,8 @@ public class SimpleCluster implements Runnable, Cluster {
             int colonPos = address.indexOf(':');
             String ipAddress = address.substring(0, colonPos);
             String port = address.substring(colonPos + 1);
-            Socket heartbeatSocket = new Socket(ipAddress, Integer
-                    .parseInt(port));
+            Socket heartbeatSocket = new Socket(ipAddress, 
+                    Integer.parseInt(port));
             OutputStream out = heartbeatSocket.getOutputStream();
             out.write(NODE_HEARTBEAT_TYPE);
             out.flush();
