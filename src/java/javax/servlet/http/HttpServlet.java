@@ -108,9 +108,9 @@ public abstract class HttpServlet extends javax.servlet.GenericServlet
     protected void service(HttpServletRequest request,
             HttpServletResponse response) throws ServletException, IOException {
         String method = request.getMethod();
-        long lastModified = getLastModified(request);
 
         if (method.equals(METHOD_GET)) {
+            long lastModified = getLastModified(request);
             if (lastModified == -1)
                 doGet(request, response);
             else {
@@ -124,6 +124,7 @@ public abstract class HttpServlet extends javax.servlet.GenericServlet
                     response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
             }
         } else if (method.equals(METHOD_HEAD)) {
+            long lastModified = getLastModified(request);
             if (!response.containsHeader(HEADER_LASTMOD) && (lastModified >= 0))
                 response.setDateHeader(HEADER_LASTMOD, lastModified);
             doHead(request, response);
