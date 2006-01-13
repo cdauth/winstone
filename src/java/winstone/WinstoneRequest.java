@@ -570,7 +570,6 @@ public class WinstoneRequest implements HttpServletRequest {
             int colonPos = header.indexOf(':');
             String name = header.substring(0, colonPos);
             String value = header.substring(colonPos + 1).trim();
-            int nextColonPos = value.indexOf(':');
 
             // Add it to out headers if it's not a cookie
             outHeaderList.add(header);
@@ -584,13 +583,19 @@ public class WinstoneRequest implements HttpServletRequest {
             else if (name.equalsIgnoreCase(CONTENT_LENGTH_HEADER))
                 this.contentLength = Integer.parseInt(value);
             else if (name.equalsIgnoreCase(HOST_HEADER)) {
-                if (nextColonPos == -1) {
-                    this.serverName = nextColonPos == -1 ? value : value.substring(0, nextColonPos);
+                int nextColonPos = value.indexOf(':');
+                if ((nextColonPos == -1) || (nextColonPos == value.length() - 1)) {
+                    this.serverName = value;
+                    if (this.scheme != null) {
+                        if (this.scheme.equals("http")) {
+                            this.serverPort = 80;
+                        } else if (this.scheme.equals("https")) {
+                            this.serverPort = 443;
+                        }
+                    }
                 } else {
                     this.serverName = value.substring(0, nextColonPos);
-                    if (nextColonPos == value.length() - 1) {
-                        this.serverPort = Integer.parseInt(value.substring(nextColonPos + 1));
-                    }
+                    this.serverPort = Integer.parseInt(value.substring(nextColonPos + 1));
                 }
             }
             else if (name.equalsIgnoreCase(CONTENT_TYPE_HEADER)) {
