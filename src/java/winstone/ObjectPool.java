@@ -24,7 +24,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 /**
  * Holds the object pooling code for Winstone. Presently this is only responses
@@ -62,8 +61,8 @@ public class ObjectPool {
         this.simulateModUniqueId = WebAppConfiguration.booleanArg(args, "simulateModUniqueId", false);
 
         // Build the initial pool of handler threads
-        this.unusedRequestHandlerThreads = new Vector();
-        this.usedRequestHandlerThreads = new Vector();
+        this.unusedRequestHandlerThreads = new ArrayList();
+        this.usedRequestHandlerThreads = new ArrayList();
 
         // Build the request/response pools
         this.usedRequestPool = new ArrayList();
@@ -100,8 +99,7 @@ public class ObjectPool {
         synchronized (this.requestHandlerSemaphore) {
             // If we have too many idle request handlers
             while (this.unusedRequestHandlerThreads.size() > MAX_IDLE_REQUEST_HANDLERS_IN_POOL) {
-                RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads
-                        .get(0);
+                RequestHandlerThread rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
                 rh.destroy();
                 this.unusedRequestHandlerThreads.remove(rh);
             }
@@ -110,12 +108,10 @@ public class ObjectPool {
 
     public void destroy() {
         synchronized (this.requestHandlerSemaphore) {
-            Collection usedHandlers = new ArrayList(
-                    this.usedRequestHandlerThreads);
+            Collection usedHandlers = new ArrayList(this.usedRequestHandlerThreads);
             for (Iterator i = usedHandlers.iterator(); i.hasNext();)
                 releaseRequestHandler((RequestHandlerThread) i.next());
-            Collection unusedHandlers = new ArrayList(
-                    this.unusedRequestHandlerThreads);
+            Collection unusedHandlers = new ArrayList(this.unusedRequestHandlerThreads);
             for (Iterator i = unusedHandlers.iterator(); i.hasNext();)
                 ((RequestHandlerThread) i.next()).destroy();
             this.unusedRequestHandlerThreads.clear();
@@ -133,8 +129,7 @@ public class ObjectPool {
         synchronized (this.requestHandlerSemaphore) {
             // If we have any spare, get it from the pool
             if (this.unusedRequestHandlerThreads.size() > 0) {
-                rh = (RequestHandlerThread) this.unusedRequestHandlerThreads
-                        .get(0);
+                rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
                 this.unusedRequestHandlerThreads.remove(rh);
                 this.usedRequestHandlerThreads.add(rh);
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,

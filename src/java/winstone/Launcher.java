@@ -55,7 +55,7 @@ public class Launcher implements Runnable {
     public static final byte SHUTDOWN_TYPE = (byte) '0';
     public static final byte RELOAD_TYPE = (byte) '4';
     
-    private int CONTROL_TIMEOUT = 10; // wait 5s for control connection
+    private int CONTROL_TIMEOUT = 5000; // wait 5s for control connection
     private int DEFAULT_CONTROL_PORT = -1;
     
     private Thread controlThread;
