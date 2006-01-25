@@ -20,13 +20,13 @@ package winstone.ajp13;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -171,7 +171,7 @@ public class Ajp13Listener implements Listener, Runnable {
         Ajp13IncomingPacket headers = null;
         try {
             headers = new Ajp13IncomingPacket(inSocket, handler);
-        } catch (SocketTimeoutException err) {
+        } catch (InterruptedIOException err) {
             // keep alive timeout ? ignore if not first
             if (iAmFirst) {
                 throw err;

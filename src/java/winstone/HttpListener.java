@@ -19,12 +19,12 @@ package winstone;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +235,7 @@ public class HttpListener implements Listener, Runnable {
         try {
             Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "HttpListener.WaitingForURILine");
             uriBuffer = inData.readLine();
-        } catch (SocketTimeoutException err) {
+        } catch (InterruptedIOException err) {
             // keep alive timeout ? ignore if not first
             if (iAmFirst) {
                 throw err;

@@ -26,6 +26,7 @@ import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
@@ -205,8 +206,14 @@ public class Launcher implements Runnable {
         // Create connectors (http, https and ajp)
         this.listeners = new ArrayList();
         spawnListener(HTTP_LISTENER_CLASS);
-        spawnListener(HTTPS_LISTENER_CLASS);
         spawnListener(AJP_LISTENER_CLASS);
+        try {
+            Class.forName("javax.net.ServerSocketFactory");
+            spawnListener(HTTPS_LISTENER_CLASS);
+        } catch (ClassNotFoundException err) {
+            Logger.log(Logger.DEBUG, RESOURCES, 
+                    "Launcher.NeedsJDK14", HTTPS_LISTENER_CLASS);
+        }
 
         this.controlThread = new Thread(this, RESOURCES.getString(
                 "Launcher.ThreadName", "" + this.controlPort));
@@ -234,8 +241,14 @@ public class Launcher implements Runnable {
                             this.hostGroup });
             this.listeners.add(listener);
         } catch (Throwable err) {
-            Logger.log(Logger.DEBUG, RESOURCES, 
-                    "Launcher.ListenerNotFound", listenerClassName);
+            if ((err instanceof InvocationTargetException) && 
+                    (err.getCause() instanceof WinstoneException)) {
+                Logger.log(Logger.DEBUG, RESOURCES, 
+                        "Launcher.ListenerNotFound", listenerClassName);
+            } else {
+                Logger.log(Logger.ERROR, RESOURCES, 
+                        "Launcher.ListenerStartupError", listenerClassName, err);
+            }
         }
     }
 
