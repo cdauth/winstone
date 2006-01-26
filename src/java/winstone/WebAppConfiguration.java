@@ -1715,7 +1715,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         } else if (!path.startsWith("/")) {
             throw new MalformedURLException(Launcher.RESOURCES.getString(
                     "WebAppConfig.BadResourcePath", path));
-        } else if (path.endsWith("/")) {
+        } else if (!path.equals("/") && path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
         }
         File res = new File(webRoot, path.substring(1));
@@ -1724,7 +1724,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
     public InputStream getResourceAsStream(String path) {
         try {
-            URL res = this.getResource(path);
+            URL res = getResource(path);
             return res == null ? null : res.openStream();
         } catch (IOException err) {
             throw new WinstoneException(Launcher.RESOURCES
