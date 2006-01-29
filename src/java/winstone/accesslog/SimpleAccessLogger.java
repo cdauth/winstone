@@ -93,10 +93,14 @@ public class SimpleAccessLogger implements AccessLogger {
         int status = response.getErrorStatusCode() == null ? response.getStatus() 
                 : response.getErrorStatusCode().intValue();
         int size = response.getWinstoneOutputStream().getBytesCommitted();
+        String date = null;
+        synchronized (DF) {
+            date = DF.format(new Date());
+        }
         String logLine = WinstoneResourceBundle.globalReplace(this.pattern, new String[][] {
                 {"###ip###", request.getRemoteHost()},
                 {"###user###", nvl(request.getRemoteUser())},
-                {"###time###", "[" + DF.format(new Date()) + "]"},
+                {"###time###", "[" + date + "]"},
                 {"###uriLine###", uriLine},
                 {"###status###", "" + status},
                 {"###size###", "" + size},

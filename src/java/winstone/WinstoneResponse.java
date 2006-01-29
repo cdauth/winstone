@@ -405,9 +405,9 @@ public class WinstoneResponse implements HttpServletResponse {
                 long expiryMS = System.currentTimeMillis()
                         + (1000 * (long) cookie.getMaxAge());
                 Date expiryDate = new Date(expiryMS);
-                out.append("; Expires=").append(df.format(expiryDate));
+                out.append("; Expires=").append(formatHeaderDate(expiryDate));
             } else if (cookie.getMaxAge() == 0) {
-                out.append("; Expires=").append(df.format(new Date(5000)));
+                out.append("; Expires=").append(formatHeaderDate(new Date(5000)));
             }
             if (cookie.getPath() != null)
                 out.append("; Path=").append(cookie.getPath());
@@ -417,6 +417,14 @@ public class WinstoneResponse implements HttpServletResponse {
         return out.toString();
     }
 
+    private static String formatHeaderDate(Date dateIn) {
+        String date = null;
+        synchronized (df) {
+            date = df.format(dateIn);
+        }
+        return date;
+    }
+    
     /**
      * Quotes the necessary strings in a cookie header. The quoting is only
      * applied if the string contains special characters.
@@ -620,7 +628,7 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void addDateHeader(String name, long date) {
-        addHeader(name, df.format(new Date(date)));
+        addHeader(name, formatHeaderDate(new Date(date)));
     } // df.format(new Date(date)));}
 
     public void addIntHeader(String name, int value) {
@@ -655,7 +663,7 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setDateHeader(String name, long date) {
-        setHeader(name, df.format(new Date(date)));
+        setHeader(name, formatHeaderDate(new Date(date)));
     }
 
     public void setIntHeader(String name, int value) {

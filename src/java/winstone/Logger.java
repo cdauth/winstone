@@ -52,8 +52,7 @@ public class Logger {
     protected static Map streams;
     protected static Collection nullStreams;
     protected static int currentDebugLevel;
-    protected static DateFormat sdfLog = new SimpleDateFormat(
-            "yyyy/MM/dd HH:mm:ss");
+    protected final static DateFormat sdfLog = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     protected static boolean showThrowingLineNo;
     protected static boolean showThrowingThread;
 
@@ -167,9 +166,12 @@ public class Logger {
 
         if (stream != null) {
             StringBuffer fullMessage = new StringBuffer();
+            String date = null;
+            synchronized (sdfLog) {
+                date = sdfLog.format(new Date());
+            }
             fullMessage.append("[").append(streamName).append(" ").append(
-                    sdfLog.format(new Date())).append("] - ").append(
-                            lineNoText).append(message);
+                    date).append("] - ").append(lineNoText).append(message);
             if (error != null) {
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);

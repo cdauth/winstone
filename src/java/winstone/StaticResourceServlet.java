@@ -287,6 +287,14 @@ public class StaticResourceServlet extends HttpServlet {
             if (!children[n].getName().equalsIgnoreCase("web-inf") && 
                     !children[n].getName().equalsIgnoreCase("meta-inf")) {
                 File file = children[n];
+                String date = noDateLabel;
+                String size = directoryLabel;
+                if (!file.isDirectory()) {
+                    size = "" + file.length();
+                    synchronized (sdfFileDate) {
+                        date = sdfFileDate.format(new Date(file.lastModified()));
+                    }
+                }
                 rowString.write(Launcher.RESOURCES.getString(
                         "StaticResourceServlet.DirectoryList.Row",
                         new String[] {
@@ -294,10 +302,7 @@ public class StaticResourceServlet extends HttpServlet {
                                 rowCount % 2 == 0 ? evenColour : oddColour,
                                 file.getName() + (file.isDirectory() ? "/" : ""),
                                 "./" + file.getName() + (file.isDirectory() ? "/" : ""),
-                                file.isDirectory() ? noDateLabel : sdfFileDate
-                                        .format(new Date(file.lastModified())),
-                                file.isDirectory() ? directoryLabel : ""
-                                        + file.length() }));
+                                date, size}));
                 rowCount++;
             }
         }
