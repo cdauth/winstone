@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1115,15 +1116,18 @@ public class WinstoneRequest implements HttpServletRequest {
 
     public long getDateHeader(String name) {
         String dateHeader = getHeader(name);
-        if (dateHeader == null)
+        if (dateHeader == null) {
             return -1;
-        else
-            try {
-                return headerDF.parse(dateHeader).getTime();
-            } catch (java.text.ParseException err) {
-                throw new IllegalArgumentException(Launcher.RESOURCES.getString(
-                        "WinstoneRequest.BadDate", dateHeader));
+        } else try {
+            Date date = null;
+            synchronized (headerDF) {
+                date = headerDF.parse(dateHeader);
             }
+            return date.getTime();
+        } catch (java.text.ParseException err) {
+            throw new IllegalArgumentException(Launcher.RESOURCES.getString(
+                    "WinstoneRequest.BadDate", dateHeader));
+        }
     }
 
     public int getIntHeader(String name) {
