@@ -76,12 +76,15 @@ public class Launcher implements Runnable {
     public Launcher(Map args) throws IOException {
         
         // Set jndi resource handler if not set (workaround for JamVM bug)
-        if (System.getProperty("java.naming.factory.initial") == null) {
-            System.setProperty("java.naming.factory.initial", "winstone.jndi.java.javaURLContextFactory");
-        }
-        if (System.getProperty("java.naming.factory.url.pkgs") == null) {
-            System.setProperty("java.naming.factory.url.pkgs", "winstone.jndi");
-        }
+        try {
+            Class ctxFactoryClass = Class.forName("winstone.jndi.java.javaURLContextFactory");
+            if (System.getProperty("java.naming.factory.initial") == null) {
+                System.setProperty("java.naming.factory.initial", ctxFactoryClass.getName());
+            }
+            if (System.getProperty("java.naming.factory.url.pkgs") == null) {
+                System.setProperty("java.naming.factory.url.pkgs", "winstone.jndi");
+            }
+        } catch (ClassNotFoundException err) {}
         
         Logger.log(Logger.MAX, RESOURCES, "Launcher.StartupArgs", args + "");
         
@@ -240,6 +243,9 @@ public class Launcher implements Runnable {
                     .newInstance(new Object[] { args, this.objectPool, 
                             this.hostGroup });
             this.listeners.add(listener);
+        } catch (ClassNotFoundException err) {
+            Logger.log(Logger.DEBUG, RESOURCES, 
+                    "Launcher.ListenerNotFound", listenerClassName);
         } catch (Throwable err) {
             if ((err instanceof InvocationTargetException) && 
                     (err.getCause() instanceof WinstoneException)) {
