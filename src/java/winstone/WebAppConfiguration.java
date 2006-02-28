@@ -906,12 +906,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             File classesFolder = new File(webInfFolder, CLASSES);
             if (classesFolder.exists()) {
                 Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                        "WinstoneClassLoader.WebAppClasses");
+                        "WebAppConfig.WebAppClasses");
                 urlList.add(new URL("file", "", classesFolder.getCanonicalPath() + "/"));
                 classPathFileList.add(classesFolder);
             } else {
                 Logger.log(Logger.WARNING, Launcher.RESOURCES,
-                        "WinstoneClassLoader.NoWebAppClasses", 
+                        "WebAppConfig.NoWebAppClasses", 
                         classesFolder.toString());
             }
 
@@ -923,22 +923,22 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     String jarName = jars[n].getCanonicalPath().toLowerCase();
                     if (jarName.endsWith(".jar") || jarName.endsWith(".zip")) {
                         Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                                "WinstoneClassLoader.WebAppLib", jars[n].getName());
+                                "WebAppConfig.WebAppLib", jars[n].getName());
                         urlList.add(jars[n].toURL());
                         classPathFileList.add(jars[n]);
                     }
                 }
             } else {
                 Logger.log(Logger.WARNING, Launcher.RESOURCES,
-                        "WinstoneClassLoader.NoWebAppLib", libFolder
+                        "WebAppConfig.NoWebAppLib", libFolder
                                 .toString());
             }
         } catch (MalformedURLException err) {
             throw new WinstoneException(Launcher.RESOURCES
-                    .getString("WinstoneClassLoader.BadURL"), err);
+                    .getString("WebAppConfig.BadURL"), err);
         } catch (IOException err) {
             throw new WinstoneException(Launcher.RESOURCES
-                    .getString("WinstoneClassLoader.IOException"), err);
+                    .getString("WebAppConfig.IOException"), err);
         }
 
         URL jarURLs[] = (URL []) urlList.toArray(new URL[0]);

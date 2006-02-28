@@ -35,7 +35,7 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class ReloadingClassLoader extends URLClassLoader implements ServletContextListener, Runnable {
-    final int RELOAD_SEARCH_SLEEP = 50;
+    private static final int RELOAD_SEARCH_SLEEP = 50;
     private static final WinstoneResourceBundle CL_RESOURCES = new WinstoneResourceBundle("winstone.classLoader.LocalStrings");
     private boolean interrupted;
     private WebAppConfiguration webAppConfig;
