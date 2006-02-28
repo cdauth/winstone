@@ -26,7 +26,8 @@ public abstract class BodyContent extends JspWriter {
         try {
             clear();
         } catch (IOException err) {
-            throw new RuntimeException("Error in clearBody", err);
+            err.printStackTrace();
+            throw new RuntimeException("Error in clearBody");
         }
     }
 

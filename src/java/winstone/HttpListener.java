@@ -58,20 +58,22 @@ public class HttpListener implements Listener, Runnable {
                 getConnectorName() + "ListenAddress", null);
         this.doHostnameLookups = WebAppConfiguration.booleanArg(args,
                 getConnectorName() + "DoHostnameLookups", DEFAULT_HNL);
-
-        if (this.listenPort < 0)
-            throw new WinstoneException("disabling " + getConnectorName()
-                    + " connector");
-
-        this.interrupted = false;
-
-        Thread thread = new Thread(this, Launcher.RESOURCES.getString(
-                "Listener.ThreadName", new String[] { getConnectorName(),
-                        "" + this.listenPort }));
-        thread.setDaemon(true);
-        thread.start();
     }
 
+    public boolean start() {
+        if (this.listenPort < 0) {
+            return false;
+        } else {
+            this.interrupted = false;
+            Thread thread = new Thread(this, Launcher.RESOURCES.getString(
+                    "Listener.ThreadName", new String[] { getConnectorName(),
+                            "" + this.listenPort }));
+            thread.setDaemon(true);
+            thread.start();
+            return true;
+        }
+    }
+    
     /**
      * The default port to use - this is just so that we can override for the
      * SSL connector.

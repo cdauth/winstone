@@ -59,7 +59,7 @@ public class HttpConnectorTest extends TestCase {
         args.put("controlPort", "-1");
         args.put("debug", "8");
         args.put("logThrowingLineNo", "true");
-        Logger.init(Logger.FULL_DEBUG, System.out, true, true);
+        Logger.init(Logger.FULL_DEBUG, System.out, true);
         Launcher winstone = new Launcher(args);
 
         // Check for a simple connection
@@ -88,7 +88,7 @@ public class HttpConnectorTest extends TestCase {
         args.put("controlPort", "-1");
         args.put("debug", "8");
         args.put("logThrowingLineNo", "true");
-        Logger.init(Logger.FULL_DEBUG, System.out, true, true);
+        Logger.init(Logger.FULL_DEBUG, System.out, true);
         Launcher winstone = new Launcher(args);
 
         // Check for a simple connection

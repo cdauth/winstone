@@ -208,7 +208,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         
         // Build switch values
         boolean useJasper = booleanArg(startupArgs, "useJasper", false);
-        boolean useInvoker = booleanArg(startupArgs, "useInvoker", true);
+        boolean useInvoker = booleanArg(startupArgs, "useInvoker", false);
         boolean useJNDI = booleanArg(startupArgs, "useJNDI", false);
         
         // Check jasper is available
@@ -1755,7 +1755,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         - (lastCharIsSlash ? 1 : 0));
             }
             File inPath = new File(this.webRoot, workingPath.equals("") ? "."
-                    : workingPath);
+                    : workingPath).getAbsoluteFile();
             if (!inPath.exists())
                 return null;
             else if (!inPath.isDirectory())

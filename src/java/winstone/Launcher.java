@@ -15,7 +15,6 @@ import java.io.InterruptedIOException;
 import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
@@ -231,19 +230,15 @@ public class Launcher implements Runnable {
             Listener listener = (Listener) listenerConstructor
                     .newInstance(new Object[] { args, this.objectPool, 
                             this.hostGroup });
-            this.listeners.add(listener);
+            if (listener.start()) {
+                this.listeners.add(listener);
+            }
         } catch (ClassNotFoundException err) {
-            Logger.log(Logger.DEBUG, RESOURCES, 
+            Logger.log(Logger.INFO, RESOURCES, 
                     "Launcher.ListenerNotFound", listenerClassName);
         } catch (Throwable err) {
-            if ((err instanceof InvocationTargetException) && 
-                    (err.getCause() instanceof WinstoneException)) {
-                Logger.log(Logger.DEBUG, RESOURCES, 
-                        "Launcher.ListenerNotFound", listenerClassName);
-            } else {
-                Logger.log(Logger.ERROR, RESOURCES, 
-                        "Launcher.ListenerStartupError", listenerClassName, err);
-            }
+            Logger.log(Logger.ERROR, RESOURCES, 
+                    "Launcher.ListenerStartupError", listenerClassName, err);
         }
     }
 
@@ -435,7 +430,7 @@ public class Launcher implements Runnable {
         InputStream embeddedWarfile = Launcher.class.getResourceAsStream(
                 embeddedWarfileName);
         if (embeddedWarfile != null) {
-            File tempWarfile = File.createTempFile("embedded", ".war");
+            File tempWarfile = File.createTempFile("embedded", ".war").getAbsoluteFile();
             tempWarfile.getParentFile().mkdirs();
             tempWarfile.deleteOnExit();
 
@@ -486,7 +481,7 @@ public class Launcher implements Runnable {
     public static void initLogger(Map args) throws IOException {
         // Reset the log level
         int logLevel = WebAppConfiguration.intArg(args, "debug", Logger.INFO);
-        boolean showThrowingLineNo = WebAppConfiguration.booleanArg(args, "logThrowingLineNo", false);
+//        boolean showThrowingLineNo = WebAppConfiguration.booleanArg(args, "logThrowingLineNo", false);
         boolean showThrowingThread = WebAppConfiguration.booleanArg(args, "logThrowingThread", false);
         OutputStream logStream = null;
         if (args.get("logfile") != null) {
@@ -496,7 +491,8 @@ public class Launcher implements Runnable {
         } else {
             logStream = System.out;
         }
-        Logger.init(logLevel, logStream, showThrowingLineNo, showThrowingThread);
+//        Logger.init(logLevel, logStream, showThrowingLineNo, showThrowingThread);
+        Logger.init(logLevel, logStream, showThrowingThread);
     }
 
     private static void printUsage() {

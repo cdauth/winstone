@@ -42,27 +42,29 @@ public class Logger {
     protected static Collection nullStreams;
     protected static int currentDebugLevel;
     protected final static DateFormat sdfLog = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-    protected static boolean showThrowingLineNo;
+//    protected static boolean showThrowingLineNo;
     protected static boolean showThrowingThread;
 
     /**
      * Initialises default streams
      */
     public static void init(int level) {
-        init(level, System.out, false, false);
+        init(level, System.out, false);
+//        init(level, System.out, false, false);
     }
 
     /**
      * Initialises default streams
      */
     public static void init(int level, OutputStream defaultStream, 
-            boolean showThrowingLineNoArg, boolean showThrowingThreadArg) {
+//            boolean showThrowingLineNoArg, 
+            boolean showThrowingThreadArg) {
         currentDebugLevel = level;
         streams = new Hashtable();
         nullStreams = new ArrayList();
         initialised = true;
         setStream(DEFAULT_STREAM, defaultStream);
-        showThrowingLineNo = showThrowingLineNoArg;
+//        showThrowingLineNo = showThrowingLineNoArg;
         showThrowingThread = showThrowingThreadArg;
     }
 
@@ -134,16 +136,16 @@ public class Logger {
         }
         
         String lineNoText = "";
-        if (showThrowingLineNo) {
-            Throwable dummyError = new RuntimeException();
-            StackTraceElement[] elements = dummyError.getStackTrace();
-            int elemNumber = Math.min(2, elements.length);
-            String errorClass = elements[elemNumber].getClassName();
-            if (errorClass.lastIndexOf('.') != -1) {
-                errorClass = errorClass.substring(errorClass.lastIndexOf('.') + 1);
-            }
-            lineNoText = "[" + errorClass + ":" + elements[elemNumber].getLineNumber() + "] - "; 
-        }
+//        if (showThrowingLineNo) {
+//            Throwable dummyError = new RuntimeException();
+//            StackTraceElement[] elements = dummyError.getStackTrace();
+//            int elemNumber = Math.min(2, elements.length);
+//            String errorClass = elements[elemNumber].getClassName();
+//            if (errorClass.lastIndexOf('.') != -1) {
+//                errorClass = errorClass.substring(errorClass.lastIndexOf('.') + 1);
+//            }
+//            lineNoText = "[" + errorClass + ":" + elements[elemNumber].getLineNumber() + "] - "; 
+//        }
         if (showThrowingThread) {
             lineNoText += "[" + Thread.currentThread().getName() + "] - ";
         }

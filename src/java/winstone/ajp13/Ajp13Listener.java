@@ -74,18 +74,20 @@ public class Ajp13Listener implements Listener, Runnable {
                 "ajp13Port", "" + DEFAULT_PORT));
         this.listenAddress = WebAppConfiguration.stringArg(args,
                 "ajp13ListenAddress", null);
+    }
 
-        if (this.listenPort < 0)
-            throw new WinstoneException("disabling ajp13 connector");
-
-        this.interrupted = false;
-
-        // Start me running
-        Thread thread = new Thread(this, Launcher.RESOURCES.getString(
-                "Listener.ThreadName", new String[] { "ajp13",
-                        "" + this.listenPort }));
-        thread.setDaemon(true);
-        thread.start();
+    public boolean start() {
+        if (this.listenPort < 0) {
+            return false;
+        } else {
+            this.interrupted = false;
+            Thread thread = new Thread(this, Launcher.RESOURCES.getString(
+                    "Listener.ThreadName", new String[] { "ajp13",
+                            "" + this.listenPort }));
+            thread.setDaemon(true);
+            thread.start();
+            return true;
+        }
     }
 
     /**

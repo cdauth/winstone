@@ -24,6 +24,11 @@ public interface Listener {
      * once the so timeout has passed.
      */
     public void destroy();
+    
+    /**
+     * After the listener is loaded and initialized, this starts the thread
+     */
+    public boolean start();
 
     /**
      * Called by the request handler thread, because it needs specific setup
