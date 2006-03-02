@@ -867,9 +867,12 @@ public class WinstoneRequest implements HttpServletRequest {
         // fire event
         if (this.requestAttributeListeners != null) {
             for (int n = 0; n < this.requestAttributeListeners.length; n++) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(getWebAppConfig().getLoader());
                 this.requestAttributeListeners[n].attributeRemoved(
                         new ServletRequestAttributeEvent(this.webappConfig, 
                                 this, name, value));
+                Thread.currentThread().setContextClassLoader(cl);
             }
         }
         
@@ -885,15 +888,21 @@ public class WinstoneRequest implements HttpServletRequest {
             if (this.requestAttributeListeners != null) {
                 if (oldValue == null) {
                     for (int n = 0; n < this.requestAttributeListeners.length; n++) {
+                        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                        Thread.currentThread().setContextClassLoader(getWebAppConfig().getLoader());
                         this.requestAttributeListeners[n].attributeAdded(
                                 new ServletRequestAttributeEvent(this.webappConfig, 
                                         this, name, o));
+                        Thread.currentThread().setContextClassLoader(cl);
                     }
                 } else {
                     for (int n = 0; n < this.requestAttributeListeners.length; n++) {
+                        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                        Thread.currentThread().setContextClassLoader(getWebAppConfig().getLoader());
                         this.requestAttributeListeners[n]
                                 .attributeReplaced(new ServletRequestAttributeEvent(
                                         this.webappConfig, this, name, oldValue));
+                        Thread.currentThread().setContextClassLoader(cl);
                     }
                 }
             }

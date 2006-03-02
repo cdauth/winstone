@@ -138,8 +138,10 @@ public class RequestHandlerThread implements Runnable {
                         // request in scope notify
                         ServletRequestListener reqLsnrs[] = webAppConfig.getRequestListeners();
                         for (int n = 0; n < reqLsnrs.length; n++) {
-                            reqLsnrs[n].requestInitialized(
-                                    new ServletRequestEvent(webAppConfig, req));
+                            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                            Thread.currentThread().setContextClassLoader(webAppConfig.getLoader());
+                            reqLsnrs[n].requestInitialized(new ServletRequestEvent(webAppConfig, req));
+                            Thread.currentThread().setContextClassLoader(cl);
                         }
 
                         // Lookup a dispatcher, then process with it
@@ -165,9 +167,12 @@ public class RequestHandlerThread implements Runnable {
                         }
 
                         // send request listener notifies
-                        for (int n = 0; n < reqLsnrs.length; n++)
-                            reqLsnrs[n].requestDestroyed(new ServletRequestEvent(
-                                            webAppConfig, req));
+                        for (int n = 0; n < reqLsnrs.length; n++) {
+                            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                            Thread.currentThread().setContextClassLoader(webAppConfig.getLoader());
+                            reqLsnrs[n].requestDestroyed(new ServletRequestEvent(webAppConfig, req));
+                            Thread.currentThread().setContextClassLoader(cl);                            
+                        }
 
                         req.setWebAppConfig(null);
                         rsp.setWebAppConfig(null);

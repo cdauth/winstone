@@ -67,8 +67,12 @@ public class WinstoneSession implements HttpSession, Serializable {
 
     public void sendCreatedNotifies() {
         // Notify session listeners of new session
-        for (int n = 0; n < this.sessionListeners.length; n++)
+        for (int n = 0; n < this.sessionListeners.length; n++) {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
             this.sessionListeners[n].sessionCreated(new HttpSessionEvent(this));
+            Thread.currentThread().setContextClassLoader(cl);
+        }
     }
 
     public void setSessionActivationListeners(
@@ -130,7 +134,10 @@ public class WinstoneSession implements HttpSession, Serializable {
         // valueBound must be before binding
         if (value instanceof HttpSessionBindingListener) {
             HttpSessionBindingListener hsbl = (HttpSessionBindingListener) value;
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
             hsbl.valueBound(new HttpSessionBindingEvent(this, name, value));
+            Thread.currentThread().setContextClassLoader(cl);
         }
 
         Object oldValue = null;
@@ -146,21 +153,31 @@ public class WinstoneSession implements HttpSession, Serializable {
         // valueUnbound must be after unbinding
         if (oldValue instanceof HttpSessionBindingListener) {
             HttpSessionBindingListener hsbl = (HttpSessionBindingListener) oldValue;
-            hsbl.valueUnbound(new HttpSessionBindingEvent(this, name,
-                            oldValue));
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
+            hsbl.valueUnbound(new HttpSessionBindingEvent(this, name, oldValue));
+            Thread.currentThread().setContextClassLoader(cl);
         }
 
         // Notify other listeners
         if (oldValue != null)
-            for (int n = 0; n < this.sessionAttributeListeners.length; n++)
-                this.sessionAttributeListeners[n]
-                        .attributeReplaced(new HttpSessionBindingEvent(this,
-                                name, oldValue));
+            for (int n = 0; n < this.sessionAttributeListeners.length; n++) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
+                this.sessionAttributeListeners[n].attributeReplaced(
+                        new HttpSessionBindingEvent(this, name, oldValue));
+                Thread.currentThread().setContextClassLoader(cl);
+            }
+                
         else
-            for (int n = 0; n < this.sessionAttributeListeners.length; n++)
-                this.sessionAttributeListeners[n]
-                        .attributeAdded(new HttpSessionBindingEvent(this, name,
-                                value));
+            for (int n = 0; n < this.sessionAttributeListeners.length; n++) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
+                this.sessionAttributeListeners[n].attributeAdded(
+                        new HttpSessionBindingEvent(this, name, value));
+                Thread.currentThread().setContextClassLoader(cl);
+                
+            }
     }
 
     public void removeAttribute(String name) {
@@ -176,13 +193,19 @@ public class WinstoneSession implements HttpSession, Serializable {
         // Notify listeners
         if (value instanceof HttpSessionBindingListener) {
             HttpSessionBindingListener hsbl = (HttpSessionBindingListener) value;
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
             hsbl.valueUnbound(new HttpSessionBindingEvent(this, name));
+            Thread.currentThread().setContextClassLoader(cl);
         }
         if (value != null)
-            for (int n = 0; n < this.sessionAttributeListeners.length; n++)
-                this.sessionAttributeListeners[n]
-                        .attributeRemoved(new HttpSessionBindingEvent(this,
-                                name, value));
+            for (int n = 0; n < this.sessionAttributeListeners.length; n++) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
+                this.sessionAttributeListeners[n].attributeRemoved(
+                        new HttpSessionBindingEvent(this, name, value));
+                Thread.currentThread().setContextClassLoader(cl);
+            }
     }
 
     public long getCreationTime() {
@@ -243,9 +266,12 @@ public class WinstoneSession implements HttpSession, Serializable {
             throw new IllegalStateException(Launcher.RESOURCES.getString("WinstoneSession.InvalidatedSession"));
         }
         // Notify session listeners of invalidated session -- backwards
-        for (int n = this.sessionListeners.length - 1; n >= 0; n--)
-            this.sessionListeners[n]
-                    .sessionDestroyed(new HttpSessionEvent(this));
+        for (int n = this.sessionListeners.length - 1; n >= 0; n--) {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
+            this.sessionListeners[n].sessionDestroyed(new HttpSessionEvent(this));
+            Thread.currentThread().setContextClassLoader(cl);
+        }
 
         List keys = new ArrayList(this.sessionData.keySet());
         for (Iterator i = keys.iterator(); i.hasNext();)
@@ -262,9 +288,13 @@ public class WinstoneSession implements HttpSession, Serializable {
      */
     public void passivate() {
         // Notify session listeners of invalidated session
-        for (int n = 0; n < this.sessionActivationListeners.length; n++)
-            this.sessionActivationListeners[n]
-                    .sessionWillPassivate(new HttpSessionEvent(this));
+        for (int n = 0; n < this.sessionActivationListeners.length; n++) {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
+            this.sessionActivationListeners[n].sessionWillPassivate(
+                    new HttpSessionEvent(this));
+            Thread.currentThread().setContextClassLoader(cl);
+        }
 
         // Question: Is passivation equivalent to invalidation ? Should all
         // entries be removed ?
@@ -286,9 +316,13 @@ public class WinstoneSession implements HttpSession, Serializable {
         webAppConfig.setSessionListeners(this);
 
         // Notify session listeners of invalidated session
-        for (int n = 0; n < this.sessionActivationListeners.length; n++)
-            this.sessionActivationListeners[n]
-                    .sessionDidActivate(new HttpSessionEvent(this));
+        for (int n = 0; n < this.sessionActivationListeners.length; n++) {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
+            this.sessionActivationListeners[n].sessionDidActivate(
+                    new HttpSessionEvent(this));
+            Thread.currentThread().setContextClassLoader(cl);
+        }
     }
 
     /**

@@ -1333,10 +1333,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         Object me = this.attributes.get(name);
         this.attributes.remove(name);
         if (me != null)
-            for (int n = 0; n < this.contextAttributeListeners.length; n++)
-                this.contextAttributeListeners[n]
-                        .attributeRemoved(new ServletContextAttributeEvent(
-                                this, name, me));
+            for (int n = 0; n < this.contextAttributeListeners.length; n++) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(getLoader());
+                this.contextAttributeListeners[n].attributeRemoved(
+                        new ServletContextAttributeEvent(this, name, me));
+                Thread.currentThread().setContextClassLoader(cl);
+            }
     }
 
     public void setAttribute(String name, Object object) {
@@ -1346,15 +1349,21 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             Object me = this.attributes.get(name);
             this.attributes.put(name, object);
             if (me != null) {
-                for (int n = 0; n < this.contextAttributeListeners.length; n++)
-                    this.contextAttributeListeners[n]
-                            .attributeReplaced(new ServletContextAttributeEvent(
-                                    this, name, me));
+                for (int n = 0; n < this.contextAttributeListeners.length; n++) {
+                    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                    Thread.currentThread().setContextClassLoader(getLoader());
+                    this.contextAttributeListeners[n].attributeReplaced(
+                            new ServletContextAttributeEvent(this, name, me));
+                    Thread.currentThread().setContextClassLoader(cl);
+                }
             } else {
-                for (int n = 0; n < this.contextAttributeListeners.length; n++)
-                    this.contextAttributeListeners[n]
-                            .attributeAdded(new ServletContextAttributeEvent(this,
-                                    name, object));
+                for (int n = 0; n < this.contextAttributeListeners.length; n++) {
+                    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                    Thread.currentThread().setContextClassLoader(getLoader());
+                    this.contextAttributeListeners[n].attributeAdded(
+                            new ServletContextAttributeEvent(this, name, object));
+                    Thread.currentThread().setContextClassLoader(cl);
+                }
             }
         }
     }
