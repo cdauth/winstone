@@ -862,8 +862,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         // Send init notifies
         try {
-            for (int n = 0; n < this.contextListeners.length; n++)
+            for (int n = 0; n < this.contextListeners.length; n++) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(this.loader);
                 this.contextListeners[n].contextInitialized(new ServletContextEvent(this));
+                Thread.currentThread().setContextClassLoader(cl);
+            }
         } catch (Throwable err) {
             Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ContextStartupError", this.contextName, err);
             this.contextStartupError = err;
@@ -1127,8 +1131,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Send destroy notifies - backwards
         for (int n = this.contextListeners.length - 1; n >= 0; n--) {
             try {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(this.loader);
                 this.contextListeners[n].contextDestroyed(new ServletContextEvent(this));
                 this.contextListeners[n] = null;
+                Thread.currentThread().setContextClassLoader(cl);
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ShutdownError", err);
             }
