@@ -450,12 +450,12 @@ Access logging:
 
   <p>Anyway, to use Xerces, you'll need to download the latest Xerces-J parser from 
     <a href="http://xml.apache.org/xerces2-j/">here</a>, and copy xercesImpl.jar and xml-apis.jar
-    into the jre/lib/ext folder of your JDK. Putting them in the winstone/lib folder will not work,
-    because they must be in the system classpath to override the JDK internal XML parser.</p>
+    into a folder somewhere (name it "endorsed"). Putting them in the winstone/lib folder will not work,
+    because they must be in the system endorsed classpath to override the JDK internal XML parser.</p>
 
-  <p>Alternatively you can add these two files to your startup classpath, but you will have to 
-    manually specify the Winstone startup class:</p>
-    <pre>&nbsp;&nbsp;java -cp winstone.jar;xercesImpl.jar;xml-apis.jar winstone.Launcher --webroot=...</pre>
+  <p>Then add <code>-Djava.endorsed.dirs=&lt;endorsed dir name&gt;</code> as a JVM arg to your 
+    command line for starting winstone, eg:</p>
+    <pre>&nbsp;&nbsp;java -Djava.endorsed.dirs=/jdk/endorsed -jar winstone.jar --webroot=...</pre>
   
 
 <h2><a name="jasper">JSPs (aka using with Jasper)</a></h2>
