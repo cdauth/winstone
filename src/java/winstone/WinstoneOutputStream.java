@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
+import java.util.Stack;
 
 import javax.servlet.http.Cookie;
 
@@ -31,6 +32,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     protected boolean bodyOnly;
     protected WinstoneResponse owner;
     protected boolean disregardMode = false;
+    protected Stack includeByteStreams;
     
     /**
      * Constructor
@@ -179,11 +181,11 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     }
 
     public void flush() throws IOException {
-        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.Flushing");
         if (this.disregardMode) {
             return;
         }
-        super.flush();
+        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.Flushing");
+        this.buffer.flush();
         this.commit();
     }
 
@@ -195,5 +197,40 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             }
         }
         flush();
+    }
+
+    // Include related buffering
+    public boolean isIncluding() {
+        return (this.includeByteStreams != null && !this.includeByteStreams.isEmpty());
+    }
+    
+    public void startIncludeBuffer() {
+        synchronized (this.buffer) {
+            if (this.includeByteStreams == null) {
+                this.includeByteStreams = new Stack();
+            }
+        }
+        this.includeByteStreams.push(new ByteArrayOutputStream());
+    }
+    
+    public void finishIncludeBuffer() throws IOException {
+        if (isIncluding()) {
+            ByteArrayOutputStream body = (ByteArrayOutputStream) this.includeByteStreams.pop();
+            OutputStream topStream = this.outStream;
+            if (!this.includeByteStreams.isEmpty()) {
+                topStream = (OutputStream) this.includeByteStreams.peek();
+            }
+            topStream.write(body.toByteArray());
+            body.close();
+        }
+    }
+    
+    public void clearIncludeStackForForward() throws IOException {
+        if (isIncluding()) {
+            for (Iterator i = this.includeByteStreams.iterator(); i.hasNext(); ) {
+                ((ByteArrayOutputStream) i.next()).close();
+            }
+            this.includeByteStreams.clear();
+        }
     }
 }
