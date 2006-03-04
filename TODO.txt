@@ -21,6 +21,7 @@ v0.8.1
 DONE - License change to dual CDDL + LGPL
 DONE - appfuse bugfix. All listeners need a context class loader set.
 DONE - update outputstream to do include stacking internally, rather than returning new streams for each level
+DONE - fixed some nasty web.xml parsing bugs
 
 v0.8
 DONE - Remove resource bundles as arguments. Declare statically in class
