@@ -63,8 +63,10 @@ public class Launcher implements Runnable {
      */
     public Launcher(Map args) throws IOException {
         
+        boolean useJNDI = WebAppConfiguration.booleanArg(args, "useJNDI", false);
+        
         // Set jndi resource handler if not set (workaround for JamVM bug)
-        try {
+        if (useJNDI) try {
             Class ctxFactoryClass = Class.forName("winstone.jndi.java.javaURLContextFactory");
             if (System.getProperty("java.naming.factory.initial") == null) {
                 System.setProperty("java.naming.factory.initial", ctxFactoryClass.getName());
@@ -167,8 +169,8 @@ public class Launcher implements Runnable {
             }
         }
         
-        // If jasper is enabled, run the container wide jndi populator
-        if (WebAppConfiguration.booleanArg(args, "useJNDI", false)) {
+        // If jndi is enabled, run the container wide jndi populator
+        if (useJNDI) {
             String jndiMgrClassName = WebAppConfiguration.stringArg(args, "containerJndiClassName",
                     DEFAULT_JNDI_MGR_CLASS).trim();
             try {
@@ -187,8 +189,6 @@ public class Launcher implements Runnable {
                         "Launcher.JNDIError", jndiMgrClassName, err);
             }
         }
-
-        // Instantiate the JNDI manager
         
         // Open the web apps
         this.hostGroup = new HostGroup(this.cluster, this.objectPool, commonLibCL, 
@@ -463,7 +463,11 @@ public class Launcher implements Runnable {
         }
         
         // Launch
-        new Launcher(args);
+        try {
+            new Launcher(args);
+        } catch (Throwable err) {
+            Logger.log(Logger.ERROR, RESOURCES, "Launcher.ContainerStartupError", err);
+        }
     }
     
     private static void loadPropsFromStream(InputStream inConfig, Map args) throws IOException {

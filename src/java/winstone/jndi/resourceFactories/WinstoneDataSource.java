@@ -101,7 +101,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
         this.retryCount = WebAppConfiguration.intArg(args, "retryCount", 1);
         this.retryPeriod = WebAppConfiguration.intArg(args, "retryPeriod", 1000);
 
-        log(Logger.FULL_DEBUG, "DBConnectionPool.Init", this.url);
+        log(Logger.FULL_DEBUG, "DBConnectionPool.Init", this.url, null);
 
         try {
             synchronized (this.unusedRealConnections) {
@@ -115,7 +115,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
                 }
             }
         } catch (Throwable err) {
-            log(Logger.ERROR, "DBConnectionPool.ErrorInCreate", err);
+            log(Logger.ERROR, "DBConnectionPool.ErrorInCreate", this.name, err);
         }
 
         // Start management thread
@@ -177,7 +177,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
                 this.usedRealConnections.add(realConnection);
                 log(Logger.FULL_DEBUG, "DBConnectionPool.UsingPooled",
                         new String[] {"" + this.usedRealConnections.size(), 
-                           "" + this.unusedRealConnections.size()});
+                           "" + this.unusedRealConnections.size()}, null);
                 try {
                     return prepareWrapper(realConnection);
                 } catch (SQLException err) {
@@ -190,7 +190,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
                 realConnection = makeNewRealConnection(this.usedRealConnections);
                 log(Logger.FULL_DEBUG, "DBConnectionPool.UsingNew",
                         new String[] {"" + this.usedRealConnections.size(), 
-                           "" + this.unusedRealConnections.size()});
+                           "" + this.unusedRealConnections.size()}, null);
                 try {
                     return prepareWrapper(realConnection);
                 } catch (SQLException err) {
@@ -208,7 +208,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
             throw new SQLException(DS_RESOURCES.getString("DBConnectionPool.Exceeded", "" + maxHeldCount));
         } else {
             log(Logger.FULL_DEBUG, "DBConnectionPool.Retrying", new String[] {
-                    "" + maxHeldCount, "" + retriesAllowed, "" + retryPeriod});
+                    "" + maxHeldCount, "" + retriesAllowed, "" + retryPeriod}, null);
             
             // If we are here, it's because we need to retry for a connection
             try {
@@ -249,9 +249,9 @@ public class WinstoneDataSource implements DataSource, Runnable {
                     this.unusedRealConnections.add(realConnection);
                     log(Logger.FULL_DEBUG, "DBConnectionPool.Releasing",
                             new String[] {"" + this.usedRealConnections.size(), 
-                               "" + this.unusedRealConnections.size()});
+                               "" + this.unusedRealConnections.size()}, null);
                 } else {
-                    log(Logger.WARNING, "DBConnectionPool.ReleasingUnknown");
+                    log(Logger.WARNING, "DBConnectionPool.ReleasingUnknown", null);
                     realConnection.close();
                 }
             }
@@ -279,7 +279,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
      * Note - this needs a lot more attention to the semaphore use during keepAlive etc
      */
     public void run() {
-        log(Logger.DEBUG, "DBConnectionPool.MaintenanceStart");
+        log(Logger.DEBUG, "DBConnectionPool.MaintenanceStart", null);
 
         int keepAliveCounter = -1;
         int killInactiveCounter = -1;
@@ -320,7 +320,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
 
                 if ((killInactiveCounter == 0) || (keepAliveCounter == 0)) {
                     log(Logger.FULL_DEBUG, "DBConnectionPool.MaintenanceTime",
-                            "" + (System.currentTimeMillis() - startTime));
+                            "" + (System.currentTimeMillis() - startTime), null);
                 }
 
                 if (Thread.interrupted()) {
@@ -338,7 +338,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
             }
         }
 
-        log(Logger.DEBUG, "DBConnectionPool.MaintenanceFinish");
+        log(Logger.DEBUG, "DBConnectionPool.MaintenanceFinish", null);
     }
 
     /**
@@ -363,7 +363,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
         }
         
         log(Logger.FULL_DEBUG, "DBConnectionPool.KeepAliveFinished", "" + 
-                this.unusedRealConnections.size());
+                this.unusedRealConnections.size(), null);
     }
 
     protected void executeKeepAlive(Connection connection) throws SQLException {
@@ -396,7 +396,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
         pool.add(realConnection);
         log(Logger.FULL_DEBUG, "DBConnectionPool.AddingNew", 
                 new String[] {"" + this.usedRealConnections.size(), 
-                "" + this.unusedRealConnections.size()});
+                "" + this.unusedRealConnections.size()}, null);
 
         return realConnection;
     }
@@ -416,7 +416,7 @@ public class WinstoneDataSource implements DataSource, Runnable {
         }
 
         if (killed > 0) {
-            log(Logger.FULL_DEBUG, "DBConnectionPool.Killed", "" + killed);
+            log(Logger.FULL_DEBUG, "DBConnectionPool.Killed", "" + killed, null);
         }
     }
     
@@ -428,36 +428,36 @@ public class WinstoneDataSource implements DataSource, Runnable {
         }
     }
     
-    private void log(int level, String msgKey) {
-        if (getLogWriter() != null) {
-            getLogWriter().println(DS_RESOURCES.getString(msgKey));
-        } else {
-            Logger.log(level, DS_RESOURCES, msgKey);
-        }
-    }
-    
     private void log(int level, String msgKey, Throwable err) {
         if (getLogWriter() != null) {
             getLogWriter().println(DS_RESOURCES.getString(msgKey));
-            err.printStackTrace(getLogWriter());
+            if (err != null) {
+                err.printStackTrace(getLogWriter());
+            }
         } else {
             Logger.log(level, DS_RESOURCES, msgKey, err);
         }
     }
     
-    private void log(int level, String msgKey, String arg) {
+    private void log(int level, String msgKey, String arg, Throwable err) {
         if (getLogWriter() != null) {
             getLogWriter().println(DS_RESOURCES.getString(msgKey, arg));
+            if (err != null) {
+                err.printStackTrace(getLogWriter());
+            }
         } else {
-            Logger.log(level, DS_RESOURCES, msgKey, arg);
+            Logger.log(level, DS_RESOURCES, msgKey, arg, err);
         }
     }
     
-    private void log(int level, String msgKey, String arg[]) {
+    private void log(int level, String msgKey, String arg[], Throwable err) {
         if (getLogWriter() != null) {
             getLogWriter().println(DS_RESOURCES.getString(msgKey, arg));
+            if (err != null) {
+                err.printStackTrace(getLogWriter());
+            }
         } else {
-            Logger.log(level, DS_RESOURCES, msgKey, arg);
+            Logger.log(level, DS_RESOURCES, msgKey, arg, err);
         }
     }
 }

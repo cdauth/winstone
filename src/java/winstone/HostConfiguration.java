@@ -65,9 +65,11 @@ public class HostConfiguration {
             if (prefix == null) {
                 prefix = "";
             }
-            WebAppConfiguration config = initWebApp(prefix, 
-                    getWebRoot(webroot, warfile), "webapp");
-            this.webapps.put(prefix, config);
+            try {
+                this.webapps.put(prefix, initWebApp(prefix, getWebRoot(webroot, warfile), "webapp"));
+            } catch (Throwable err) {
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "HostConfig.WebappInitError", prefix, err);
+            }
         }
         // Otherwise multi-webapp mode
         else {
@@ -151,7 +153,11 @@ public class HostConfiguration {
             String webRoot = webAppConfig.getWebroot();
             String contextName = webAppConfig.getContextName();
             destroyWebApp(prefix);
-            this.webapps.put(prefix, initWebApp(prefix, new File(webRoot), contextName));
+            try {
+                this.webapps.put(prefix, initWebApp(prefix, new File(webRoot), contextName));
+            } catch (Throwable err) {
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "HostConfig.WebappInitError", prefix, err);
+            }
         } else {
             throw new WinstoneException(Launcher.RESOURCES.getString("HostConfig.PrefixUnknown", prefix));
         }
@@ -252,9 +258,13 @@ public class HostConfiguration {
                     } else {
                         String prefix = childName.equalsIgnoreCase("ROOT") ? "" : "/" + childName; 
                         if (!this.webapps.containsKey(prefix)) {
-                            WebAppConfiguration webAppConfig = initWebApp(prefix, children[n], childName);
-                            this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
-                            Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
+                            try {
+                                WebAppConfiguration webAppConfig = initWebApp(prefix, children[n], childName);
+                                this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
+                                Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
+                            } catch (Throwable err) {
+                                Logger.log(Logger.ERROR, Launcher.RESOURCES, "HostConfig.WebappInitError", prefix, err);
+                            }
                         }
                     }
                 } else if (childName.endsWith(".war")) {
