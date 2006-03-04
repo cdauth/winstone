@@ -274,11 +274,15 @@ public class HostConfiguration {
                     if (!this.webapps.containsKey(prefix)) {
                         File outputDir = new File(webappsDir, outputName);
                         outputDir.mkdirs();
-                        WebAppConfiguration webAppConfig = initWebApp(prefix, 
-                                        getWebRoot(new File(webappsDir, outputName).getCanonicalPath(),
-                                                children[n].getCanonicalPath()), outputName);
-                        this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
-                        Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
+                        try {
+                            WebAppConfiguration webAppConfig = initWebApp(prefix, 
+                                            getWebRoot(new File(webappsDir, outputName).getCanonicalPath(),
+                                                    children[n].getCanonicalPath()), outputName);
+                            this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
+                            Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
+                        } catch (Throwable err) {
+                            Logger.log(Logger.ERROR, Launcher.RESOURCES, "HostConfig.WebappInitError", prefix, err);
+                        }
                     }
                 }
             }
