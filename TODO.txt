@@ -16,10 +16,12 @@ Long-term
      - More accurate profiling of memory usage, object allocation etc
      - Auto-deployer for webappsDir folder. Redeploy warfiles that have been updated or added
      - Maven winstone plugin, so we can run maven winstone, and it will war-up and execute
-    
+
 v0.8.1
-DONE - License change to dual CDDL + LGPL    
-     
+DONE - License change to dual CDDL + LGPL
+DONE - appfuse bugfix. All listeners need a context class loader set.
+DONE - update outputstream to do include stacking internally, rather than returning new streams for each level
+
 v0.8
 DONE - Remove resource bundles as arguments. Declare statically in class
 DONE - DB connection pool keep-alive support, etc

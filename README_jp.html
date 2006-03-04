@@ -4,7 +4,7 @@
   <meta http-equiv="content-type" content="text/html;charset=euc-jp" />
   <title>Winstoneサーブレトコンテーナー (日本語)</title>
   <meta name="description" content="Winstone is a small, fast and functional java servlet v2.4 container in a single 160kb jar file"/>
-  <meta name="keywords" content="servlets, servlet, jsp, java, jdk, jre, winstone, small, fast, reliable, open source, gpl, gcj, jndi, xml"/>
+  <meta name="keywords" content="servlets, servlet, servlet container, jsp, java, container, ajax, webservices, jdk, jre, winstone, small, fast, reliable, open source, gpl, gcj, jndi, xml"/>
   <meta name="author" content="Rick Knowles"/>
   <meta name="language" content="Japanese"/>
   <meta name="charset" content="EUC-JP"/>
@@ -15,9 +15,12 @@
   <meta name="revisit-after" content="7 Days"/>
 </head>
 <body>
-<center><h1>Winstoneサーブレトコンテーナー v0.8</h1></center>
+<center><h1>Winstoneサーブレトコンテーナー v0.8.1</h1></center>
 
-  <center><a href="http://sourceforge.net/project/showfiles.php?group_id=98922">Downloads</a></center>
+  <center>
+    <a href="http://sourceforge.net/project/showfiles.php?group_id=98922">ダウンロード</a>&#0160;
+    <a href="#license"><b>ライセンスは更新しました</b></a>
+  </center>
   <hr width="90%" size="1" noshade="noshade"/>
 
 <br/>
@@ -77,7 +80,7 @@
     <ul>
       <li>1つのウェブ適用に速い安定したコンテナー機能を供給します。</li>
       <li>配信したJARファイルのサイズは最小限の物にしています『現在 160KB』</li>
-      <li>設定ファイルを増やして、using command line options to 
+      <li>設定ファイルを減らして、using command line options to 
         optionally override sensible compiled in defaults. </li>
       <li>Eventually compile with GCJ to make a 3-4Meg windows exe for local development/deployment 
         of servlets. This has not happened yet, because of some GCJ class loading problems.</li>
@@ -103,14 +106,16 @@
     src/javax/servlet/jsp/resources folders) are covered by the licenses described 
     at the top of each file (usually as licensed by Sun Microsystems).</p>
 
-  <p>All other files are dual-licensed, under either the Lesser GNU Public License (LGPL) as described in 
-    LICENSE-LGPL.txt, or the Common Development and Distribution License (CDDL) as decribed in 
-    LICENSE-CDDL.txt. </p>
+  <p>As of v0.8.1, all other files are dual-licensed, under either the Lesser GNU Public 
+    License (LGPL) as described in LICENSE-LGPL.txt, or the Common Development and Distribution 
+    License (CDDL) as decribed in LICENSE-CDDL.txt. Until v0.8, the license used was the GNU Public 
+    License (GPL).</p>
         
   <p>The goal of dual-licensing is to make Winstone as attractive as possible to distributors of 
-    Commercial webapps, while still remaining a free software project that everyone can reap the 
-    benefits from. The CDDL allows free distribution with any commercial applications, while 
-    distribution with a GPL licensed webapp is also possible under the LGPL.</p>
+    commercial webapps, while ensuring everyone benefits from any improvements. The CDDL allows 
+    free distribution with any commercial applications, while distribution with a GPL licensed 
+    webapp is also possible under the LGPL. If you are unclear about which license applies to an
+    application you wish to distribute or sell, please <a href="#authorContact">contact me</a>.</p>
 
 
 <h2><a name="authorContact">作者への問い合わせ</a></h2>
@@ -130,7 +135,7 @@
 
   <p>To build Winstone, unpack the tree:</p>
 
-    &nbsp;&nbsp;<code>tar zxf winstone-src-0.8.tar.gz</code>
+    &nbsp;&nbsp;<code>tar zxf winstone-src-0.8.1.tar.gz</code>
 
   <p>Then build it:</p>
 
@@ -139,19 +144,19 @@
 
   <p>To run it:</p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.1.jar --webroot=&lt;location of webroot&gt; </code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.1.jar --warfile=&lt;location of warfile&gt;</code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --webappsDir=&lt;location of webapps directory&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.1.jar --webappsDir=&lt;location of webapps directory&gt;</code> (+ other options)
 
   <p> - OR - </p>
 
-    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.jar --hostsDir=&lt;location of hosts directory&gt;</code> (+ other options)
+    &nbsp;&nbsp;<code>java -jar target/winstone-0.8.1.jar --hostsDir=&lt;location of hosts directory&gt;</code> (+ other options)
 
   <p>The winstone.jar file will be in the target directory after the build is complete.</p>
 
@@ -159,7 +164,7 @@
 
   <pre>
 Syntax:
-  java -jar winstone-0.8.jar [--option=value] [--option=value] etc
+  java -jar winstone-0.8.1.jar [--option=value] [--option=value] etc
 
 Required options: either --webroot OR --warfile OR --webappsDir OR --hostsDir
    --webroot                = set document root folder.
