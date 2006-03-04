@@ -11,6 +11,7 @@ import java.io.IOException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
 import org.xml.sax.EntityResolver;
@@ -44,71 +45,86 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
     static final String WS_CLIENT_LOCAL = "javax/servlet/resources/j2ee_web_services_client_1_1.xsd";
 
     private ClassLoader commonLoader;
+    private boolean rethrowValidationExceptions;
 
     public WebXmlParser(ClassLoader commonCL) {
         this.commonLoader = commonCL;
+        this.rethrowValidationExceptions = true;
     }
     
     /**
      * Get a parsed XML DOM from the given inputstream. Used to process the
-     * web.xml application deployment descriptors.
+     * web.xml application deployment descriptors. Returns null if the parse fails,
+     * so the effect is as if there was no web.xml file available.
      */
     protected Document parseStreamToXML(File webXmlFile) {
+        DocumentBuilderFactory factory = getBaseDBF();
+        
+        // Test for XSD compliance
         try {
-            
-            // Use JAXP to create a document builder
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setExpandEntityReferences(false);
-            factory.setValidating(true);
-            factory.setNamespaceAware(true);
-            factory.setIgnoringComments(true);
-            factory.setCoalescing(true);
-            factory.setIgnoringElementContentWhitespace(true);
-
-            // Test parse as a dtd-only version
+            factory.setAttribute(
+                    "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
+                    "http://www.w3.org/2001/XMLSchema");
+            if (this.commonLoader.getResource(XSD_2_4_LOCAL) != null) {
+                factory.setAttribute(
+                        "http://java.sun.com/xml/jaxp/properties/schemaSource",
+                        this.commonLoader.getResource(XSD_2_4_LOCAL).toString());
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WebXmlParser.Local24XSDEnabled");
+            } else {
+                Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebXmlParser.24XSDNotFound");
+            }
+        } catch (Throwable err) {
+            // if non-compliant parser, then parse as non-XSD compliant
+            Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebXmlParser.NonXSDParser");
+            try {
+                this.rethrowValidationExceptions = false;
+                return parseAsV23Webapp(webXmlFile);
+            } catch (Throwable v23Err) {
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebXmlParser.WebXML23ParseError", v23Err);
+                return null;
+            }
+        }
+        
+        // XSD compliant parser available, so parse as 2.4
+        try {
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.setEntityResolver(this);
             builder.setErrorHandler(this);
-            Document doc = null;
-            String webXmlVersion = null;
+            this.rethrowValidationExceptions = true;
+            return builder.parse(webXmlFile);
+        } catch (Throwable errV24) {
+            // Try parsing as a v2.3 spec webapp, and if another error happens, report both
             try {
-                doc = builder.parse(webXmlFile);
-                webXmlVersion = doc.getDocumentElement().getAttribute("version");
-            } catch (SAXParseException err) {
-                webXmlVersion = "2.4";
+                this.rethrowValidationExceptions = false;
+                return parseAsV23Webapp(webXmlFile);
+            } catch (Throwable errV23) {
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebXmlParser.WebXMLBothErrors");
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebXmlParser.WebXML24ParseError", errV24);
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebXmlParser.WebXML23ParseError", errV23);
+                return null;
             }
-            
-            // Check for the version="2.4" attribute and reparse with the schema stuff set if found
-            if ((webXmlVersion != null) && !webXmlVersion.trim().equals("") && 
-                    !webXmlVersion.startsWith("2.2") && !webXmlVersion.startsWith("2.3")) {
-                // If we have (and can parse) the 2.4 xsd, set to redirect locally to use it
-                try {
-                    factory.setAttribute(
-                                    "http://java.sun.com/xml/jaxp/properties/schemaLanguage",
-                                    "http://www.w3.org/2001/XMLSchema");
-                    if (this.commonLoader.getResource(XSD_2_4_LOCAL) != null) {
-                        factory.setAttribute(
-                                        "http://java.sun.com/xml/jaxp/properties/schemaSource",
-                                        this.commonLoader.getResource(
-                                                XSD_2_4_LOCAL).toString());
-                        Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WebXmlParser.Local24XSDEnabled");
-                    } else {
-                        Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebXmlParser.24XSDNotFound");
-                    }
-                } catch (Throwable err) {
-                    Logger.log(Logger.WARNING, Launcher.RESOURCES,
-                            "WebXmlParser.NonXSDParser");
-                }
-                builder = factory.newDocumentBuilder();
-                builder.setEntityResolver(this);
-                builder.setErrorHandler(this);
-                doc = builder.parse(webXmlFile);
-            }
-            return doc;
-        } catch (Throwable errParser) {
-            throw new WinstoneException(Launcher.RESOURCES
-                    .getString("WebXmlParser.WebXMLParseError"), errParser);
         }
+    }
+    
+    private Document parseAsV23Webapp(File webXmlFile) throws ParserConfigurationException, 
+            SAXException, IOException {
+        DocumentBuilderFactory factory = getBaseDBF();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        builder.setEntityResolver(this);
+        builder.setErrorHandler(this);
+        return builder.parse(webXmlFile);
+    }
+    
+    private DocumentBuilderFactory getBaseDBF() {
+        // Use JAXP to create a document builder
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setExpandEntityReferences(false);
+        factory.setValidating(true);
+        factory.setNamespaceAware(true);
+        factory.setIgnoringComments(true);
+        factory.setCoalescing(true);
+        factory.setIgnoringElementContentWhitespace(true);
+        return factory;
     }
 
     /**
@@ -157,7 +173,13 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
     }
 
     public void error(SAXParseException exception) throws SAXException {
-        throw exception;
+        if (this.rethrowValidationExceptions) {
+            throw exception;
+        } else {
+            Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebXmlParser.XMLParseError",
+                    new String[] { exception.getLineNumber() + "",
+                            exception.getMessage() });
+        }
     }
 
     public void fatalError(SAXParseException exception) throws SAXException {
@@ -165,9 +187,8 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
     }
 
     public void warning(SAXParseException exception) throws SAXException {
-        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WebXmlParser.XMLParseError",
+        Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebXmlParser.XMLParseError",
                 new String[] { exception.getLineNumber() + "",
                         exception.getMessage() });
     }
-
 }

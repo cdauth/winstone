@@ -109,9 +109,12 @@ public class HostConfiguration {
                 Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostConfig.ParsingWebXml");
                 Document webXMLDoc = new WebXmlParser(this.commonLibCL)
                         .parseStreamToXML(webXmlFile);
-                webXMLParentNode = webXMLDoc.getDocumentElement();
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                        "HostConfig.WebXmlParseComplete");
+                if (webXMLDoc != null) {
+                    webXMLParentNode = webXMLDoc.getDocumentElement();
+                    Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostConfig.WebXmlParseComplete");
+                } else {
+                    Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostConfig.WebXmlParseFailed");
+                }
             }
         }
 
