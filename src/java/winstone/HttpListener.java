@@ -87,7 +87,7 @@ public class HttpListener implements Listener, Runnable {
      * override for the SSL connector.
      */
     protected String getConnectorName() {
-        return getConnectorName();
+        return getConnectorScheme();
     }
 
     protected String getConnectorScheme() {
