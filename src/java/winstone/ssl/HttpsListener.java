@@ -73,7 +73,7 @@ public class HttpsListener extends HttpListener {
      * The name to use when getting properties - this is just so that we can
      * override for the SSL connector.
      */
-    protected String getConnectorName() {
+    protected String getConnectorScheme() {
         return "https";
     }
 

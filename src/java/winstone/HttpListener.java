@@ -87,9 +87,13 @@ public class HttpListener implements Listener, Runnable {
      * override for the SSL connector.
      */
     protected String getConnectorName() {
-        return "http";
+        return getConnectorName();
     }
 
+    protected String getConnectorScheme() {
+        return "http";
+    }
+    
     /**
      * Gets a server socket - this is mostly for the purpose of allowing an
      * override in the SSL connector.
@@ -270,7 +274,7 @@ public class HttpListener implements Listener, Runnable {
     protected void parseSocketInfo(Socket socket, WinstoneRequest req)
             throws IOException {
         Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "HttpListener.ParsingSocketInfo");
-        req.setScheme(getConnectorName());
+        req.setScheme(getConnectorScheme());
         req.setServerPort(socket.getLocalPort());
         req.setLocalPort(socket.getLocalPort());
         req.setLocalAddr(socket.getLocalAddress().getHostAddress());
