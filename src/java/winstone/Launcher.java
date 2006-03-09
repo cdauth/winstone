@@ -361,6 +361,31 @@ public class Launcher implements Runnable {
      * listener thread. For now, just shut it down with a control-C.
      */
     public static void main(String argv[]) throws IOException {
+        Map args = getArgsFromCommandLine(argv);
+        
+        if (args.containsKey("usage") || args.containsKey("help")) {
+            printUsage();
+            return;
+        }
+
+        // Check for embedded war
+        deployEmbeddedWarfile(args);
+        
+        // Check for embedded warfile
+        if (!args.containsKey("webroot") && !args.containsKey("warfile") 
+                && !args.containsKey("webappsDir")&& !args.containsKey("hostsDir")) {
+            printUsage();
+            return;
+        }
+        // Launch
+        try {
+            new Launcher(args);
+        } catch (Throwable err) {
+            Logger.log(Logger.ERROR, RESOURCES, "Launcher.ContainerStartupError", err);
+        }
+    }
+    
+    protected static Map getArgsFromCommandLine(String argv[]) throws IOException {
         Map args = new HashMap();
         
         // Load embedded properties file 
@@ -420,12 +445,10 @@ public class Launcher implements Runnable {
                 }
             }
         }
-        
-        if (args.containsKey("usage") || args.containsKey("help")) {
-            printUsage();
-            return;
-        }
+        return args;
+    }
 
+    protected static void deployEmbeddedWarfile(Map args) throws IOException {
         String embeddedWarfileName = RESOURCES.getString("Launcher.EmbeddedWarFile");
         InputStream embeddedWarfile = Launcher.class.getResourceAsStream(
                 embeddedWarfileName);
@@ -454,23 +477,9 @@ public class Launcher implements Runnable {
             args.remove("webappsDir");
             args.remove("hostsDir");
         }
-        
-        // Check for embedded warfile
-        if (!args.containsKey("webroot") && !args.containsKey("warfile") 
-                && !args.containsKey("webappsDir")&& !args.containsKey("hostsDir")) {
-            printUsage();
-            return;
-        }
-        
-        // Launch
-        try {
-            new Launcher(args);
-        } catch (Throwable err) {
-            Logger.log(Logger.ERROR, RESOURCES, "Launcher.ContainerStartupError", err);
-        }
     }
     
-    private static void loadPropsFromStream(InputStream inConfig, Map args) throws IOException {
+    protected static void loadPropsFromStream(InputStream inConfig, Map args) throws IOException {
         Properties props = new Properties();
         props.load(inConfig);
         for (Iterator i = props.keySet().iterator(); i.hasNext(); ) {
@@ -499,7 +508,7 @@ public class Launcher implements Runnable {
         Logger.init(logLevel, logStream, showThrowingThread);
     }
 
-    private static void printUsage() {
+    protected static void printUsage() {
         System.out.println(RESOURCES.getString("Launcher.UsageInstructions",
                 RESOURCES.getString("ServerVersion")));
     }
