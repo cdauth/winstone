@@ -221,7 +221,7 @@ public class Launcher implements Runnable {
      * don't do anything too adventurous in the constructor, or if you do, 
      * catch and log any errors locally before rethrowing.
      */
-    private void spawnListener(String listenerClassName) {
+    protected void spawnListener(String listenerClassName) {
         try {
             Class listenerClass = Class.forName(listenerClassName);
             Constructor listenerConstructor = listenerClass
