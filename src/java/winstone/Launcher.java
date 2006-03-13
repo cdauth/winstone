@@ -271,9 +271,6 @@ public class Launcher implements Runnable {
                         accepted = controlSocket.accept();
                         if (accepted != null) {
                             handleControlRequest(accepted);
-                            if (Thread.interrupted()) {
-                                interrupted = true;
-                            }
                         }
                     } else {
                         Thread.sleep(CONTROL_TIMEOUT);
@@ -287,6 +284,9 @@ public class Launcher implements Runnable {
                 } finally {
                     if (accepted != null) {
                         try {accepted.close();} catch (IOException err) {}
+                    }
+                    if (Thread.interrupted()) {
+                        interrupted = true;
                     }
                 }
             }
