@@ -271,6 +271,9 @@ public class Launcher implements Runnable {
                         accepted = controlSocket.accept();
                         if (accepted != null) {
                             handleControlRequest(accepted);
+                            if (Thread.interrupted()) {
+                                interrupted = true;
+                            }
                         }
                     } else {
                         Thread.sleep(CONTROL_TIMEOUT);
@@ -385,7 +388,29 @@ public class Launcher implements Runnable {
         }
     }
     
-    protected static Map getArgsFromCommandLine(String argv[]) throws IOException {
+    public static Map getArgsFromCommandLine(String argv[]) throws IOException {
+        Map args = loadArgsFromCommandLineAndConfig(argv, "nonSwitch");
+        
+        // Small hack to allow re-use of the command line parsing inside the control tool
+        String firstNonSwitchArgument = (String) args.get("nonSwitch");
+        args.remove("nonSwitch");
+        
+        // Check if the non-switch arg is a file or folder, and overwrite the config
+        if (firstNonSwitchArgument != null) {
+            File webapp = new File(firstNonSwitchArgument);
+            if (webapp.exists()) {
+                if (webapp.isDirectory()) {
+                    args.put("webroot", firstNonSwitchArgument);
+                } else if (webapp.isFile()) {
+                    args.put("warfile", firstNonSwitchArgument);
+                }
+            }
+        }
+        return args;
+    }
+
+    public static Map loadArgsFromCommandLineAndConfig(String argv[], String nonSwitchArgName) 
+            throws IOException {
         Map args = new HashMap();
         
         // Load embedded properties file 
@@ -401,7 +426,6 @@ public class Launcher implements Runnable {
         
         // Get command line args
         String configFilename = RESOURCES.getString("Launcher.DefaultPropertyFile");
-        String firstNonSwitchArgument = null;
         for (int n = 0; n < argv.length; n++) {
             String option = argv[n];
             if (option.startsWith("--")) {
@@ -417,7 +441,7 @@ public class Launcher implements Runnable {
                     configFilename = (String) args.get(paramName);
                 }
             } else {
-                firstNonSwitchArgument = option;
+                args.put(nonSwitchArgName, option);
             }
         }
 
@@ -433,21 +457,9 @@ public class Launcher implements Runnable {
         } else {
             initLogger(args);
         }
-
-        // Check if the non-switch arg is a file or folder, and overwrite the config
-        if (firstNonSwitchArgument != null) {
-            File webapp = new File(firstNonSwitchArgument);
-            if (webapp.exists()) {
-                if (webapp.isDirectory()) {
-                    args.put("webroot", firstNonSwitchArgument);
-                } else if (webapp.isFile()) {
-                    args.put("warfile", firstNonSwitchArgument);
-                }
-            }
-        }
         return args;
     }
-
+    
     protected static void deployEmbeddedWarfile(Map args) throws IOException {
         String embeddedWarfileName = RESOURCES.getString("Launcher.EmbeddedWarFile");
         InputStream embeddedWarfile = Launcher.class.getResourceAsStream(

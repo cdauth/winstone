@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.Map;
 
 import winstone.Launcher;
@@ -36,22 +35,13 @@ public class WinstoneControl {
      * Parses command line parameters, and calls the appropriate method for
      * executing the winstone operation required.
      */
-    public static void main(String args[]) throws Exception {
+    public static void main(String argv[]) throws Exception {
 
-        // Loop for args
-        Map options = new HashMap();
-        String operation = "";
-        for (int n = 0; n < args.length; n++) {
-            String option = args[n];
-            if (option.startsWith("--")) {
-                int equalPos = option.indexOf('=');
-                String paramName = option.substring(2, equalPos == -1 ? option
-                        .length() : equalPos);
-                String paramValue = (equalPos == -1 ? "true" : option
-                        .substring(equalPos + 1));
-                options.put(paramName, paramValue);
-            } else
-                operation = option;
+        // Load args from the config file
+        Map options = Launcher.loadArgsFromCommandLineAndConfig(argv, "operation");
+        String operation = (String) options.get("operation");
+        if (options.containsKey("controlPort") && !options.containsKey("port")) {
+            options.put("port", options.get("controlPort"));
         }
 
         if (operation.equals("")) {
@@ -62,8 +52,7 @@ public class WinstoneControl {
         Logger.setCurrentDebugLevel(Integer.parseInt(WebAppConfiguration
                 .stringArg(options, "debug", "5")));
 
-        String host = WebAppConfiguration.stringArg(options, "host",
-                "localhost");
+        String host = WebAppConfiguration.stringArg(options, "host", "localhost");
         String port = WebAppConfiguration.stringArg(options, "port", "8081");
 
         Logger.log(Logger.INFO, TOOLS_RESOURCES, "WinstoneControl.UsingHostPort",
