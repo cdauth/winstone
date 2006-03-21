@@ -49,6 +49,7 @@ public class Mapping implements java.util.Comparator {
                 !pattern.startsWith(SLASH)) {
             pattern = SLASH + pattern;
         } else if (pattern.equals(STAR)) {
+            Logger.log(Logger.WARNING, Launcher.RESOURCES, "Mapping.RewritingStarMount");
             pattern = SLASH + STAR;
         }
         
