@@ -43,11 +43,13 @@ public class Mapping implements java.util.Comparator {
             throw new WinstoneException(Launcher.RESOURCES.getString(
                     "Mapping.InvalidMount", new String[] { mappedTo, pattern }));
         
-        // Compatibility hack - add a leading slash if one is not found and not 
+        // Compatibility hacks - add a leading slash if one is not found and not 
         // an extension mapping
         if (!pattern.equals("") && !pattern.startsWith(STAR) && 
                 !pattern.startsWith(SLASH)) {
             pattern = SLASH + pattern;
+        } else if (pattern.equals(STAR)) {
+            pattern = SLASH + STAR;
         }
         
         Mapping me = new Mapping(mappedTo);
