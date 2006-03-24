@@ -55,7 +55,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
     private WebAppConfiguration webAppConfig;
     private int loadOnStartup;
     private String jspFile;
-    private String runAsRole;
+//    private String runAsRole;
     private Map securityRoleRefs;
     private Object servletSemaphore = new Boolean(true);
     private boolean isSingleThreadModel = false;
@@ -120,8 +120,9 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
                 for (int m = 0; m < child.getChildNodes().getLength(); m++) {
                     Node roleElm = child.getChildNodes().item(m);
                     if ((roleElm.getNodeType() == Node.ELEMENT_NODE)
-                            && (roleElm.getNodeName().equals(ELEM_ROLE_NAME)))
-                        this.runAsRole = WebAppConfiguration.getTextFromNode(roleElm);
+                            && (roleElm.getNodeName().equals(ELEM_ROLE_NAME))) {
+//                        this.runAsRole = WebAppConfiguration.getTextFromNode(roleElm); // not used
+                    }
                 }
             } else if (nodeName.equals(ELEM_SECURITY_ROLE_REF)) {
                 String name = "";

@@ -25,7 +25,7 @@ public class ClusterSessionSearch implements Runnable {
     public static final String SESSION_FOUND = "FOUND";
     public static final String SESSION_RECEIVED = "OK";
     private boolean isFinished;
-    private boolean interrupted;
+//    private boolean interrupted;
     private WinstoneSession result;
     private String searchWebAppHostname;
     private String searchWebAppPrefix;
@@ -41,7 +41,7 @@ public class ClusterSessionSearch implements Runnable {
         this.isFinished = false;
         this.searchWebAppHostname = hostName;
         this.searchWebAppPrefix = webAppPrefix;
-        this.interrupted = false;
+//        this.interrupted = false;
         this.searchId = sessionId;
         this.searchAddressPort = ipPort;
         this.result = null;
@@ -104,7 +104,7 @@ public class ClusterSessionSearch implements Runnable {
     }
 
     public void destroy() {
-        this.interrupted = true;
+//        this.interrupted = true;
     }
 
     public String getAddressPort() {

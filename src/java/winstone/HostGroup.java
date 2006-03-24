@@ -26,14 +26,14 @@ public class HostGroup {
     
     private final static String DEFAULT_HOSTNAME = "default";
     
-    private Map args;
+//    private Map args;
     private Map hostConfigs;
     private String defaultHostName;
     
     public HostGroup(Cluster cluster,
             ObjectPool objectPool, ClassLoader commonLibCL, 
             File commonLibCLPaths[], Map args) throws IOException {
-        this.args = args;
+//        this.args = args;
         this.hostConfigs = new Hashtable();
         
         // Is this the single or multiple configuration ? Check args

@@ -52,8 +52,8 @@ public class Ajp13Listener implements Listener, Runnable {
     private final static int CONNECTION_TIMEOUT = 60000;
     private final static int BACKLOG_COUNT = 1000;
     private final static int KEEP_ALIVE_TIMEOUT = -1;
-    private final static int KEEP_ALIVE_SLEEP = 50;
-    private final static int KEEP_ALIVE_SLEEP_MAX = 500;
+//    private final static int KEEP_ALIVE_SLEEP = 50;
+//    private final static int KEEP_ALIVE_SLEEP_MAX = 500;
     private final static String TEMPORARY_URL_STASH = "winstone.ajp13.TemporaryURLAttribute";
     
     private HostGroup hostGroup;

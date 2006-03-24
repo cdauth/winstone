@@ -32,14 +32,14 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class InvokerServlet extends HttpServlet {
-    private static final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
+//    private static final String FORWARD_PATH_INFO = "javax.servlet.forward.path_info";
     private static final String INCLUDE_PATH_INFO = "javax.servlet.include.path_info";
 
     private static final WinstoneResourceBundle INVOKER_RESOURCES = 
         new WinstoneResourceBundle("winstone.invoker.LocalStrings");
     private Map mountedInstances;
-    private String prefix;
-    private String invokerPrefix;
+//    private String prefix;
+//    private String invokerPrefix;
 
     /**
      * Set up a blank map of servlet configuration instances
@@ -47,8 +47,8 @@ public class InvokerServlet extends HttpServlet {
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         this.mountedInstances = new Hashtable();
-        this.prefix = config.getInitParameter("prefix");
-        this.invokerPrefix = config.getInitParameter("invokerPrefix");
+//        this.prefix = config.getInitParameter("prefix");
+//        this.invokerPrefix = config.getInitParameter("invokerPrefix");
     }
 
     /**
@@ -64,8 +64,8 @@ public class InvokerServlet extends HttpServlet {
             }
         }
         this.mountedInstances = null;
-        this.prefix = null;
-        this.invokerPrefix = null;
+//        this.prefix = null;
+//        this.invokerPrefix = null;
     }
 
     /**

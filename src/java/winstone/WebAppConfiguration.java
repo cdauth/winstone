@@ -54,7 +54,7 @@ import org.w3c.dom.NodeList;
  * @version $Id$
  */
 public class WebAppConfiguration implements ServletContext, Comparator {
-    private static final String ELEM_DESCRIPTION = "description";
+//    private static final String ELEM_DESCRIPTION = "description";
     private static final String ELEM_DISPLAY_NAME = "display-name";
     private static final String ELEM_SERVLET = "servlet";
     private static final String ELEM_SERVLET_MAPPING = "servlet-mapping";

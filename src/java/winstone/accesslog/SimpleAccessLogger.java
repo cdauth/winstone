@@ -39,7 +39,7 @@ public class SimpleAccessLogger implements AccessLogger {
     private static final String COMBINED = COMMON + " \"###referer###\" \"###userAgent###\"";
     private static final String RESIN = COMMON + " \"###userAgent###\"";
     
-    private WebAppConfiguration webAppConfig;
+//    private WebAppConfiguration webAppConfig;
     private OutputStream outStream;
     private PrintWriter outWriter;
     private String pattern;
@@ -47,7 +47,7 @@ public class SimpleAccessLogger implements AccessLogger {
     
     public SimpleAccessLogger(WebAppConfiguration webAppConfig, Map startupArgs) 
             throws IOException {
-        this.webAppConfig = webAppConfig;
+//        this.webAppConfig = webAppConfig;
         
         // Get pattern
         String patternType = WebAppConfiguration.stringArg(startupArgs, "simpleAccessLogger.format", "combined");
@@ -117,6 +117,6 @@ public class SimpleAccessLogger implements AccessLogger {
             this.outStream = null;
         }
         this.fileName = null;
-        this.webAppConfig = null;
+//        this.webAppConfig = null;
     }
 }
