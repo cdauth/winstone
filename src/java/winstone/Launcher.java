@@ -352,13 +352,16 @@ public class Launcher implements Runnable {
 
         if (this.controlThread != null) {
             this.controlThread.interrupt();
-            this.controlThread = null;
         }
         Thread.yield();
 
         Logger.log(Logger.INFO, RESOURCES, "Launcher.ShutdownOK");
     }
 
+    public boolean isRunning() {
+        return (this.controlThread != null) && this.controlThread.isAlive();
+    }
+    
     /**
      * Main method. This basically just accepts a few args, then initialises the
      * listener thread. For now, just shut it down with a control-C.
