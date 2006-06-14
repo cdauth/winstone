@@ -297,8 +297,9 @@ public class WinstoneResponse implements HttpServletResponse {
         String contentType = getHeader(CONTENT_TYPE_HEADER);
         if ((contentType == null) && (this.statusCode != SC_MOVED_TEMPORARILY)) {
             // Bypass normal encoding
+            String enc = getCurrentEncoding();
             setHeader(CONTENT_TYPE_HEADER, "text/html" + 
-                    (this.currentEncoding == null ? "" : ";charset=" + this.currentEncoding));
+                    (enc == null ? "" : ";charset=" + enc));
         }
         if (getHeader(DATE_HEADER) == null)
             setDateHeader(DATE_HEADER, System.currentTimeMillis());
@@ -499,7 +500,8 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public String getCharacterEncoding() {
-        return (this.currentEncoding == null ? "ISO-8859-1" : this.currentEncoding);
+        String enc = getCurrentEncoding();
+        return (enc == null ? "ISO-8859-1" : enc);
     }
 
     public void setCharacterEncoding(String encoding) {
@@ -666,8 +668,8 @@ public class WinstoneResponse implements HttpServletResponse {
                     this.currentEncoding = headerEncoding;
                 } else {
                     value = remainderHeader.toString() + 
-                        (this.currentEncoding == null ? "" : 
-                            ";charset=" + this.currentEncoding);
+                        (getCurrentEncoding() == null ? "" : 
+                            ";charset=" + getCurrentEncoding());
                 }
             }
             this.headers.add(name + ": " + value);
@@ -706,8 +708,8 @@ public class WinstoneResponse implements HttpServletResponse {
                             this.currentEncoding = headerEncoding;
                         } else {
                             value = remainderHeader.toString() + 
-                                (this.currentEncoding == null ? "" : 
-                                    "; charset=" + this.currentEncoding); 
+                                (getCurrentEncoding() == null ? "" : 
+                                    "; charset=" + getCurrentEncoding()); 
                         }
                     }
 
@@ -720,6 +722,16 @@ public class WinstoneResponse implements HttpServletResponse {
         }
     }
 
+    private String getCurrentEncoding() {
+        if (this.currentEncoding != null) {
+            return this.currentEncoding;
+        } else if (this.req != null) {
+            return this.req.getCharacterEncoding();
+        } else {
+            return null;
+        }
+    }
+    
     public String getHeader(String name) {
         for (int n = 0; n < this.headers.size(); n++) {
             String header = (String) this.headers.get(n);
