@@ -150,7 +150,8 @@ public class Mapping implements java.util.Comparator {
         // me=" + toString());
         switch (this.patternType) {
         case FOLDER_PATTERN:
-            if (inputPattern.startsWith(this.urlPattern)) {
+            if (inputPattern.startsWith(this.urlPattern + '/') || 
+                    inputPattern.equals(this.urlPattern)) {
                 if (servletPath != null)
                     servletPath.append(this.urlPattern);
                 if (pathInfo != null)
