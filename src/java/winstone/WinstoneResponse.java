@@ -8,6 +8,7 @@ package winstone;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -725,8 +726,13 @@ public class WinstoneResponse implements HttpServletResponse {
     private String getCurrentEncoding() {
         if (this.currentEncoding != null) {
             return this.currentEncoding;
-        } else if (this.req != null) {
-            return this.req.getCharacterEncoding();
+        } else if ((this.req != null) && (this.req.getCharacterEncoding() != null)) {
+            try {
+                "0".getBytes(this.req.getCharacterEncoding());
+                return this.req.getCharacterEncoding();
+            } catch (UnsupportedEncodingException err) {
+                return null;
+            }
         } else {
             return null;
         }
