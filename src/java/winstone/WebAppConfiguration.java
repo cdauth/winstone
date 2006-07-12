@@ -638,16 +638,17 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Build the login/security role instance
         if (!constraintNodes.isEmpty() && (loginConfigNode != null)) {
             String authMethod = null;
-            for (int n = 0; n < loginConfigNode.getChildNodes().getLength(); n++)
-                if (loginConfigNode.getChildNodes().item(n).getNodeName().equals("auth-method"))
+            for (int n = 0; n < loginConfigNode.getChildNodes().getLength(); n++) {
+                if (loginConfigNode.getChildNodes().item(n).getNodeName().equals("auth-method")) {
                     authMethod = getTextFromNode(loginConfigNode.getChildNodes().item(n));
-
+                }
+            }
             // Load the appropriate auth class
-            if (authMethod == null)
+            if (authMethod == null) {
                 authMethod = "BASIC";
-            else
-                authMethod = WinstoneResourceBundle.globalReplace(authMethod,
-                        "-", "");
+            } else {
+                authMethod = WinstoneResourceBundle.globalReplace(authMethod, "-", "");
+            }
             String realmClassName = stringArg(startupArgs, "realmClassName",
                     DEFAULT_REALM_CLASS).trim();
             String authClassName = "winstone.auth."
@@ -679,6 +680,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         "WebAppConfig.AuthError", new String[] { authClassName,
                                 realmClassName }, err);
             }
+        } else if (!stringArg(startupArgs, "realmClassName", "").trim().equals("")) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WebAppConfig.NoWebXMLSecurityDefs");
         }
 
         // Instantiate the JNDI manager
