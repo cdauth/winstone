@@ -1550,13 +1550,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                             "WebAppConfig.CheckWelcomeFile", servletPath.toString()
                                     + pathInfo.toString());
                     String welcomeFile = matchWelcomeFiles(servletPath.toString()
-                            + pathInfo.toString(), request);
+                            + pathInfo.toString(), request, queryString);
                     if (welcomeFile != null) {
-                        response.sendRedirect(this.prefix
-                                + servletPath.toString()
-                                + pathInfo.toString()
-                                + welcomeFile
-                                + (queryString.equals("") ? "" : "?" + queryString));
+                        response.sendRedirect(this.prefix + welcomeFile);
+//                                + servletPath.toString()
+//                                + pathInfo.toString()
+//                                + welcomeFile
+//                                + (queryString.equals("") ? "" : "?" + queryString));
                         return null;
                     }
                 }
@@ -1692,26 +1692,40 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
     /**
      * Check if any of the welcome files under this path are available. Returns the 
-     * name of the file if found, null otherwise
+     * name of the file if found, null otherwise. Returns the full internal webapp uri
      */
-    private String matchWelcomeFiles(String path, WinstoneRequest request) {
-        Set subfiles = getResourcePaths(path);
+    private String matchWelcomeFiles(String path, WinstoneRequest request, String queryString) {
+        if (!path.endsWith("/")) {
+            path = path + "/";
+        }
+
+        String qs = (queryString.equals("") ? "" : "?" + queryString);
         for (int n = 0; n < this.welcomeFiles.length; n++) {
-            String exact = (String) this.exactServletMatchMounts.get(path);
-            if (exact != null)
-                return this.welcomeFiles[n];
+            String welcomeFile = this.welcomeFiles[n];
+            while (welcomeFile.startsWith("/")) {
+                welcomeFile = welcomeFile.substring(1);
+            }
+            welcomeFile = path + welcomeFile;
+            
+            String exact = (String) this.exactServletMatchMounts.get(welcomeFile);
+            if (exact != null) {
+                return welcomeFile + qs;
+            }
 
             // Inexact folder mount check - note folder mounts only
             for (int j = 0; j < this.patternMatches.length; j++) {
                 Mapping urlPattern = this.patternMatches[j];
                 if ((urlPattern.getPatternType() == Mapping.FOLDER_PATTERN)
-                        && urlPattern.match(path + this.welcomeFiles[n], null,
-                                null))
-                    return this.welcomeFiles[n];
+                        && urlPattern.match(welcomeFile, null, null)) {
+                    return welcomeFile + qs;
+                }
             }
 
-            if (subfiles.contains(path + this.welcomeFiles[n]))
-                return this.welcomeFiles[n];
+            try {
+                if (getResource(welcomeFile) != null) {
+                    return welcomeFile + qs;
+                }
+            } catch (MalformedURLException err) {}
         }
         return null;
     }
