@@ -1258,10 +1258,11 @@ public class WinstoneRequest implements HttpServletRequest {
 
         // Handle the null case
         if (cookieValue == null) {
-            if (!create)
+            if (!create) {
                 return null;
-            else
+            } else {
                 cookieValue = makeNewSession().getId();
+            }
         }
 
         // Now get the session object
@@ -1293,8 +1294,7 @@ public class WinstoneRequest implements HttpServletRequest {
                             session.getId(), "" + (nowDate - lastAccessed) });
             if (create) {
                 session = makeNewSession();
-            }
-            else {
+            } else {
                 session = null;
             }
         }
