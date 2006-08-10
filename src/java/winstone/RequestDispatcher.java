@@ -71,6 +71,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
     private boolean isErrorDispatch;
     private boolean useRequestAttributes;
     
+    private WebAppConfiguration includedWebAppConfig;
+    private ServletConfiguration includedServletConfig;
+    
     /**
      * Constructor. This initializes the filter chain and sets up the details
      * needed to handle a servlet excecution, such as security constraints,
@@ -170,10 +173,18 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                         this.webAppConfig.getContextPath(), this.servletPath, this.pathInfo, this.queryString);
             }
             // Add another include buffer to the response stack
-            getUnwrappedResponse(response).startIncludeBuffer();
-
+            WinstoneResponse wresp = getUnwrappedResponse(response);
+            wresp.startIncludeBuffer();
+            
+            this.includedServletConfig = wr.getServletConfig();
+            this.includedWebAppConfig = wr.getWebAppConfig();
+            wr.setServletConfig(this.servletConfig);
+            wr.setWebAppConfig(this.webAppConfig);
+            wresp.setWebAppConfig(this.webAppConfig);
+            
             this.doInclude = Boolean.TRUE;
         }
+        
         if (this.matchingFilters == null) {
             this.matchingFilters = getMatchingFilters(this.includeFilterPatterns, this.webAppConfig, 
                     this.servletPath + (this.pathInfo == null ? "" : this.pathInfo), 
@@ -184,9 +195,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             if (this.matchingFiltersEvaluated < this.matchingFilters.length) {
                 doFilter(request, response);
                 finishInclude(request, response);
-            }
-            else {
-
+            } else {
                 try {
                     this.servletConfig.execute(request, response, 
                             this.webAppConfig.getContextPath() + this.requestURI);
@@ -220,7 +229,19 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             wr.removeIncludeAttributes();
         }
         // Remove the include buffer from the response stack
-        getUnwrappedResponse(response).finishIncludeBuffer();
+        WinstoneResponse wresp = getUnwrappedResponse(response);
+        wresp.finishIncludeBuffer();
+        
+        if (this.includedServletConfig != null) {
+            wr.setServletConfig(this.includedServletConfig);
+            this.includedServletConfig = null;
+        }
+        
+        if (this.includedWebAppConfig != null) {
+            wr.setWebAppConfig(this.includedWebAppConfig);
+            wresp.setWebAppConfig(this.includedWebAppConfig);
+            this.includedWebAppConfig = null;
+        }
     }
     
     /**
@@ -281,9 +302,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                 }
             }
 
-//            if (useRequestAttributes) {
-//                // Strip back to bare request/response - setup servlet path etc
-
             req.setServletPath(this.servletPath);
             req.setPathInfo(this.pathInfo);
             req.setRequestURI(this.webAppConfig.getContextPath() + this.requestURI);
@@ -293,7 +311,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             req.setRequestAttributeListeners(this.webAppConfig.getRequestAttributeListeners());
             
             rsp.setWebAppConfig(this.webAppConfig);
-//            }
 
             // Forwards haven't set up the filter pattern set yet
             if (this.matchingFilters == null) {
@@ -312,10 +329,11 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         }
 
         // Make sure the filter chain is exhausted first
-        if (this.matchingFiltersEvaluated < this.matchingFilters.length)
+        if (this.matchingFiltersEvaluated < this.matchingFilters.length) {
             doFilter(request, response);
-        else
+        } else {
             this.servletConfig.execute(request, response, this.webAppConfig.getContextPath() + this.requestURI);
+        }
     }
 
     private boolean continueAfterSecurityCheck(ServletRequest request,
