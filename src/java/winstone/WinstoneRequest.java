@@ -408,8 +408,9 @@ public class WinstoneRequest implements HttpServletRequest {
             String token = st.nextToken();
             int equalPos = token.indexOf('=');
             if (equalPos == -1) {
-                Logger.log(Logger.WARNING, Launcher.RESOURCES,
-                        "WinstoneRequest.IgnoringBadParameter", token);
+//                Logger.log(Logger.WARNING, Launcher.RESOURCES,
+//                        "WinstoneRequest.IgnoringBadParameter", token);
+                outputParams.put(token, "");
             } else {
                 try {
                     String decodedNameDefault = decodeURLToken(token.substring(
@@ -442,7 +443,7 @@ public class WinstoneRequest implements HttpServletRequest {
                         Logger.log(Logger.WARNING, Launcher.RESOURCES,
                                 "WinstoneRequest.UnknownParameterType",
                                 decodedName + " = " + decodedValue.getClass());
-                } catch (Exception err) {
+                } catch (UnsupportedEncodingException err) {
                     Logger.log(Logger.ERROR, Launcher.RESOURCES,
                             "WinstoneRequest.ErrorParameters", err);
                 }
@@ -670,9 +671,9 @@ public class WinstoneRequest implements HttpServletRequest {
                     HostConfiguration hostConfig = this.hostGroup.getHostByName(this.serverName);
                     WebAppConfiguration ownerContext = hostConfig.getWebAppBySessionKey(thisCookie.getValue());
                     if (ownerContext != null) {
-                        this.requestedSessionIds.put(ownerContext.getPrefix(), 
+                        this.requestedSessionIds.put(ownerContext.getContextPath(), 
                                 thisCookie.getValue());
-                        this.currentSessionIds.put(ownerContext.getPrefix(), 
+                        this.currentSessionIds.put(ownerContext.getContextPath(), 
                                 thisCookie.getValue());
                     }
                     // If not found, it was probably dead
@@ -684,7 +685,7 @@ public class WinstoneRequest implements HttpServletRequest {
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneRequest.SessionCookieFound", 
                             new String[] {thisCookie.getValue(), 
-                            ownerContext == null ? "" : "prefix:" + ownerContext.getPrefix()});
+                            ownerContext == null ? "" : "prefix:" + ownerContext.getContextPath()});
                 }
             }
         }
@@ -917,9 +918,11 @@ public class WinstoneRequest implements HttpServletRequest {
 
     public void setCharacterEncoding(String encoding) throws UnsupportedEncodingException {
         "blah".getBytes(encoding); // throws an exception if the encoding is unsupported
-        Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneRequest.SetCharEncoding",
-                new String[] { this.encoding, encoding });
-        this.encoding = encoding;
+        if (this.inputReader == null) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneRequest.SetCharEncoding",
+                    new String[] { this.encoding, encoding });
+            this.encoding = encoding;
+        }
     }
 
     public int getContentLength() {
@@ -1105,7 +1108,7 @@ public class WinstoneRequest implements HttpServletRequest {
 
     // Now the stuff for HttpServletRequest
     public String getContextPath() {
-        return this.webappConfig.getPrefix();
+        return this.webappConfig.getContextPath();
     }
 
     public Cookie[] getCookies() {
@@ -1177,7 +1180,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public String getRequestedSessionId() {
-        String actualSessionId = (String) this.requestedSessionIds.get(this.webappConfig.getPrefix());
+        String actualSessionId = (String) this.requestedSessionIds.get(this.webappConfig.getContextPath());
         if (actualSessionId != null) {
             return actualSessionId;
         } else {
@@ -1192,7 +1195,7 @@ public class WinstoneRequest implements HttpServletRequest {
         if (!((getServerPort() == 80) && getScheme().equals("http"))
                 && !((getServerPort() == 443) && getScheme().equals("https")))
             url.append(':').append(getServerPort());
-        url.append(this.webappConfig.getPrefix());
+        url.append(this.webappConfig.getContextPath());
         url.append(getServletPath());
         if (getPathInfo() != null)
             url.append(getPathInfo());
@@ -1234,11 +1237,16 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public boolean isRequestedSessionIdValid() {
-        WinstoneSession ws = this.webappConfig.getSessionById(getRequestedSessionId(), false);
-        if (ws == null)
+        String requestedId = getRequestedSessionId();
+        if (requestedId == null) {
             return false;
-        else
+        }
+        WinstoneSession ws = this.webappConfig.getSessionById(requestedId, false);
+        if (ws == null) {
+            return false;
+        } else {
             return (validationCheck(ws, System.currentTimeMillis(), false) != null);
+        }
     }
 
     public HttpSession getSession() {
@@ -1246,7 +1254,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public HttpSession getSession(boolean create) {
-        String cookieValue = (String) this.currentSessionIds.get(this.webappConfig.getPrefix());
+        String cookieValue = (String) this.currentSessionIds.get(this.webappConfig.getContextPath());
 
         // Handle the null case
         if (cookieValue == null) {
@@ -1262,7 +1270,7 @@ public class WinstoneRequest implements HttpServletRequest {
         if (session != null) {
             session = validationCheck(session, nowDate, create);
             if (session == null) {
-                this.currentSessionIds.remove(this.webappConfig.getPrefix());
+                this.currentSessionIds.remove(this.webappConfig.getContextPath());
             }
         }
         if (create && (session == null)) {
@@ -1313,7 +1321,7 @@ public class WinstoneRequest implements HttpServletRequest {
         }
 
         String newSessionId = new String(outArray);
-        this.currentSessionIds.put(this.webappConfig.getPrefix(), newSessionId);
+        this.currentSessionIds.put(this.webappConfig.getContextPath(), newSessionId);
         return this.webappConfig.makeNewSession(newSessionId);
     }
 

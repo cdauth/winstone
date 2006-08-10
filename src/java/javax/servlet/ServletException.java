@@ -31,7 +31,7 @@ public class ServletException extends java.lang.Exception {
     }
 
     public ServletException(Throwable rootCause) {
-        this();
+        this(rootCause != null ? rootCause.getMessage() : null);
         this.rootCause = rootCause;
     }
 

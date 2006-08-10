@@ -149,7 +149,9 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             commitLength = Math.min(Integer.parseInt(contentLengthHeader)
                     - this.bytesCommitted, content.length);
         }
-        this.outStream.write(content, 0, commitLength);
+        if (commitLength > 0) {
+            this.outStream.write(content, 0, commitLength);
+        }
         this.outStream.flush();
 
         Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,

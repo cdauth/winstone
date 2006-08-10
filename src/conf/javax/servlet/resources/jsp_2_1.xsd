@@ -1,23 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <xsd:schema xmlns="http://www.w3.org/2001/XMLSchema"
-	    targetNamespace="http://java.sun.com/xml/ns/j2ee"
-	    xmlns:j2ee="http://java.sun.com/xml/ns/j2ee"
+	    targetNamespace="http://java.sun.com/xml/ns/javaee"
+	    xmlns:javaee="http://java.sun.com/xml/ns/javaee"
 	    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 	    elementFormDefault="qualified"
 	    attributeFormDefault="unqualified"
-	    version="2.0">
+	    version="2.1">
   <xsd:annotation>
     <xsd:documentation>
-      @(#)jsp_2_0.xsds	1.17 03/18/03
+      @(#)jsp_2_1.xsds	1.5 08/11/05
     </xsd:documentation>
   </xsd:annotation>
 
   <xsd:annotation>
     <xsd:documentation>
 
-      Copyright 2002 Sun Microsystems, Inc., 901 San Antonio
-      Road, Palo Alto, California 94303, U.S.A. All rights
-      reserved.
+      Copyright 2003-2005 Sun Microsystems, Inc.
+      4150 Network Circle
+      Santa Clara, California 95054
+      U.S.A
+      All rights reserved.
 
       Sun Microsystems, Inc. has intellectual property rights
       relating to technology described in this document. In
@@ -50,12 +53,12 @@
   <xsd:annotation>
     <xsd:documentation>
 
-      This is the XML Schema for the JSP 2.0 deployment descriptor
-      types.  The JSP 2.0 schema contains all the special
+      This is the XML Schema for the JSP 2.1 deployment descriptor
+      types.  The JSP 2.1 schema contains all the special
       structures and datatypes that are necessary to use JSP files
       from a web application.
 
-      The contents of this schema is used by the web-app_2_4.xsd
+      The contents of this schema is used by the web-app_2_5.xsd
       file to define JSP specific content.
 
     </xsd:documentation>
@@ -64,7 +67,7 @@
   <xsd:annotation>
     <xsd:documentation>
 
-      The following conventions apply to all J2EE
+      The following conventions apply to all Java EE
       deployment descriptor elements unless indicated otherwise.
 
       - In elements that specify a pathname to a file within the
@@ -79,7 +82,7 @@
     </xsd:documentation>
   </xsd:annotation>
 
-  <xsd:include schemaLocation="j2ee_1_4.xsd"/>
+  <xsd:include schemaLocation="javaee_5.xsd"/>
 
 
 <!-- **************************************************** -->
@@ -97,11 +100,11 @@
 
     <xsd:sequence>
       <xsd:element name="taglib"
-		   type="j2ee:taglibType"
+		   type="javaee:taglibType"
 		   minOccurs="0"
 		   maxOccurs="unbounded"/>
       <xsd:element name="jsp-property-group"
-		   type="j2ee:jsp-property-groupType"
+		   type="javaee:jsp-property-groupType"
 		   minOccurs="0"
 		   maxOccurs="unbounded"/>
     </xsd:sequence>
@@ -121,7 +124,7 @@
     </xsd:annotation>
 
     <xsd:simpleContent>
-      <xsd:restriction base="j2ee:pathType"/>
+      <xsd:restriction base="javaee:pathType"/>
     </xsd:simpleContent>
   </xsd:complexType>
 
@@ -136,22 +139,26 @@
 	All files so described are deemed to be JSP files.  The
 	following additional properties can be described:
 
-	    - Control whether EL is ignored
-	    - Control whether scripting elements are invalid
+	    - Control whether EL is ignored.
+	    - Control whether scripting elements are invalid.
 	    - Indicate pageEncoding information.
-	    - Indicate that a resource is a JSP document (XML)
+	    - Indicate that a resource is a JSP document (XML).
 	    - Prelude and Coda automatic includes.
+            - Control whether the character sequence #{ is allowed
+              when used as a String literal.
+            - Control whether template text containing only
+              whitespaces must be removed from the response output.
 
       </xsd:documentation>
     </xsd:annotation>
 
     <xsd:sequence>
-      <xsd:group ref="j2ee:descriptionGroup"/>
+      <xsd:group ref="javaee:descriptionGroup"/>
       <xsd:element name="url-pattern"
-		   type="j2ee:url-patternType"
+		   type="javaee:url-patternType"
 		   maxOccurs="unbounded"/>
       <xsd:element name="el-ignored"
-		   type="j2ee:true-falseType"
+		   type="javaee:true-falseType"
 		   minOccurs="0">
 	<xsd:annotation>
 	  <xsd:documentation>
@@ -166,7 +173,7 @@
 	</xsd:annotation>
       </xsd:element>
       <xsd:element name="page-encoding"
-		   type="j2ee:string"
+		   type="javaee:string"
 		   minOccurs="0">
 	<xsd:annotation>
 	  <xsd:documentation>
@@ -187,7 +194,7 @@
 	</xsd:annotation>
       </xsd:element>
       <xsd:element name="scripting-invalid"
-		   type="j2ee:true-falseType"
+		   type="javaee:true-falseType"
 		   minOccurs="0">
 	<xsd:annotation>
 	  <xsd:documentation>
@@ -200,7 +207,7 @@
 	</xsd:annotation>
       </xsd:element>
       <xsd:element name="is-xml"
-		   type="j2ee:true-falseType"
+		   type="javaee:true-falseType"
 		   minOccurs="0">
 	<xsd:annotation>
 	  <xsd:documentation>
@@ -216,7 +223,7 @@
 	</xsd:annotation>
       </xsd:element>
       <xsd:element name="include-prelude"
-		   type="j2ee:pathType"
+		   type="javaee:pathType"
 		   minOccurs="0"
 		   maxOccurs="unbounded">
 	<xsd:annotation>
@@ -233,7 +240,7 @@
 	</xsd:annotation>
       </xsd:element>
       <xsd:element name="include-coda"
-		   type="j2ee:pathType"
+		   type="javaee:pathType"
 		   minOccurs="0"
 		   maxOccurs="unbounded">
 	<xsd:annotation>
@@ -245,6 +252,35 @@
 	    the given path will be automatically included (as
 	    in an include directive) at the end of each
 	    JSP page in this jsp-property-group.
+
+	  </xsd:documentation>
+	</xsd:annotation>
+      </xsd:element>
+      <xsd:element name="deferred-syntax-allowed-as-literal"
+		   type="javaee:true-falseType"
+		   minOccurs="0">
+	<xsd:annotation>
+	  <xsd:documentation>
+
+             The character sequence #{ is reserved for EL expressions.
+             Consequently, a translation error occurs if the #{
+             character sequence is used as a String literal, unless
+             this element is enabled (true). Disabled (false) by
+             default.
+
+	  </xsd:documentation>
+	</xsd:annotation>
+      </xsd:element>
+      <xsd:element name="trim-directive-whitespaces"
+		   type="javaee:true-falseType"
+		   minOccurs="0">
+	<xsd:annotation>
+	  <xsd:documentation>
+
+             Indicates that template text containing only whitespaces
+             must be removed from the response output. It has no
+             effect on JSP documents (XML syntax). Disabled (false)
+             by default.
 
 	  </xsd:documentation>
 	</xsd:annotation>
@@ -270,7 +306,7 @@
 
     <xsd:sequence>
       <xsd:element name="taglib-uri"
-		   type="j2ee:string">
+		   type="javaee:string">
 	<xsd:annotation>
 	  <xsd:documentation>
 
@@ -286,7 +322,7 @@
       </xsd:element>
 
       <xsd:element name="taglib-location"
-		   type="j2ee:pathType">
+		   type="javaee:pathType">
 	<xsd:annotation>
 	  <xsd:documentation>
 

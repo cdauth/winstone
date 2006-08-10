@@ -265,7 +265,8 @@ public class Ajp13IncomingPacket {
      */
     private String readString(int position, byte packet[], String encoding,
             int length) throws UnsupportedEncodingException {
-        // System.out.println("Reading string length: " + length);
+//        System.out.println("Reading string length: " + length + 
+//                " position=" + position + " packetLength=" + packet.length);
         return length == 0 ? ""
                 : new String(packet, position, length, encoding);
     }

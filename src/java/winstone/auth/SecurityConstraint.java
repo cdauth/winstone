@@ -65,12 +65,13 @@ public class SecurityConstraint {
                     if (resourceChild.getNodeType() != Node.ELEMENT_NODE)
                         continue;
                     String resourceChildNodeName = resourceChild.getNodeName();
-                    if (resourceChildNodeName.equals(ELEM_URL_PATTERN))
+                    if (resourceChildNodeName.equals(ELEM_URL_PATTERN)) {
                         localUrlPatternList.add(Mapping.createFromURL(
                                 "Security", WebAppConfiguration.getTextFromNode(resourceChild)));
-                    else if (resourceChildNodeName.equals(ELEM_HTTP_METHOD))
+                    } else if (resourceChildNodeName.equals(ELEM_HTTP_METHOD)) {
                         methodSet = (methodSet == null ? "." : methodSet)
                                 + WebAppConfiguration.getTextFromNode(resourceChild) + ".";
+                    }
                 }
                 localMethodSetList.add(methodSet == null ? ".ALL." : methodSet);
             } else if (child.getNodeName().equals(ELEM_AUTH_CONSTRAINT)) {

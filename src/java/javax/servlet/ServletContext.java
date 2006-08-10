@@ -49,6 +49,8 @@ public interface ServletContext {
 
     public Set getResourcePaths(String path);
 
+    public String getContextPath();
+    
     /**
      * @deprecated As of Java Servlet API 2.1, with no direct replacement.
      */

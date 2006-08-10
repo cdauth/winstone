@@ -333,8 +333,8 @@ public class WinstoneResponse implements HttpServletResponse {
                     cookie.setMaxAge(-1);
                     cookie.setSecure(req.isSecure());
                     cookie.setVersion(0); //req.isSecure() ? 1 : 0);
-                    cookie.setPath(req.getWebAppConfig().getPrefix().equals("") ? "/"
-                                    : req.getWebAppConfig().getPrefix());
+                    cookie.setPath(req.getWebAppConfig().getContextPath().equals("") ? "/"
+                                    : req.getWebAppConfig().getContextPath());
                     this.addCookie(cookie);
                 }
             }
@@ -765,7 +765,11 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public void setStatus(int sc) {
         if (!isIncluding() && (this.errorStatusCode == null)) {
+//        if (!isIncluding()) {
             this.statusCode = sc;
+//            if (this.errorStatusCode != null) {
+//                this.errorStatusCode = new Integer(sc);
+//            }
         }
     }
 

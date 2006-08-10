@@ -412,28 +412,31 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 // Process the servlet mappings
                 else if (nodeName.equals(ELEM_SERVLET_MAPPING)) {
                     String name = null;
-                    String pattern = null;
+                    List mappings = new ArrayList();
 
                     // Parse the element and extract
-                    for (int k = 0; k < child.getChildNodes().getLength(); k++) {
-                        Node mapChild = child.getChildNodes().item(k);
+                    NodeList mappingChildren = child.getChildNodes(); 
+                    for (int k = 0; k < mappingChildren.getLength(); k++) {
+                        Node mapChild = mappingChildren.item(k);
                         if (mapChild.getNodeType() != Node.ELEMENT_NODE)
                             continue;
                         String mapNodeName = mapChild.getNodeName();
-                        if (mapNodeName.equals(ELEM_SERVLET_NAME))
+                        if (mapNodeName.equals(ELEM_SERVLET_NAME)) {
                             name = getTextFromNode(mapChild);
-                        else if (mapNodeName.equals(ELEM_URL_PATTERN))
-                            pattern = getTextFromNode(mapChild);
+                        } else if (mapNodeName.equals(ELEM_URL_PATTERN)) {
+                            mappings.add(getTextFromNode(mapChild));
+                        }
                     }
-                    processMapping(name, pattern, this.exactServletMatchMounts,
-                            localFolderPatterns, localExtensionPatterns);
+                    for (Iterator i = mappings.iterator(); i.hasNext(); ) {
+                        processMapping(name, (String) i.next(), this.exactServletMatchMounts, 
+                                localFolderPatterns, localExtensionPatterns);
+                    }
                 }
 
                 // Process the filter mappings
                 else if (nodeName.equals(ELEM_FILTER_MAPPING)) {
                     String filterName = null;
-                    String servletName = null;
-                    String urlPattern = null;
+                    List mappings = new ArrayList();
                     boolean onRequest = false;
                     boolean onForward = false;
                     boolean onInclude = false;
@@ -445,13 +448,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         if (mapChild.getNodeType() != Node.ELEMENT_NODE)
                             continue;
                         String mapNodeName = mapChild.getNodeName();
-                        if (mapNodeName.equals(ELEM_FILTER_NAME))
+                        if (mapNodeName.equals(ELEM_FILTER_NAME)) {
                             filterName = getTextFromNode(mapChild);
-                        else if (mapNodeName.equals(ELEM_SERVLET_NAME))
-                            servletName = getTextFromNode(mapChild);
-                        else if (mapNodeName.equals(ELEM_URL_PATTERN))
-                            urlPattern = getTextFromNode(mapChild);
-                        else if (mapNodeName.equals(ELEM_DISPATCHER)) {
+                        } else if (mapNodeName.equals(ELEM_SERVLET_NAME)) {
+                            mappings.add("srv:" + getTextFromNode(mapChild));
+                        } else if (mapNodeName.equals(ELEM_URL_PATTERN)) {
+                            mappings.add("url:" + getTextFromNode(mapChild));
+                        } else if (mapNodeName.equals(ELEM_DISPATCHER)) {
                             String dispatcherValue = getTextFromNode(mapChild);
                             if (dispatcherValue.equals(DISPATCHER_REQUEST))
                                 onRequest = true;
@@ -463,26 +466,31 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                                 onError = true;
                         }
                     }
-                    if (!onRequest && !onInclude && !onForward && !onError)
+                    if (!onRequest && !onInclude && !onForward && !onError) {
                         onRequest = true;
-
-                    Mapping mapping = null;
-                    if (servletName != null) {
-                        mapping = Mapping.createFromLink(filterName, servletName);
-                    } else if (urlPattern != null) {
-                        mapping = Mapping.createFromURL(filterName, urlPattern);
-                    } else {
-                        throw new WinstoneException("Error in filter mapping - no pattern and no servlet name");
                     }
-
-                    if (onRequest)
-                        lfpRequest.add(mapping);
-                    if (onForward)
-                        lfpForward.add(mapping);
-                    if (onInclude)
-                        lfpInclude.add(mapping);
-                    if (onError)
-                        lfpError.add(mapping);
+                    if (mappings.isEmpty()) {
+                        throw new WinstoneException(Launcher.RESOURCES.getString(
+                                "WebAppConfig.BadFilterMapping", filterName));
+                    }
+                        
+                    for (Iterator i = mappings.iterator(); i.hasNext(); ) {
+                        String item = (String) i.next();
+                        Mapping mapping = null;
+                        if (item.startsWith("srv:")) {
+                            mapping = Mapping.createFromLink(filterName, item.substring(4));
+                        } else {
+                            mapping = Mapping.createFromURL(filterName, item.substring(4));
+                        }
+                        if (onRequest)
+                            lfpRequest.add(mapping);
+                        if (onForward)
+                            lfpForward.add(mapping);
+                        if (onInclude)
+                            lfpInclude.add(mapping);
+                        if (onError)
+                            lfpError.add(mapping);
+                    }
                 }
 
                 // Process the list of welcome files
@@ -998,7 +1006,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             sessionListeners.add(listenerInstance);
     }
     
-    public String getPrefix() {
+    public String getContextPath() {
         return this.prefix;
     }
 
@@ -1177,7 +1185,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * environments.
      */
     public void resetClassLoader() throws IOException {
-        this.ownerHostConfig.reloadWebApp(getPrefix());
+        this.ownerHostConfig.reloadWebApp(getContextPath());
     }
 
     /**
@@ -1390,7 +1398,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     }
 
     public int getMinorVersion() {
-        return 4;
+        return 5;
     }
 
     // Weird mostly deprecated crap to do with getting servlet instances
@@ -1601,7 +1609,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     if (errorURI != null) {
                         RequestDispatcher rd = buildErrorDispatcher(errorURI, 
                                 HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                                errWrapper.getMessage(), errWrapper);
+                                null, errWrapper);
                         if (rd != null) {
                             return rd;
                         }
@@ -1626,7 +1634,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             errPassDown = ((ServletException) errPassDown).getRootCause();
         }
         return getErrorDispatcherByCode(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                errPassDown.getMessage(), errPassDown);
+                null, errPassDown);
     }
     
     public RequestDispatcher getErrorDispatcherByCode(
@@ -1671,6 +1679,20 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 queryString = errorURI.substring(questionPos + 1);
             }
             errorURI = errorURI.substring(0, questionPos);
+        }
+        
+        // Get the message by recursing if none supplied
+        ServletException errIterator = new ServletException(exception);
+        while ((summaryMessage == null) && (errIterator != null)) {
+            summaryMessage = errIterator.getMessage();
+            if (errIterator.getRootCause() instanceof ServletException) {
+                errIterator = (ServletException) errIterator.getRootCause(); 
+            } else {
+                if (summaryMessage == null) {
+                    summaryMessage = errIterator.getRootCause().getMessage();
+                }
+                errIterator = null;
+            }
         }
 
         // Return the dispatcher

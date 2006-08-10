@@ -136,7 +136,7 @@ public class SimpleCluster implements Runnable, Cluster {
         for (Iterator i = addresses.iterator(); i.hasNext();) {
             String ipPort = (String) i.next();
             ClusterSessionSearch search = new ClusterSessionSearch(
-                    webAppConfig.getPrefix(), webAppConfig.getOwnerHostname(), 
+                    webAppConfig.getContextPath(), webAppConfig.getOwnerHostname(), 
                     sessionId, ipPort, this.controlPort);
             searchThreads.add(search);
         }

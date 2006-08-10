@@ -119,7 +119,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         this.errorStatusCode = new Integer(statusCode);
         this.errorException = exception;
         this.errorSummaryMessage = summaryMessage;
-
         this.matchingFilters = getMatchingFilters(errorFilterPatterns, this.webAppConfig, 
                 servletPath + (pathInfo == null ? "" : pathInfo), 
                 getName(), "ERROR", (servletPath != null));
@@ -167,8 +166,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             
             // Set request attributes
             if (useRequestAttributes) {
-                wr.addIncludeAttributes(this.webAppConfig.getPrefix() + this.requestURI, 
-                        this.webAppConfig.getPrefix(), this.servletPath, this.pathInfo, this.queryString);
+                wr.addIncludeAttributes(this.webAppConfig.getContextPath() + this.requestURI, 
+                        this.webAppConfig.getContextPath(), this.servletPath, this.pathInfo, this.queryString);
             }
             // Add another include buffer to the response stack
             getUnwrappedResponse(response).startIncludeBuffer();
@@ -190,7 +189,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
                 try {
                     this.servletConfig.execute(request, response, 
-                            this.webAppConfig.getPrefix() + this.requestURI);
+                            this.webAppConfig.getContextPath() + this.requestURI);
                 } finally {
                     if (this.matchingFilters.length == 0) {
                         finishInclude(request, response);
@@ -264,7 +263,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                 if (this.isErrorDispatch) {
                     req.setAttribute(ERROR_REQUEST_URI, req.getRequestURI());
                     req.setAttribute(ERROR_STATUS_CODE, this.errorStatusCode);
-                    req.setAttribute(ERROR_MESSAGE, errorSummaryMessage);
+                    req.setAttribute(ERROR_MESSAGE, 
+                            errorSummaryMessage != null ? errorSummaryMessage : "");
                     if (req.getServletConfig() != null) {
                         req.setAttribute(ERROR_SERVLET_NAME, req.getServletConfig().getServletName());
                     }
@@ -286,7 +286,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
             req.setServletPath(this.servletPath);
             req.setPathInfo(this.pathInfo);
-            req.setRequestURI(this.webAppConfig.getPrefix() + this.requestURI);
+            req.setRequestURI(this.webAppConfig.getContextPath() + this.requestURI);
             req.setQueryString(this.queryString);
             req.setWebAppConfig(this.webAppConfig);
             req.setServletConfig(this.servletConfig);
@@ -315,7 +315,7 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         if (this.matchingFiltersEvaluated < this.matchingFilters.length)
             doFilter(request, response);
         else
-            this.servletConfig.execute(request, response, this.webAppConfig.getPrefix() + this.requestURI);
+            this.servletConfig.execute(request, response, this.webAppConfig.getContextPath() + this.requestURI);
     }
 
     private boolean continueAfterSecurityCheck(ServletRequest request,
@@ -382,7 +382,8 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
 
                     // If the servlet name matches this name, execute it
                     if ((filterPattern.getLinkName() != null)
-                            && filterPattern.getLinkName().equals(servletName)) {
+                            && (filterPattern.getLinkName().equals(servletName) ||
+                                    filterPattern.getLinkName().equals("*"))) {
                         outFilters.add(webAppConfig.getFilters().get(filterPattern.getMappedTo()));
                     }
                     // If the url path matches this filters mappings

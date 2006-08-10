@@ -263,7 +263,7 @@ public class HostConfiguration {
                         if (!this.webapps.containsKey(prefix)) {
                             try {
                                 WebAppConfiguration webAppConfig = initWebApp(prefix, children[n], childName);
-                                this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
+                                this.webapps.put(webAppConfig.getContextPath(), webAppConfig);
                                 Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
                             } catch (Throwable err) {
                                 Logger.log(Logger.ERROR, Launcher.RESOURCES, "HostConfig.WebappInitError", prefix, err);
@@ -281,7 +281,7 @@ public class HostConfiguration {
                             WebAppConfiguration webAppConfig = initWebApp(prefix, 
                                             getWebRoot(new File(webappsDir, outputName).getCanonicalPath(),
                                                     children[n].getCanonicalPath()), outputName);
-                            this.webapps.put(webAppConfig.getPrefix(), webAppConfig);
+                            this.webapps.put(webAppConfig.getContextPath(), webAppConfig);
                             Logger.log(Logger.INFO, Launcher.RESOURCES, "HostConfig.DeployingWebapp", childName);
                         } catch (Throwable err) {
                             Logger.log(Logger.ERROR, Launcher.RESOURCES, "HostConfig.WebappInitError", prefix, err);
