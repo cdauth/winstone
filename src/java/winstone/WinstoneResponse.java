@@ -61,15 +61,12 @@ public class WinstoneResponse implements HttpServletResponse {
     private WebAppConfiguration webAppConfig;
     private WinstoneOutputStream outputStream;
     private PrintWriter outputWriter;
-//    private Stack includeByteArrays;
-//    private Stack includeOutputStreams;
     
     private List headers;
     private String explicitlySetEncoding;
     private String currentEncoding;
     private List cookies;
     
-//    private Map outPrintWriters;
     private Locale locale;
     private String protocol;
     private String reqKeepAliveHeader;
@@ -82,9 +79,6 @@ public class WinstoneResponse implements HttpServletResponse {
         
         this.headers = new ArrayList();
         this.cookies = new ArrayList();
-//        this.includeByteArrays = new Stack();
-//        this.includeOutputStreams = new Stack();
-//        this.outPrintWriters = new Hashtable();
 
         this.statusCode = SC_OK;
         this.locale = null; //Locale.getDefault();
@@ -101,9 +95,6 @@ public class WinstoneResponse implements HttpServletResponse {
         this.webAppConfig = null;
         this.outputStream = null;
         this.outputWriter = null;
-//        this.includeByteArrays.clear();
-//        this.includeOutputStreams.clear();
-//        this.outPrintWriters.clear();
         this.headers.clear();
         this.cookies.clear();
         this.protocol = null;
@@ -189,12 +180,6 @@ public class WinstoneResponse implements HttpServletResponse {
     
     public void startIncludeBuffer() {
         this.outputStream.startIncludeBuffer();
-//        ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-//        WinstoneOutputStream outStream = new WinstoneOutputStream(outBytes, true);
-//        outStream.setResponse(this);
-//        
-//        this.includeByteArrays.push(outBytes);
-//        this.includeOutputStreams.push(outStream);
     }
     
     public void finishIncludeBuffer() throws IOException {
@@ -204,47 +189,10 @@ public class WinstoneResponse implements HttpServletResponse {
             }
             this.outputStream.finishIncludeBuffer();
         }
-//        if (!isIncluding()) {
-//            return; // must have been forwarded, and the include buffers cleared. Ignore
-//        }
-//        ByteArrayOutputStream body = (ByteArrayOutputStream) this.includeByteArrays.pop();
-//        WinstoneOutputStream included = (WinstoneOutputStream) this.includeOutputStreams.pop();
-//        PrintWriter includedWriter = (PrintWriter) this.outPrintWriters.get(included);
-//        if (includedWriter != null) {
-//            includedWriter.flush();
-//        }
-//        included.commit();
-//        included.close();
-//        included.setResponse(null); // for garbage collection
-//
-//        body.flush();
-//        String underlyingEncoding = getCharacterEncoding();
-//        String bodyBlock = (underlyingEncoding != null 
-//                ? new String(body.toByteArray(), underlyingEncoding)
-//                : new String(body.toByteArray()));
-//
-//        // Try to write the body in
-//        WinstoneOutputStream including = getTopOutputStream();
-//        PrintWriter out = (PrintWriter) this.outPrintWriters.get(including);
-//        if (out == null) {
-//            out = new PrintWriter(new OutputStreamWriter(including, underlyingEncoding), false);
-//        }
-//        out.write(bodyBlock);
-//        out.flush();
     }
     
     public void clearIncludeStackForForward() throws IOException {
         this.outputStream.clearIncludeStackForForward();
-//        for (Iterator i = this.includeOutputStreams.iterator(); i.hasNext(); ) {
-//            ((WinstoneOutputStream) i.next()).close();
-//        }
-//        this.includeOutputStreams.clear();
-//        this.includeByteArrays.clear();
-//        PrintWriter mainOutWriter = (PrintWriter) this.outPrintWriters.get(this.outputStream);
-//        this.outPrintWriters.clear();
-//        if (mainOutWriter != null) {
-//            this.outPrintWriters.put(this.outputStream, mainOutWriter);
-//        }
     }
 
     protected static String getCharsetFromContentTypeHeader(String type, StringBuffer remainder) {
@@ -280,10 +228,6 @@ public class WinstoneResponse implements HttpServletResponse {
     public void validateHeaders() {        
         // Need this block for WebDAV support. "Connection:close" header is ignored
         String lengthHeader = getHeader(CONTENT_LENGTH_HEADER);
-//        String oldKeepAliveHeader = getHeader(KEEP_ALIVE_HEADER);
-//        if ((lengthHeader == null) && 
-//                (oldKeepAliveHeader != null) && 
-//                oldKeepAliveHeader.equals(KEEP_ALIVE_OPEN)) {
         if ((lengthHeader == null) && (this.statusCode >= 300)) {
             int bodyBytes = this.outputStream.getOutputStreamLength();
             if (getBufferSize() > bodyBytes) {
@@ -335,7 +279,7 @@ public class WinstoneResponse implements HttpServletResponse {
                     cookie.setVersion(0); //req.isSecure() ? 1 : 0);
                     cookie.setPath(req.getWebAppConfig().getContextPath().equals("") ? "/"
                                     : req.getWebAppConfig().getContextPath());
-                    this.addCookie(cookie);
+                    this.cookies.add(cookie); // don't call addCookie because we might be including
                 }
             }
         }
@@ -350,7 +294,7 @@ public class WinstoneResponse implements HttpServletResponse {
                 cookie.setSecure(req.isSecure());
                 cookie.setVersion(0); //req.isSecure() ? 1 : 0);
                 cookie.setPath(prefix.equals("") ? "/" : prefix);
-                this.addCookie(cookie);
+                this.cookies.add(cookie); // don't call addCookie because we might be including
             }
         }
         
