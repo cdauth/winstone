@@ -222,7 +222,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
             if (!this.includeByteStreams.isEmpty()) {
                 topStream = (OutputStream) this.includeByteStreams.peek();
             }
-            topStream.write(body.toByteArray());
+            byte bodyArr[] = body.toByteArray();
+            if (bodyArr.length > 0) {
+                topStream.write(bodyArr);
+            }
             body.close();
         }
     }

@@ -233,29 +233,29 @@ public class WinstoneResponse implements HttpServletResponse {
             if (getBufferSize() > bodyBytes) {
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, 
                         "WinstoneResponse.ForcingContentLength", "" + bodyBytes);
-                setContentLength(bodyBytes);
+                setHeader(CONTENT_LENGTH_HEADER, "" + bodyBytes, true);
                 lengthHeader = getHeader(CONTENT_LENGTH_HEADER);
             }
         }
         
-        setHeader(KEEP_ALIVE_HEADER, !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE);
+        setHeader(KEEP_ALIVE_HEADER, !closeAfterRequest() ? KEEP_ALIVE_OPEN : KEEP_ALIVE_CLOSE, true);
         String contentType = getHeader(CONTENT_TYPE_HEADER);
         if ((contentType == null) && (this.statusCode != SC_MOVED_TEMPORARILY)) {
             // Bypass normal encoding
             String enc = getCurrentEncoding();
             setHeader(CONTENT_TYPE_HEADER, "text/html" + 
-                    (enc == null ? "" : ";charset=" + enc));
+                    (enc == null ? "" : ";charset=" + enc), true);
         }
         if (getHeader(DATE_HEADER) == null)
-            setDateHeader(DATE_HEADER, System.currentTimeMillis());
+            setHeader(DATE_HEADER, formatHeaderDate(new Date()), true);
         if (getHeader(X_POWERED_BY_HEADER) == null)
-            setHeader(X_POWERED_BY_HEADER, POWERED_BY_WINSTONE);
+            setHeader(X_POWERED_BY_HEADER, POWERED_BY_WINSTONE, true);
         if (this.locale != null) {
             String lang = this.locale.getLanguage();
             if ((this.locale.getCountry() != null) && !this.locale.getCountry().equals("")) {
                 lang = lang + "-" + this.locale.getCountry();
             }
-            setHeader(CONTENT_LANGUAGE_HEADER, lang);
+            setHeader(CONTENT_LANGUAGE_HEADER, lang, true);
         }
         
         // If we don't have a webappConfig, exit here, cause we definitely don't
@@ -519,14 +519,11 @@ public class WinstoneResponse implements HttpServletResponse {
     public PrintWriter getWriter() throws IOException {
         Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES, "WinstoneResponse.GetWriter");
         WinstoneOutputStream outStream = getTopOutputStream();
-//        PrintWriter outWriter = (PrintWriter) this.outPrintWriters.get(outStream);
         if (this.outputWriter != null)
             return this.outputWriter;
         else {
             this.outputWriter = new WinstoneResponseWriter(outStream, this);
             return this.outputWriter;
-//            this.outPrintWriters.put(outStream, outWriter);
-//            return outWriter;
         }
     }
 
@@ -555,12 +552,6 @@ public class WinstoneResponse implements HttpServletResponse {
             if (this.outputWriter != null) {
                 this.outputWriter.flush();
             }
-//            PrintWriter mainOutWriter = (PrintWriter) this.outPrintWriters.get(this.outputStream);
-//            this.outPrintWriters.clear();
-//            if (mainOutWriter != null) {
-//                mainOutWriter.flush();
-//                this.outPrintWriters.put(this.outputStream, mainOutWriter);
-//            }
             
             this.outputStream.setDisregardMode(false);
             this.outputStream.reset();
@@ -630,7 +621,10 @@ public class WinstoneResponse implements HttpServletResponse {
     }
 
     public void setHeader(String name, String value) {
-        if (isIncluding()) {
+        setHeader(name, value, false);
+    }
+    private void setHeader(String name, String value, boolean ignoreInclude) {
+        if (!ignoreInclude && isIncluding()) {
             Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.HeaderInInclude", 
                     new String[] {name, value});  
         } else if (isCommitted()) {
