@@ -32,6 +32,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     protected boolean bodyOnly;
     protected WinstoneResponse owner;
     protected boolean disregardMode = false;
+    protected boolean closed = false;
     protected Stack includeByteStreams;
     
     /**
@@ -77,9 +78,13 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     public void setDisregardMode(boolean disregard) {
         this.disregardMode = disregard;
     }
+    
+    public void setClosed(boolean closed) {
+        this.closed = closed;
+    }
 
     public void write(int oneChar) throws IOException {
-        if (this.disregardMode) {
+        if (this.disregardMode || this.closed) {
             return;
         }
         String contentLengthHeader = this.owner.getHeader(WinstoneResponse.CONTENT_LENGTH_HEADER);
@@ -192,7 +197,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     }
 
     public void close() throws IOException {
-        if (!isCommitted() && !this.disregardMode &&
+        if (!isCommitted() && !this.disregardMode && !this.closed &&
                 (this.owner.getHeader(WinstoneResponse.CONTENT_LENGTH_HEADER) == null)) {
             if ((this.owner != null) && !this.bodyOnly) {
                 this.owner.setContentLength(getOutputStreamLength());

@@ -1229,7 +1229,7 @@ public class WinstoneRequest implements HttpServletRequest {
     }
 
     public boolean isRequestedSessionIdFromCookie() {
-        return true;
+        return (getRequestedSessionId() != null);
     }
 
     public boolean isRequestedSessionIdFromURL() {

@@ -333,6 +333,9 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
             doFilter(request, response);
         } else {
             this.servletConfig.execute(request, response, this.webAppConfig.getContextPath() + this.requestURI);
+            WinstoneResponse rsp = getUnwrappedResponse(response);
+            rsp.flushBuffer();
+            rsp.getWinstoneOutputStream().setClosed(true);
         }
     }
 
