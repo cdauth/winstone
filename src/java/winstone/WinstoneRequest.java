@@ -120,6 +120,8 @@ public class WinstoneRequest implements HttpServletRequest {
     
     private MessageDigest md5Digester;
     
+    private Set usedSessions;
+    
     /**
      * InputStream factory method.
      */
@@ -132,6 +134,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.forwardedParameters = new Hashtable();
         this.requestedSessionIds = new Hashtable();
         this.currentSessionIds = new Hashtable();
+        this.usedSessions = new HashSet();
         this.contentLength = -1;
         this.isSecure = false;
         try {
@@ -153,6 +156,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.attributesStack.clear();
         this.parametersStack.clear();
         this.forwardedParameters.clear();
+        this.usedSessions.clear();
         this.headers = null;
         this.cookies = null;
         this.method = null;
@@ -1242,11 +1246,12 @@ public class WinstoneRequest implements HttpServletRequest {
             return false;
         }
         WinstoneSession ws = this.webappConfig.getSessionById(requestedId, false);
-        if (ws == null) {
-            return false;
-        } else {
-            return (validationCheck(ws, System.currentTimeMillis(), false) != null);
-        }
+        return (ws != null);
+//        if (ws == null) {
+//            return false;
+//        } else {
+//            return (validationCheck(ws, System.currentTimeMillis(), false) != null);
+//        }
     }
 
     public HttpSession getSession() {
@@ -1266,37 +1271,20 @@ public class WinstoneRequest implements HttpServletRequest {
         }
 
         // Now get the session object
-        long nowDate = System.currentTimeMillis();
         WinstoneSession session = this.webappConfig.getSessionById(cookieValue, false);
         if (session != null) {
-            session = validationCheck(session, nowDate, create);
-            if (session == null) {
-                this.currentSessionIds.remove(this.webappConfig.getContextPath());
-            }
+//            long nowDate = System.currentTimeMillis();
+//            session = validationCheck(session, nowDate, create);
+//            if (session == null) {
+//                this.currentSessionIds.remove(this.webappConfig.getContextPath());
+//            }
         }
         if (create && (session == null)) {
             session = makeNewSession();
         }
-
-        return session;
-
-    }
-
-    private WinstoneSession validationCheck(WinstoneSession session,
-            long nowDate, boolean create) {
-        // check if it's expired yet
-        long lastAccessed = session.getLastAccessedTime();
-        long maxInactive = session.getMaxInactiveInterval() * 1000;
-        if ((maxInactive > 0) && (nowDate - lastAccessed > maxInactive )) {
-            session.invalidate();
-            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
-                    "WinstoneRequest.InvalidateSession", new String[] {
-                            session.getId(), "" + (nowDate - lastAccessed) });
-            if (create) {
-                session = makeNewSession();
-            } else {
-                session = null;
-            }
+        if (session != null) {
+            this.usedSessions.add(session);
+            session.addUsed(this);
         }
         return session;
     }
@@ -1325,6 +1313,15 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.webappConfig.makeNewSession(newSessionId);
     }
 
+    public void markSessionsAsRequestFinished(long lastAccessedTime) {
+        for (Iterator i = this.usedSessions.iterator(); i.hasNext(); ) {
+            WinstoneSession session = (WinstoneSession) i.next();
+            session.setLastAccessedDate(lastAccessedTime);
+            session.removeUsed(this);
+        }
+        this.usedSessions.clear();
+    }
+    
     /**
      * @deprecated
      */

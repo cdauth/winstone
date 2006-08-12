@@ -12,10 +12,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
@@ -50,6 +52,7 @@ public class WinstoneSession implements HttpSession, Serializable {
     private AuthenticationPrincipal authenticatedUser;
     private WinstoneRequest cachedRequest;
     private Object sessionMonitor = new Boolean(true);
+    private Set requestsUsingMe;
 
     /**
      * Constructor
@@ -59,6 +62,7 @@ public class WinstoneSession implements HttpSession, Serializable {
         this.sessionId = sessionId;
         this.webAppConfig = webAppConfig;
         this.sessionData = new HashMap();
+        this.requestsUsingMe = new HashSet();
         this.createTime = System.currentTimeMillis();
         this.isNew = true;
         this.isInvalidated = false;
@@ -95,6 +99,25 @@ public class WinstoneSession implements HttpSession, Serializable {
 
     public void setIsNew(boolean isNew) {
         this.isNew = isNew;
+    }
+    
+    public void addUsed(WinstoneRequest request) {
+        this.requestsUsingMe.add(request);
+    }
+    
+    public void removeUsed(WinstoneRequest request) {
+        this.requestsUsingMe.remove(request);
+    }
+    
+    public boolean isUnsedByRequests() {
+        return this.requestsUsingMe.isEmpty();
+    }
+    
+    public boolean isExpired() {
+        // check if it's expired yet
+        long nowDate = System.currentTimeMillis();
+        long maxInactive = getMaxInactiveInterval() * 1000;
+        return ((maxInactive > 0) && (nowDate - this.lastAccessedTime > maxInactive ));
     }
 
     // Implementation methods

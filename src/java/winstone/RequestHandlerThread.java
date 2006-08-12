@@ -161,10 +161,7 @@ public class RequestHandlerThread implements Runnable {
 
                         // Set last accessed time on session as start of this
                         // request
-                        WinstoneSession session = (WinstoneSession) req.getSession(false);
-                        if (session != null) {
-                            session.setLastAccessedDate(this.requestStartTime);
-                        }
+                        req.markSessionsAsRequestFinished(this.requestStartTime);
 
                         // send request listener notifies
                         for (int n = 0; n < reqLsnrs.length; n++) {

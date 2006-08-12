@@ -21,7 +21,9 @@ import java.util.Map;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class ObjectPool {
+public class ObjectPool implements Runnable {
+    private static final long FLUSH_PERIOD = 60000L;
+    
     private int STARTUP_REQUEST_HANDLERS_IN_POOL = 5;
     private int MAX_IDLE_REQUEST_HANDLERS_IN_POOL = 50;
     private int MAX_REQUEST_HANDLERS_IN_POOL = 1000;
@@ -42,6 +44,8 @@ public class ObjectPool {
     private int threadIndex = 0;
     private boolean simulateModUniqueId;
 
+    private Thread thread;
+    
     /**
      * Constructs an instance of the object pool, including handlers, requests
      * and responses
@@ -60,30 +64,53 @@ public class ObjectPool {
         this.unusedResponsePool = new ArrayList();
 
         // Get handler pool options
-        if (args.get("handlerCountStartup") != null)
+        if (args.get("handlerCountStartup") != null) {
             STARTUP_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args
                     .get("handlerCountStartup"));
-        if (args.get("handlerCountMax") != null)
+        }
+        if (args.get("handlerCountMax") != null) {
             MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args
                     .get("handlerCountMax"));
-        if (args.get("handlerCountMaxIdle") != null)
+        }
+        if (args.get("handlerCountMaxIdle") != null) {
             MAX_IDLE_REQUEST_HANDLERS_IN_POOL = Integer.parseInt((String) args
                     .get("handlerCountMaxIdle"));
+        }
 
         // Start the base set of handler threads
-        for (int n = 0; n < STARTUP_REQUEST_HANDLERS_IN_POOL; n++)
+        for (int n = 0; n < STARTUP_REQUEST_HANDLERS_IN_POOL; n++) {
             this.unusedRequestHandlerThreads
                     .add(new RequestHandlerThread(this, 
                             this.threadIndex++, this.simulateModUniqueId));
+        }
 
         // Initialise the request/response pools
-        for (int n = 0; n < START_REQUESTS_IN_POOL; n++)
+        for (int n = 0; n < START_REQUESTS_IN_POOL; n++) {
             this.unusedRequestPool.add(new WinstoneRequest());
-        for (int n = 0; n < START_RESPONSES_IN_POOL; n++)
+        }
+        for (int n = 0; n < START_RESPONSES_IN_POOL; n++) {
             this.unusedResponsePool.add(new WinstoneResponse());
+        }
+        
+        this.thread = new Thread(this, "WinstoneObjectPoolMgmt");
+        this.thread.setDaemon(true);
+        this.thread.start();
     }
 
-    public void removeUnusedRequestHandlers() {
+    public void run() {
+        boolean interrupted = false;
+        while (!interrupted) {
+            try {
+                Thread.sleep(FLUSH_PERIOD);
+                removeUnusedRequestHandlers();
+            } catch (InterruptedException err) {
+                interrupted = true;
+            }
+        }
+        this.thread = null;
+    }
+    
+    private void removeUnusedRequestHandlers() {
         // Check max idle requestHandler count
         synchronized (this.requestHandlerSemaphore) {
             // If we have too many idle request handlers
@@ -104,6 +131,9 @@ public class ObjectPool {
             for (Iterator i = unusedHandlers.iterator(); i.hasNext();)
                 ((RequestHandlerThread) i.next()).destroy();
             this.unusedRequestHandlerThreads.clear();
+        }
+        if (this.thread != null) {
+            this.thread.interrupt();
         }
     }
 

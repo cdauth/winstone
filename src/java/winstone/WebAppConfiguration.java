@@ -1312,6 +1312,22 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         this.sessions.remove(sessionId);
     }
 
+    public void invalidateExpiredSessions() {
+        Set allSessions = new HashSet(this.sessions.values());
+        int expiredCount = 0;
+        for (Iterator i = allSessions.iterator(); i.hasNext(); ) {
+            WinstoneSession session = (WinstoneSession) i.next();
+            if (!session.isNew() && session.isUnsedByRequests() && session.isExpired()) {
+                session.invalidate();
+                expiredCount++;
+            }
+        }
+        if (expiredCount > 0) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
+                    "WebAppConfig.InvalidatedSessions", expiredCount + "");
+        }
+    }
+    
     public void setSessionListeners(WinstoneSession session) {
         session.setSessionActivationListeners(this.sessionActivationListeners);
         session.setSessionAttributeListeners(this.sessionAttributeListeners);

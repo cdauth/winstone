@@ -32,7 +32,9 @@ import org.w3c.dom.Node;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class HostConfiguration {
+public class HostConfiguration implements Runnable {
+    
+    private static final long FLUSH_PERIOD = 60000L;
     
     private static final String WEB_INF = "WEB-INF";
     private static final String WEB_XML = "web.xml";
@@ -44,6 +46,8 @@ public class HostConfiguration {
     private ObjectPool objectPool;
     private ClassLoader commonLibCL;
     private File commonLibCLPaths[];
+    
+    private Thread thread;
     
     public HostConfiguration(String hostname, Cluster cluster, ObjectPool objectPool, ClassLoader commonLibCL, 
             File commonLibCLPaths[], Map args, String webappsDirName) throws IOException {
@@ -77,6 +81,11 @@ public class HostConfiguration {
         }
         Logger.log(Logger.DEBUG, Launcher.RESOURCES, "HostConfig.InitComplete", 
                 new String[] {this.webapps.size() + "", this.webapps.keySet() + ""});
+        
+        
+        this.thread = new Thread(this, "WinstoneHostConfigurationMgmt:" + this.hostname);
+        this.thread.setDaemon(true);
+        this.thread.start();
     }
 
     public WebAppConfiguration getWebAppByURI(String uri) {
@@ -148,6 +157,29 @@ public class HostConfiguration {
         for (Iterator i = prefixes.iterator(); i.hasNext(); ) {
             destroyWebApp((String) i.next());
         }
+        if (this.thread != null) {
+            this.thread.interrupt();
+        }
+    }
+    
+    public void invalidateExpiredSessions() {
+        Set webapps = new HashSet(this.webapps.values());
+        for (Iterator i = webapps.iterator(); i.hasNext(); ) {
+            ((WebAppConfiguration) i.next()).invalidateExpiredSessions();
+        }
+    }
+
+    public void run() {
+        boolean interrupted = false;
+        while (!interrupted) {
+            try {
+                Thread.sleep(FLUSH_PERIOD);
+                invalidateExpiredSessions();
+            } catch (InterruptedException err) {
+                interrupted = true;
+            }
+        }
+        this.thread = null;
     }
     
     public void reloadWebApp(String prefix) throws IOException {
