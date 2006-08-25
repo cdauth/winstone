@@ -76,7 +76,7 @@ public class WinstoneRequest implements HttpServletRequest {
     protected Map parameters;
     protected Stack attributesStack;
     protected Stack parametersStack;
-    protected Map forwardedParameters;
+//    protected Map forwardedParameters;
 
     protected String headers[];
     protected Cookie cookies[];
@@ -131,7 +131,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.locales = new ArrayList();
         this.attributesStack = new Stack();
         this.parametersStack = new Stack();
-        this.forwardedParameters = new Hashtable();
+//        this.forwardedParameters = new Hashtable();
         this.requestedSessionIds = new Hashtable();
         this.currentSessionIds = new Hashtable();
         this.usedSessions = new HashSet();
@@ -155,7 +155,7 @@ public class WinstoneRequest implements HttpServletRequest {
         this.parameters.clear();
         this.attributesStack.clear();
         this.parametersStack.clear();
-        this.forwardedParameters.clear();
+//        this.forwardedParameters.clear();
         this.usedSessions.clear();
         this.headers = null;
         this.cookies = null;
@@ -221,10 +221,10 @@ public class WinstoneRequest implements HttpServletRequest {
     public Map getParameters() {
         return this.parameters;
     }
-
-    public Map getForwardedParameters() {
-        return this.forwardedParameters;
-    }
+//
+//    public Map getForwardedParameters() {
+//        return this.forwardedParameters;
+//    }
 
     public Stack getAttributesStack() {
         return this.attributesStack;
@@ -403,54 +403,58 @@ public class WinstoneRequest implements HttpServletRequest {
      * Gets parameters from the url encoded parameter string
      */
     public static void extractParameters(String urlEncodedParams,
-            String encoding, Map outputParams) {
+            String encoding, Map outputParams, boolean overwrite) {
         Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                 "WinstoneRequest.ParsingParameters", new String[] {
                         urlEncodedParams, encoding });
         StringTokenizer st = new StringTokenizer(urlEncodedParams, "&", false);
+        Set overwrittenParamNames = null;
         while (st.hasMoreTokens()) {
             String token = st.nextToken();
             int equalPos = token.indexOf('=');
-            if (equalPos == -1) {
-//                Logger.log(Logger.WARNING, Launcher.RESOURCES,
-//                        "WinstoneRequest.IgnoringBadParameter", token);
-                outputParams.put(token, "");
-            } else {
-                try {
-                    String decodedNameDefault = decodeURLToken(token.substring(
-                            0, equalPos));
-                    String decodedValueDefault = decodeURLToken(token
-                            .substring(equalPos + 1));
-                    String decodedName = (encoding == null ? decodedNameDefault
-                            : new String(decodedNameDefault.getBytes("8859_1"),
-                                    encoding));
-                    String decodedValue = (encoding == null ? decodedValueDefault
-                            : new String(
-                                    decodedValueDefault.getBytes("8859_1"),
-                                    encoding));
-                    Object already = outputParams.get(decodedName);
-                    if (already == null)
-                        outputParams.put(decodedName, decodedValue);
-                    else if (already instanceof String) {
-                        String pair[] = new String[2];
-                        pair[0] = (String) already;
-                        pair[1] = decodedValue;
-                        outputParams.put(decodedName, pair);
-                    } else if (already instanceof String[]) {
-                        String alreadyArray[] = (String[]) already;
-                        String oneMore[] = new String[alreadyArray.length + 1];
-                        System.arraycopy(alreadyArray, 0, oneMore, 0,
-                                alreadyArray.length);
-                        oneMore[oneMore.length - 1] = decodedValue;
-                        outputParams.put(decodedName, oneMore);
-                    } else
-                        Logger.log(Logger.WARNING, Launcher.RESOURCES,
-                                "WinstoneRequest.UnknownParameterType",
-                                decodedName + " = " + decodedValue.getClass());
-                } catch (UnsupportedEncodingException err) {
-                    Logger.log(Logger.ERROR, Launcher.RESOURCES,
-                            "WinstoneRequest.ErrorParameters", err);
+            try {
+                String decodedNameDefault = decodeURLToken(equalPos == -1 ? token 
+                        : token.substring(0, equalPos));
+                String decodedValueDefault = (equalPos == -1 ? "" 
+                        : decodeURLToken(token.substring(equalPos + 1)));
+                String decodedName = (encoding == null ? decodedNameDefault
+                        : new String(decodedNameDefault.getBytes("8859_1"), encoding));
+                String decodedValue = (encoding == null ? decodedValueDefault
+                        : new String(decodedValueDefault.getBytes("8859_1"), encoding));
+
+                Object already = null;
+                if (overwrite) {
+                    if (overwrittenParamNames == null) {
+                        overwrittenParamNames = new HashSet();
+                    }
+                    if (!overwrittenParamNames.contains(decodedName)) {
+                        overwrittenParamNames.add(decodedName);
+                        outputParams.remove(decodedName);
+                    }
                 }
+                already = outputParams.get(decodedName);
+                if (already == null) {
+                    outputParams.put(decodedName, decodedValue);
+                } else if (already instanceof String) {
+                    String pair[] = new String[2];
+                    pair[0] = (String) already;
+                    pair[1] = decodedValue;
+                    outputParams.put(decodedName, pair);
+                } else if (already instanceof String[]) {
+                    String alreadyArray[] = (String[]) already;
+                    String oneMore[] = new String[alreadyArray.length + 1];
+                    System.arraycopy(alreadyArray, 0, oneMore, 0,
+                            alreadyArray.length);
+                    oneMore[oneMore.length - 1] = decodedValue;
+                    outputParams.put(decodedName, oneMore);
+                } else {
+                    Logger.log(Logger.WARNING, Launcher.RESOURCES,
+                            "WinstoneRequest.UnknownParameterType",
+                            decodedName + " = " + decodedValue.getClass());
+                }
+            } catch (UnsupportedEncodingException err) {
+                Logger.log(Logger.ERROR, Launcher.RESOURCES,
+                        "WinstoneRequest.ErrorParameters", err);
             }
         }
     }
@@ -516,7 +520,7 @@ public class WinstoneRequest implements HttpServletRequest {
                 if ((method.equals(METHOD_GET) || method.equals(METHOD_HEAD) || 
                         method.equals(METHOD_POST))
                         && (this.queryString != null)) {
-                    extractParameters(this.queryString, this.encoding, workingParameters);
+                    extractParameters(this.queryString, this.encoding, workingParameters, false);
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneRequest.ParamLine", "" + workingParameters);
                 }
@@ -537,7 +541,7 @@ public class WinstoneRequest implements HttpServletRequest {
                     String paramLine = (this.encoding == null ? new String(
                             paramBuffer) : new String(paramBuffer,
                             this.encoding));
-                    extractParameters(paramLine.trim(), this.encoding, workingParameters);
+                    extractParameters(paramLine.trim(), this.encoding, workingParameters, false);
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneRequest.ParamLine", "" + workingParameters);
                 } 
@@ -784,7 +788,7 @@ public class WinstoneRequest implements HttpServletRequest {
         }
         Map newQueryParams = new HashMap();
         if (queryString != null) {
-            extractParameters(queryString, this.encoding, newQueryParams);
+            extractParameters(queryString, this.encoding, newQueryParams, false);
         }
         lastParams.putAll(newQueryParams);
         this.parametersStack.push(lastParams);
@@ -823,16 +827,22 @@ public class WinstoneRequest implements HttpServletRequest {
     }
     
     public void setForwardQueryString(String forwardQueryString) {
-        this.forwardedParameters.clear();
+//        this.forwardedParameters.clear();
         
         // Parse query string from include / forward
         if (forwardQueryString != null) {
-            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
-                    "WinstoneRequest.ParsingParameters", new String[] {
-                    forwardQueryString, this.encoding });
-            extractParameters(forwardQueryString, this.encoding, this.forwardedParameters);
-            Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
-                    "WinstoneRequest.ParamLine", "" + this.forwardedParameters);
+            String oldQueryString = this.queryString == null ? "" : this.queryString;
+            boolean needJoiner = !forwardQueryString.equals("") && !oldQueryString.equals("");  
+            this.queryString = forwardQueryString + (needJoiner ? "&" : "") + oldQueryString;
+            
+            if (this.parsedParameters != null) {
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
+                        "WinstoneRequest.ParsingParameters", new String[] {
+                        forwardQueryString, this.encoding });
+                extractParameters(forwardQueryString, this.encoding, this.parameters, true);
+                Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
+                        "WinstoneRequest.ParamLine", "" + this.parameters);
+            }
         }
 
     }
@@ -1005,9 +1015,9 @@ public class WinstoneRequest implements HttpServletRequest {
         if (!this.parametersStack.isEmpty()) {
             param = ((Map) this.parametersStack.peek()).get(name);
         }
-        if ((param == null) && this.forwardedParameters.get(name) != null) {
-            param = this.forwardedParameters.get(name);
-        }
+//        if ((param == null) && this.forwardedParameters.get(name) != null) {
+//            param = this.forwardedParameters.get(name);
+//        }
         if (param == null) {
             param = this.parameters.get(name);
         }
@@ -1024,7 +1034,7 @@ public class WinstoneRequest implements HttpServletRequest {
     public Enumeration getParameterNames() {
         parseRequestParameters();
         Set parameterKeys = new HashSet(this.parameters.keySet());
-        parameterKeys.addAll(this.forwardedParameters.keySet());
+//        parameterKeys.addAll(this.forwardedParameters.keySet());
         if (!this.parametersStack.isEmpty()) {
             parameterKeys.addAll(((Map) this.parametersStack.peek()).keySet());
         }
@@ -1037,9 +1047,9 @@ public class WinstoneRequest implements HttpServletRequest {
         if (!this.parametersStack.isEmpty()) {
             param = ((Map) this.parametersStack.peek()).get(name);
         }
-        if ((param == null) && this.forwardedParameters.get(name) != null) {
-            param = this.forwardedParameters.get(name);
-        }
+//        if ((param == null) && this.forwardedParameters.get(name) != null) {
+//            param = this.forwardedParameters.get(name);
+//        }
         if (param == null) {
             param = this.parameters.get(name);
         }

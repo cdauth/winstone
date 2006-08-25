@@ -42,7 +42,7 @@ public class CachedRequest extends WinstoneRequest {
         this.parametersStack.addAll(request.getParametersStack());
         this.attributes.putAll(request.getAttributes());
         this.parameters.putAll(request.getParameters());
-        this.forwardedParameters.putAll(request.getForwardedParameters());
+//        this.forwardedParameters.putAll(request.getForwardedParameters());
         this.locales = request.getListLocales();
         this.method = request.getMethod();
         this.scheme = request.getScheme();
@@ -90,8 +90,8 @@ public class CachedRequest extends WinstoneRequest {
         request.getParametersStack().addAll(this.parametersStack);
         request.getParameters().clear();
         request.getParameters().putAll(this.parameters);
-        request.getForwardedParameters().clear();
-        request.getForwardedParameters().putAll(this.forwardedParameters);
+//        request.getForwardedParameters().clear();
+//        request.getForwardedParameters().putAll(this.forwardedParameters);
         request.getAttributes().clear();
         request.getAttributes().putAll(this.attributes);
         request.setLocales(this.locales);

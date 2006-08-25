@@ -279,7 +279,6 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                 req.setAttribute(FORWARD_SERVLET_PATH, req.getServletPath());
                 req.setAttribute(FORWARD_PATH_INFO, req.getPathInfo());
                 req.setAttribute(FORWARD_QUERY_STRING, req.getQueryString());
-                req.setForwardQueryString(this.queryString);
                 
                 if (this.isErrorDispatch) {
                     req.setAttribute(ERROR_REQUEST_URI, req.getRequestURI());
@@ -301,17 +300,11 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                     response = rsp;
                 }
             }
-
-            // Aggregate the query string
-            if (this.queryString != null) {
-                String oldQueryString = req.getQueryString() == null ? "" : req.getQueryString();
-                boolean needJoiner = !this.queryString.equals("") && !oldQueryString.equals("");  
-                req.setQueryString(this.queryString + (needJoiner ? "&" : "") + oldQueryString);
-            }
             
             req.setServletPath(this.servletPath);
             req.setPathInfo(this.pathInfo);
             req.setRequestURI(this.webAppConfig.getContextPath() + this.requestURI);
+            req.setForwardQueryString(this.queryString);
             req.setWebAppConfig(this.webAppConfig);
             req.setServletConfig(this.servletConfig);
             req.setRequestAttributeListeners(this.webAppConfig.getRequestAttributeListeners());

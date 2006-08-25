@@ -79,7 +79,7 @@
       <ant:arg value="--useJNDI=true"/>
       <ant:arg value="--ajp13Port=-1"/>
       <ant:arg value="--httpPort=9080"/>
-      <ant:arg value="--debug=8"/>
+      <ant:arg value="--debug=7"/>
       <ant:jvmArg line="-Djava.endorsed.dirs=${tck.endorsed.dir}" />
     </ant:java>
   </goal>
@@ -94,7 +94,7 @@
       <ant:arg value="--useJNDI=true"/>
       <ant:arg value="--ajp13Port=-1"/>
       <ant:arg value="--httpPort=9080"/>
-      <ant:arg value="--debug=8"/>
+      <ant:arg value="--debug=7"/>
       <ant:jvmArg line="-Djava.endorsed.dirs=${tck.endorsed.dir} -Duser.language=english" />
     </ant:java>
   </goal>
