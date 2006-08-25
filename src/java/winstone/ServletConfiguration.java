@@ -157,6 +157,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         }
         
         synchronized (this.servletSemaphore) {
+            
             // Check if we were decommissioned while blocking
             if (this.unavailableException != null) {
                 return; 
@@ -166,38 +167,49 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
             
+            Servlet newInstance = null;
+            Throwable otherError = null;
             try {
                 Class servletClass = Class.forName(classFile, true, this.webAppConfig.getLoader());
-                this.instance = (Servlet) servletClass.newInstance();
-                this.isSingleThreadModel = Class.forName(
-                        "javax.servlet.SingleThreadModel").isInstance(this.instance);
+                this.isSingleThreadModel = Class.forName("javax.servlet.SingleThreadModel").isInstance(this.instance);
+                newInstance = (Servlet) servletClass.newInstance();
                 
                 // Initialise with the correct classloader
                 Logger.log(Logger.DEBUG, Launcher.RESOURCES, "ServletConfiguration.init", this.servletName);
-                this.instance.init(this);
+                newInstance.init(this);
+                this.instance = newInstance;
             } catch (ClassNotFoundException err) {
                 Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
-                setUnavailable();
+                setUnavailable(newInstance);
                 this.unavailableException = err;
             } catch (IllegalAccessException err) {
                 Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
-                setUnavailable();
+                setUnavailable(newInstance);
                 this.unavailableException = err;
             } catch (InstantiationException err) {
                 Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.ClassLoadError", this.classFile, err);
-                setUnavailable();
+                setUnavailable(newInstance);
                 this.unavailableException = err;
             } catch (ServletException err) {
                 Logger.log(Logger.WARNING, Launcher.RESOURCES, 
                         "ServletConfiguration.InitError", this.servletName, err);
                 this.instance = null; // so that we don't call the destroy method
-                setUnavailable();
+                setUnavailable(newInstance);
                 this.unavailableException = err;
+            } catch (RuntimeException err) {
+                otherError = err;
+                throw err;
+            } catch (Error err) {
+                otherError = err;
+                throw err;
             } finally {
                 Thread.currentThread().setContextClassLoader(cl);
+                if ((otherError == null) && (this.unavailableException == null)) {
+                    this.instance = newInstance;
+                }
             }
         }
         return;
@@ -234,7 +246,7 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         } catch (UnavailableException err) {
             // catch locally and rethrow as a new ServletException, so 
             // we only invalidate the throwing servlet
-            setUnavailable();
+            setUnavailable(this.instance);
             ((HttpServletResponse) response).sendError(HttpServletResponse.SC_NOT_FOUND, 
                     Launcher.RESOURCES.getString("StaticResourceServlet.PathNotFound", requestURI));
 //            throw new ServletException(resources.getString(
@@ -283,19 +295,20 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
      */
     public void destroy() {
         synchronized (this.servletSemaphore) {
-            setUnavailable();
+            setUnavailable(this.instance);
         }
     }
 
-    protected void setUnavailable() {
+    protected void setUnavailable(Servlet unavailableServlet) {
+        
         this.unavailable = true;
-        if (this.instance != null) {
+        if (unavailableServlet != null) {
             Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                     "ServletConfiguration.destroy", this.servletName);
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(this.webAppConfig.getLoader());
             try {
-                this.instance.destroy();
+                unavailableServlet.destroy();
             } finally {
                 Thread.currentThread().setContextClassLoader(cl);
                 this.instance = null;
