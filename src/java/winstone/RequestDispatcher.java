@@ -302,10 +302,16 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
                 }
             }
 
+            // Aggregate the query string
+            if (this.queryString != null) {
+                String oldQueryString = req.getQueryString() == null ? "" : req.getQueryString();
+                boolean needJoiner = !this.queryString.equals("") && !oldQueryString.equals("");  
+                req.setQueryString(this.queryString + (needJoiner ? "&" : "") + oldQueryString);
+            }
+            
             req.setServletPath(this.servletPath);
             req.setPathInfo(this.pathInfo);
             req.setRequestURI(this.webAppConfig.getContextPath() + this.requestURI);
-            req.setQueryString(this.queryString);
             req.setWebAppConfig(this.webAppConfig);
             req.setServletConfig(this.servletConfig);
             req.setRequestAttributeListeners(this.webAppConfig.getRequestAttributeListeners());

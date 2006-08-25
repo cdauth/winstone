@@ -1480,8 +1480,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         String queryString = "";
         int questionPos = uriInsideWebapp.indexOf('?');
         if (questionPos != -1) {
-            if (questionPos != uriInsideWebapp.length() - 1)
+            if (questionPos != uriInsideWebapp.length() - 1) {
                 queryString = uriInsideWebapp.substring(questionPos + 1);
+            }
             uriInsideWebapp = uriInsideWebapp.substring(0, questionPos);
         }
 
