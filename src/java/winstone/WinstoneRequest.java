@@ -1323,11 +1323,12 @@ public class WinstoneRequest implements HttpServletRequest {
         return this.webappConfig.makeNewSession(newSessionId);
     }
 
-    public void markSessionsAsRequestFinished(long lastAccessedTime) {
+    public void markSessionsAsRequestFinished(long lastAccessedTime, boolean saveSessions) {
         for (Iterator i = this.usedSessions.iterator(); i.hasNext(); ) {
             WinstoneSession session = (WinstoneSession) i.next();
             session.setLastAccessedDate(lastAccessedTime);
             session.removeUsed(this);
+            session.saveToTemp();
         }
         this.usedSessions.clear();
     }

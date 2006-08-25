@@ -43,6 +43,7 @@ public class ObjectPool implements Runnable {
     private Object responsePoolSemaphore = new Boolean(true);
     private int threadIndex = 0;
     private boolean simulateModUniqueId;
+    private boolean saveSessions;
 
     private Thread thread;
     
@@ -52,6 +53,7 @@ public class ObjectPool implements Runnable {
      */
     public ObjectPool(Map args) throws IOException {
         this.simulateModUniqueId = WebAppConfiguration.booleanArg(args, "simulateModUniqueId", false);
+        this.saveSessions = WebAppConfiguration.useSavedSessions(args);
 
         // Build the initial pool of handler threads
         this.unusedRequestHandlerThreads = new ArrayList();
@@ -81,7 +83,8 @@ public class ObjectPool implements Runnable {
         for (int n = 0; n < STARTUP_REQUEST_HANDLERS_IN_POOL; n++) {
             this.unusedRequestHandlerThreads
                     .add(new RequestHandlerThread(this, 
-                            this.threadIndex++, this.simulateModUniqueId));
+                            this.threadIndex++, this.simulateModUniqueId,
+                            this.saveSessions));
         }
 
         // Initialise the request/response pools
@@ -160,7 +163,8 @@ public class ObjectPool implements Runnable {
             // If we are out (and not over our limit), allocate a new one
             else if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL) {
                 rh = new RequestHandlerThread(this, 
-                        this.threadIndex++, this.simulateModUniqueId);
+                        this.threadIndex++, this.simulateModUniqueId,
+                        this.saveSessions);
                 this.usedRequestHandlerThreads.add(rh);
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "ObjectPool.NewRHPoolThread", new String[] {
@@ -188,7 +192,8 @@ public class ObjectPool implements Runnable {
             synchronized (this.requestHandlerSemaphore) {
                 if (this.usedRequestHandlerThreads.size() < MAX_REQUEST_HANDLERS_IN_POOL) {
                     rh = new RequestHandlerThread(this, 
-                            this.threadIndex++, this.simulateModUniqueId);
+                            this.threadIndex++, this.simulateModUniqueId,
+                            this.saveSessions);
                     this.usedRequestHandlerThreads.add(rh);
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "ObjectPool.NewRHPoolThread", new String[] {

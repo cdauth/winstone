@@ -16,6 +16,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.w3c.dom.Node;
 
@@ -24,7 +25,6 @@ import winstone.AuthenticationRealm;
 import winstone.Logger;
 import winstone.WebAppConfiguration;
 import winstone.WinstoneRequest;
-import winstone.WinstoneSession;
 
 /**
  * Handles FORM based authentication configurations. Fairly simple ... it just
@@ -35,12 +35,15 @@ import winstone.WinstoneSession;
  * @version $Id$
  */
 public class FormAuthenticationHandler extends BaseAuthenticationHandler {
-    static final String ELEM_FORM_LOGIN_CONFIG = "form-login-config";
-    static final String ELEM_FORM_LOGIN_PAGE = "form-login-page";
-    static final String ELEM_FORM_ERROR_PAGE = "form-error-page";
-    static final String FORM_ACTION = "j_security_check";
-    static final String FORM_USER = "j_username";
-    static final String FORM_PASS = "j_password";
+    private static final String ELEM_FORM_LOGIN_CONFIG = "form-login-config";
+    private static final String ELEM_FORM_LOGIN_PAGE = "form-login-page";
+    private static final String ELEM_FORM_ERROR_PAGE = "form-error-page";
+    private static final String FORM_ACTION = "j_security_check";
+    private static final String FORM_USER = "j_username";
+    private static final String FORM_PASS = "j_password";
+    private static final String AUTHENTICATED_USER = "winstone.auth.FormAuthenticationHandler.AUTHENTICATED_USER";
+    private static final String CACHED_REQUEST = "winstone.auth.FormAuthenticationHandler.CACHED_REQUEST";
+    
     private String loginPage;
     private String errorPage;
 
@@ -120,9 +123,8 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                     "FormAuthenticationHandler.CantSetUser", request.getClass()
                             .getName());
 
-        WinstoneSession session = (WinstoneSession) actualRequest
-                .getSession(true);
-        session.setCachedRequest(new CachedRequest(actualRequest));
+        HttpSession session = actualRequest.getSession(true);
+        session.setAttribute(CACHED_REQUEST, new CachedRequest(actualRequest));
 
         // Forward on to the login page
         Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
@@ -173,13 +175,13 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                             "FormAuthenticationHandler.CantSetUser",
                             wrapperCheck.getClass().getName());
 
-                WinstoneSession session = (WinstoneSession) request.getSession(true);
+                HttpSession session = request.getSession(true);
                 String previousLocation = this.loginPage;
-                if ((session.getCachedRequest() != null)
+                CachedRequest cachedRequest = (CachedRequest) session.getAttribute(CACHED_REQUEST);
+                if ((cachedRequest != null)
                         && (actualRequest != null)) {
                     // Repopulate this request from the params we saved
-                    ((CachedRequest) session.getCachedRequest())
-                            .transferContent(actualRequest);
+                    cachedRequest.transferContent(actualRequest);
                     previousLocation = request.getServletPath();
                     // session.setCachedRequest(null); - commented out so that
                     // refreshes will work
@@ -190,7 +192,7 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                 // do role check, since we don't know that this user has permission
                 if (doRoleCheck(request, response, previousLocation)) {
                     principal.setAuthType(HttpServletRequest.FORM_AUTH);
-                    session.setAuthenticatedUser(principal);
+                    session.setAttribute(AUTHENTICATED_USER, principal);
                     javax.servlet.RequestDispatcher rd = request
                             .getRequestDispatcher(previousLocation);
                     rd.forward(request, response);
@@ -222,12 +224,15 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
                         "FormAuthenticationHandler.CantSetUser", request
                                 .getClass().getName());
 
-            WinstoneSession session = (WinstoneSession) actualRequest
-                    .getSession(false);
-            if ((session != null) && (session.getAuthenticatedUser() != null)) {
-                actualRequest.setRemoteUser(session.getAuthenticatedUser());
-                Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
-                        "FormAuthenticationHandler.GotUserFromSession");
+            HttpSession session = actualRequest.getSession(false);
+            if (session != null) {
+                AuthenticationPrincipal authenticatedUser = (AuthenticationPrincipal) 
+                        session.getAttribute(AUTHENTICATED_USER); 
+                if (authenticatedUser != null) {
+                    actualRequest.setRemoteUser(authenticatedUser);
+                    Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
+                            "FormAuthenticationHandler.GotUserFromSession");
+                }
             }
             return true;
         }

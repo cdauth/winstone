@@ -6,7 +6,11 @@
  */
 package winstone;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,26 +53,26 @@ public class WinstoneSession implements HttpSession, Serializable {
     private HttpSessionListener sessionListeners[];
     private HttpSessionActivationListener sessionActivationListeners[];
     private boolean distributable;
-    private AuthenticationPrincipal authenticatedUser;
-    private WinstoneRequest cachedRequest;
     private Object sessionMonitor = new Boolean(true);
     private Set requestsUsingMe;
 
     /**
      * Constructor
      */
-    public WinstoneSession(String sessionId, WebAppConfiguration webAppConfig,
-            boolean distributable) {
+    public WinstoneSession(String sessionId) {
         this.sessionId = sessionId;
-        this.webAppConfig = webAppConfig;
         this.sessionData = new HashMap();
         this.requestsUsingMe = new HashSet();
         this.createTime = System.currentTimeMillis();
         this.isNew = true;
         this.isInvalidated = false;
-        this.distributable = distributable;
     }
 
+    public void setWebAppConfiguration(WebAppConfiguration webAppConfig, boolean distributable) {
+        this.webAppConfig = webAppConfig;
+        this.distributable = distributable;
+    }
+    
     public void sendCreatedNotifies() {
         // Notify session listeners of new session
         for (int n = 0; n < this.sessionListeners.length; n++) {
@@ -109,7 +113,7 @@ public class WinstoneSession implements HttpSession, Serializable {
         this.requestsUsingMe.remove(request);
     }
     
-    public boolean isUnsedByRequests() {
+    public boolean isUnusedByRequests() {
         return this.requestsUsingMe.isEmpty();
     }
     
@@ -249,22 +253,6 @@ public class WinstoneSession implements HttpSession, Serializable {
         return this.sessionId;
     }
 
-    public WinstoneRequest getCachedRequest() {
-        return this.cachedRequest;
-    }
-
-    public void setCachedRequest(WinstoneRequest req) {
-        this.cachedRequest = req;
-    }
-
-    public AuthenticationPrincipal getAuthenticatedUser() {
-        return this.authenticatedUser;
-    }
-
-    public void setAuthenticatedUser(AuthenticationPrincipal user) {
-        this.authenticatedUser = user;
-    }
-
     public int getMaxInactiveInterval() {
         return this.maxInactivePeriod;
     }
@@ -335,7 +323,6 @@ public class WinstoneSession implements HttpSession, Serializable {
      */
     public void activate(WebAppConfiguration webAppConfig) {
         this.webAppConfig = webAppConfig;
-        this.cachedRequest = null;
         webAppConfig.setSessionListeners(this);
 
         // Notify session listeners of invalidated session
@@ -345,6 +332,33 @@ public class WinstoneSession implements HttpSession, Serializable {
             this.sessionActivationListeners[n].sessionDidActivate(
                     new HttpSessionEvent(this));
             Thread.currentThread().setContextClassLoader(cl);
+        }
+    }
+    
+    /**
+     * Save this session to the temp dir defined for this webapp
+     */
+    public void saveToTemp() {
+        File toDir = this.webAppConfig.getSessionTempDir();
+        synchronized (this.sessionMonitor) {
+            OutputStream out = null;
+            ObjectOutputStream objOut = null;
+            try {
+                File toFile = new File(toDir, this.sessionId + ".ser");
+                out = new FileOutputStream(toFile, false);
+                objOut = new ObjectOutputStream(out);
+                objOut.writeObject(this);
+            } catch (IOException err) {
+                Logger.log(Logger.ERROR, Launcher.RESOURCES, 
+                        "WinstoneSession.ErrorSavingSession", err);
+            } finally {
+                if (objOut != null) {
+                    try {objOut.close();} catch (IOException err) {}
+                }
+                if (out != null) {
+                    try {out.close();} catch (IOException err) {}
+                }
+            }
         }
     }
 
@@ -363,18 +377,18 @@ public class WinstoneSession implements HttpSession, Serializable {
         out.writeInt(maxInactivePeriod);
         out.writeBoolean(isNew);
         out.writeBoolean(distributable);
-        out.writeObject(authenticatedUser);
 
         // Write the map, but first remove non-serializables
         Map copy = new HashMap(sessionData);
-        for (Iterator i = copy.keySet().iterator(); i.hasNext();) {
+        Set keys = new HashSet(copy.keySet());
+        for (Iterator i = keys.iterator(); i.hasNext();) {
             String key = (String) i.next();
-            if (!(copy.get(key) instanceof Serializable))
-                Logger
-                        .log(Logger.WARNING, Launcher.RESOURCES,
+            if (!(copy.get(key) instanceof Serializable)) {
+                Logger.log(Logger.WARNING, Launcher.RESOURCES,
                                 "WinstoneSession.SkippingNonSerializable",
                                 new String[] { key,
                                         copy.get(key).getClass().getName() });
+            }
             copy.remove(key);
         }
         out.writeInt(copy.size());
@@ -401,10 +415,10 @@ public class WinstoneSession implements HttpSession, Serializable {
         this.maxInactivePeriod = in.readInt();
         this.isNew = in.readBoolean();
         this.distributable = in.readBoolean();
-        this.authenticatedUser = (AuthenticationPrincipal) in.readObject();
 
         // Read the map
         this.sessionData = new Hashtable();
+        this.requestsUsingMe = new HashSet();
         int entryCount = in.readInt();
         for (int n = 0; n < entryCount; n++) {
             String key = in.readUTF();

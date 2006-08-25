@@ -7,8 +7,10 @@
 package winstone;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -189,6 +191,10 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         } else {
             return textNode.trim();
         }
+    }
+    
+    public static boolean useSavedSessions(Map args) {
+        return booleanArg(args, "useSavedSessions", false);
     }
     
     /**
@@ -885,6 +891,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         }
 
         if (this.contextStartupError == null) {
+            // Load sessions if enabled
+            if (useSavedSessions(startupArgs)) {
+                loadSessions();
+            }
+            
             // Initialise all the filters
             for (Iterator i = this.filterInstances.values().iterator(); i.hasNext();) {
                 FilterConfiguration config = (FilterConfiguration) i.next();
@@ -1264,13 +1275,14 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      * @return A valid session object
      */
     public WinstoneSession makeNewSession(String sessionId) {
-        WinstoneSession ws = new WinstoneSession(sessionId, this, (this.cluster != null));
+        WinstoneSession ws = new WinstoneSession(sessionId);
+        ws.setWebAppConfiguration(this, (this.cluster != null));
         setSessionListeners(ws);
-        if ((this.sessionTimeout != null)
-                && (this.sessionTimeout.intValue() > 0))
+        if ((this.sessionTimeout != null) && (this.sessionTimeout.intValue() > 0)) {
             ws.setMaxInactiveInterval(this.sessionTimeout.intValue() * 60);
-        else
+        } else {
             ws.setMaxInactiveInterval(-1);
+        }
         ws.setLastAccessedDate(System.currentTimeMillis());
         ws.sendCreatedNotifies();
         this.sessions.put(sessionId, ws);
@@ -1317,7 +1329,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         int expiredCount = 0;
         for (Iterator i = allSessions.iterator(); i.hasNext(); ) {
             WinstoneSession session = (WinstoneSession) i.next();
-            if (!session.isNew() && session.isUnsedByRequests() && session.isExpired()) {
+            if (!session.isNew() && session.isUnusedByRequests() && session.isExpired()) {
                 session.invalidate();
                 expiredCount++;
             }
@@ -1332,6 +1344,45 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         session.setSessionActivationListeners(this.sessionActivationListeners);
         session.setSessionAttributeListeners(this.sessionAttributeListeners);
         session.setSessionListeners(this.sessionListeners);
+    }
+    
+    public File getSessionTempDir() {
+        File tmpDir = (File) this.attributes.get("javax.servlet.context.tempdir");
+        File sessionsDir = new File(tmpDir, "WEB-INF/winstoneSessions");
+        sessionsDir.mkdirs();
+        return sessionsDir;
+    }
+    
+    private void loadSessions() {
+        // Iterate through the files in the dir, instantiate and then add to the sessions set
+        File possibleSessionFiles[] = getSessionTempDir().listFiles();
+        for (int n = 0; n < possibleSessionFiles.length; n++) {
+            if (possibleSessionFiles[n].getName().endsWith(".ser")) {
+                InputStream in = null;
+                ObjectInputStream objIn = null;
+                try {
+                    in = new FileInputStream(possibleSessionFiles[n]);
+                    objIn = new ObjectInputStream(in);
+                    WinstoneSession session = (WinstoneSession) objIn.readObject();
+                    session.setWebAppConfiguration(this, (this.cluster != null));
+                    setSessionListeners(session);
+                    this.sessions.put(session.getId(), session);
+                    Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
+                            "WebAppConfig.RestoredSession", session.getId());
+                } catch (Throwable err) {
+                    Logger.log(Logger.ERROR, Launcher.RESOURCES, 
+                            "WebAppConfig.ErrorLoadingSession", err);
+                } finally {
+                    if (objIn != null) {
+                        try {objIn.close();} catch (IOException err) {}
+                    }
+                    if (in != null) {
+                        try {in.close();} catch (IOException err) {}
+                    }
+                    possibleSessionFiles[n].delete();
+                }
+            }
+        }
     }
 
     public void removeServletConfigurationAndMappings(ServletConfiguration config) {

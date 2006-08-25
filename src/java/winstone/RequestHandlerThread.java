@@ -35,6 +35,7 @@ public class RequestHandlerThread implements Runnable {
     private String threadName;
     private long requestStartTime;
     private boolean simulateModUniqueId;
+    private boolean saveSessions;
 //    private Object processingMonitor = new Boolean(true);
 
     /**
@@ -42,9 +43,10 @@ public class RequestHandlerThread implements Runnable {
      * when a real request comes along.
      */
     public RequestHandlerThread(ObjectPool objectPool, int threadIndex, 
-            boolean simulateModUniqueId) {
+            boolean simulateModUniqueId, boolean saveSessions) {
         this.objectPool = objectPool;
         this.simulateModUniqueId = simulateModUniqueId;
+        this.saveSessions = saveSessions;
         this.threadName = Launcher.RESOURCES.getString(
                 "RequestHandlerThread.ThreadName", "" + threadIndex);
 
@@ -161,7 +163,7 @@ public class RequestHandlerThread implements Runnable {
 
                         // Set last accessed time on session as start of this
                         // request
-                        req.markSessionsAsRequestFinished(this.requestStartTime);
+                        req.markSessionsAsRequestFinished(this.requestStartTime, this.saveSessions);
 
                         // send request listener notifies
                         for (int n = 0; n < reqLsnrs.length; n++) {
