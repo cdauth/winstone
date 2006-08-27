@@ -7,8 +7,11 @@
 package winstone;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -68,9 +71,9 @@ public class WinstoneSession implements HttpSession, Serializable {
         this.isInvalidated = false;
     }
 
-    public void setWebAppConfiguration(WebAppConfiguration webAppConfig, boolean distributable) {
+    public void setWebAppConfiguration(WebAppConfiguration webAppConfig) {
         this.webAppConfig = webAppConfig;
-        this.distributable = distributable;
+        this.distributable = webAppConfig.isDistributable();
     }
     
     public void sendCreatedNotifies() {
@@ -339,7 +342,7 @@ public class WinstoneSession implements HttpSession, Serializable {
      * Save this session to the temp dir defined for this webapp
      */
     public void saveToTemp() {
-        File toDir = this.webAppConfig.getSessionTempDir();
+        File toDir = getSessionTempDir(this.webAppConfig);
         synchronized (this.sessionMonitor) {
             OutputStream out = null;
             ObjectOutputStream objOut = null;
@@ -359,6 +362,58 @@ public class WinstoneSession implements HttpSession, Serializable {
                     try {out.close();} catch (IOException err) {}
                 }
             }
+        }
+    }
+    
+    public static File getSessionTempDir(WebAppConfiguration webAppConfig) {
+        File tmpDir = (File) webAppConfig.getAttribute("javax.servlet.context.tempdir");
+        File sessionsDir = new File(tmpDir, "WEB-INF" + File.separator + "winstoneSessions");
+        if (!sessionsDir.exists()) {
+            sessionsDir.mkdirs();
+        }
+        return sessionsDir;
+    }
+    
+    public static void loadSessions(WebAppConfiguration webAppConfig) {
+        int expiredCount = 0;
+        // Iterate through the files in the dir, instantiate and then add to the sessions set
+        File tempDir = getSessionTempDir(webAppConfig);
+        File possibleSessionFiles[] = tempDir.listFiles();
+        for (int n = 0; n < possibleSessionFiles.length; n++) {
+            if (possibleSessionFiles[n].getName().endsWith(".ser")) {
+                InputStream in = null;
+                ObjectInputStream objIn = null;
+                try {
+                    in = new FileInputStream(possibleSessionFiles[n]);
+                    objIn = new ObjectInputStream(in);
+                    WinstoneSession session = (WinstoneSession) objIn.readObject();
+                    session.setWebAppConfiguration(webAppConfig);
+                    webAppConfig.setSessionListeners(session);
+                    if (session.isExpired()) {
+                        session.invalidate();
+                        expiredCount++;
+                    } else {
+                        webAppConfig.addSession(session.getId(), session);
+                        Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
+                                "WinstoneSession.RestoredSession", session.getId());
+                    }
+                } catch (Throwable err) {
+                    Logger.log(Logger.ERROR, Launcher.RESOURCES, 
+                            "WinstoneSession.ErrorLoadingSession", err);
+                } finally {
+                    if (objIn != null) {
+                        try {objIn.close();} catch (IOException err) {}
+                    }
+                    if (in != null) {
+                        try {in.close();} catch (IOException err) {}
+                    }
+                    possibleSessionFiles[n].delete();
+                }
+            }
+        }
+        if (expiredCount > 0) {
+            Logger.log(Logger.DEBUG, Launcher.RESOURCES,
+                    "WebAppConfig.InvalidatedSessions", expiredCount + "");
         }
     }
 

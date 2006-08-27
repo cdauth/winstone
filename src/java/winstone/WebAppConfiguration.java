@@ -7,10 +7,8 @@
 package winstone;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -160,6 +158,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private JNDIManager jndiManager;
     private AccessLogger accessLogger;
     private Map filterMatchCache;
+    private boolean useSavedSessions;
     
     public static boolean booleanArg(Map args, String name, boolean defaultTrue) {
         String value = (String) args.get(name);
@@ -216,6 +215,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         boolean useJasper = booleanArg(startupArgs, "useJasper", false);
         boolean useInvoker = booleanArg(startupArgs, "useInvoker", false);
         boolean useJNDI = booleanArg(startupArgs, "useJNDI", false);
+        this.useSavedSessions = useSavedSessions(startupArgs);
         
         // Check jasper is available
         if (useJasper) {
@@ -892,8 +892,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         if (this.contextStartupError == null) {
             // Load sessions if enabled
-            if (useSavedSessions(startupArgs)) {
-                loadSessions();
+            if (this.useSavedSessions) {
+                WinstoneSession.loadSessions(this);
             }
             
             // Initialise all the filters
@@ -1061,9 +1061,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         return this.welcomeFiles;
     }
 
-//    public boolean isDistributable() {
-//        return this.distributable;
-//    }
+    public boolean isDistributable() {
+        return (this.cluster != null);
+    }
 
     public Map getFilterMatchCache() {
         return this.filterMatchCache;
@@ -1142,8 +1142,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Drop all sessions
         Collection sessions = new ArrayList(this.sessions.values());
         for (Iterator i = sessions.iterator(); i.hasNext();) {
+            WinstoneSession session = (WinstoneSession) i.next(); 
             try {
-                ((WinstoneSession) i.next()).invalidate();
+                if (this.useSavedSessions) {
+                    session.saveToTemp();
+                } else {
+                    session.invalidate();
+                }
             } catch (Throwable err) {
                 Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.ShutdownError", err);
             }
@@ -1276,7 +1281,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
      */
     public WinstoneSession makeNewSession(String sessionId) {
         WinstoneSession ws = new WinstoneSession(sessionId);
-        ws.setWebAppConfiguration(this, (this.cluster != null));
+        ws.setWebAppConfiguration(this);
         setSessionListeners(ws);
         if ((this.sessionTimeout != null) && (this.sessionTimeout.intValue() > 0)) {
             ws.setMaxInactiveInterval(this.sessionTimeout.intValue() * 60);
@@ -1318,10 +1323,13 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     }
 
     /**
-     * Remove the session from the collection
+     * Add/Remove the session from the collection
      */
-    public void removeSessionById(String sessionId) {
+    void removeSessionById(String sessionId) {
         this.sessions.remove(sessionId);
+    }
+    void addSession(String sessionId, WinstoneSession session) {
+        this.sessions.put(sessionId, session);
     }
 
     public void invalidateExpiredSessions() {
@@ -1344,45 +1352,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         session.setSessionActivationListeners(this.sessionActivationListeners);
         session.setSessionAttributeListeners(this.sessionAttributeListeners);
         session.setSessionListeners(this.sessionListeners);
-    }
-    
-    public File getSessionTempDir() {
-        File tmpDir = (File) this.attributes.get("javax.servlet.context.tempdir");
-        File sessionsDir = new File(tmpDir, "WEB-INF/winstoneSessions");
-        sessionsDir.mkdirs();
-        return sessionsDir;
-    }
-    
-    private void loadSessions() {
-        // Iterate through the files in the dir, instantiate and then add to the sessions set
-        File possibleSessionFiles[] = getSessionTempDir().listFiles();
-        for (int n = 0; n < possibleSessionFiles.length; n++) {
-            if (possibleSessionFiles[n].getName().endsWith(".ser")) {
-                InputStream in = null;
-                ObjectInputStream objIn = null;
-                try {
-                    in = new FileInputStream(possibleSessionFiles[n]);
-                    objIn = new ObjectInputStream(in);
-                    WinstoneSession session = (WinstoneSession) objIn.readObject();
-                    session.setWebAppConfiguration(this, (this.cluster != null));
-                    setSessionListeners(session);
-                    this.sessions.put(session.getId(), session);
-                    Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
-                            "WebAppConfig.RestoredSession", session.getId());
-                } catch (Throwable err) {
-                    Logger.log(Logger.ERROR, Launcher.RESOURCES, 
-                            "WebAppConfig.ErrorLoadingSession", err);
-                } finally {
-                    if (objIn != null) {
-                        try {objIn.close();} catch (IOException err) {}
-                    }
-                    if (in != null) {
-                        try {in.close();} catch (IOException err) {}
-                    }
-                    possibleSessionFiles[n].delete();
-                }
-            }
-        }
     }
 
     public void removeServletConfigurationAndMappings(ServletConfiguration config) {
