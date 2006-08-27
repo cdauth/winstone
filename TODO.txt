@@ -2,7 +2,6 @@ List of other things to do:
 ---------------------------
 
 Long-term
-     - Add session persistence across reboots (ie serialize to file)
      - Control port password ? Maybe not, or only if someone asks for it
      - Add more automated tests as part of release process:
        - url matching (evaluation of servletPath/pathInfo)
@@ -16,6 +15,11 @@ Long-term
      - More accurate profiling of memory usage, object allocation etc
      - Auto-deployer for webappsDir folder. Redeploy warfiles that have been updated or added
      - Maven winstone plugin, so we can run maven winstone, and it will war-up and execute
+     
+v0.9.5
+DONE - Add session persistence across reboots (ie serialize to file)
+DONE - Add v2.5 spec support
+DONE - Heaps of include/forward and session related fixes (thanks to Martin Cordova and Robert Boyce)
 
 v0.8.1
 DONE - License change to dual CDDL + LGPL
