@@ -877,9 +877,9 @@ winstone.shutdown(); </pre>
     <div class="section">
       <h2><a name="sessionPersistence">Session persistence across reboots</a></h2>
     
-      <p>From v0.9.5, if you start with --useSavedSessions as an argument, sessions will be saved after each access
-        to disk, and loaded on container startup. The effect is that sessions will persist across reboots, instead
-        of being lost (which is the default behaviour, or --useSavedSessions=false).</p>
+      <p>From v0.9.5, if you start with --useSavedSessions as an argument, all sessions in the container will be 
+        saved to disk after each request, and loaded on container startup. The effect is that sessions will 
+        persist across reboots, instead of being lost (which is the default behaviour, or --useSavedSessions=false).</p>
       <p>This is useful for development time, if only to prevent you from having to log in to your webapp every 
         time you restart the container. It does however come with a few costs / side effects to think about:</p>
       <ul>

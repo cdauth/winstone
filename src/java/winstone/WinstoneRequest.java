@@ -1328,7 +1328,9 @@ public class WinstoneRequest implements HttpServletRequest {
             WinstoneSession session = (WinstoneSession) i.next();
             session.setLastAccessedDate(lastAccessedTime);
             session.removeUsed(this);
-            session.saveToTemp();
+            if (saveSessions) {
+                session.saveToTemp();
+            }
         }
         this.usedSessions.clear();
     }
