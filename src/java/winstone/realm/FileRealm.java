@@ -119,8 +119,7 @@ public class FileRealm implements AuthenticationRealm {
     private Document parseStreamToXML(InputStream in) {
         try {
             // Use JAXP to create a document builder
-            DocumentBuilderFactory factory = DocumentBuilderFactory
-                    .newInstance();
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setExpandEntityReferences(false);
             factory.setValidating(false);
             factory.setNamespaceAware(false);
@@ -131,7 +130,7 @@ public class FileRealm implements AuthenticationRealm {
             return builder.parse(in);
         } catch (Throwable errParser) {
             throw new WinstoneException(REALM_RESOURCES
-                    .getString("FileRealm.WebXMLParseError"), errParser);
+                    .getString("FileRealm.XMLParseError"), errParser);
         }
     }
 
