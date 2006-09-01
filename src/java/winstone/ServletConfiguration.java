@@ -157,6 +157,10 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
         }
         
         synchronized (this.servletSemaphore) {
+
+            if (this.instance != null) {
+                return; // already init'd
+            }
             
             // Check if we were decommissioned while blocking
             if (this.unavailableException != null) {
