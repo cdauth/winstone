@@ -183,7 +183,7 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
             return new InputSource(url);
         } else {
             Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
-                    "WebXmlParser.NoLocalResource   ", url);
+                    "WebXmlParser.NoLocalResource", url);
             return new InputSource(url);
         }
     }
