@@ -41,18 +41,34 @@ public class ReloadingClassLoader extends URLClassLoader implements ServletConte
     private WebAppConfiguration webAppConfig;
     private Set loadedClasses;
     private File classPaths[];
-    
+    private int classPathsLength;
+
     public ReloadingClassLoader(URL urls[], ClassLoader parent) {
         super(urls, parent);
-        this.classPaths = new File[urls.length];
-        for (int n = 0; n < urls.length; n++) {
-            this.classPaths[n] = new File(urls[n].getFile());
-        }
-
-        // Start the file date changed monitoring thread
         this.loadedClasses = new HashSet();
+        if (urls != null) {
+            this.classPaths = new File[urls.length];
+            for (int n = 0 ; n < urls.length; n++) {
+                this.classPaths[this.classPathsLength++] = new File(urls[n].getFile());
+            }
+        }
     }
     
+    protected void addURL(URL url) {
+        super.addURL(url);
+        synchronized (this.loadedClasses) {
+            if (this.classPaths == null) {
+                this.classPaths = new File[10];
+                this.classPathsLength = 0;
+            } else if (this.classPathsLength == (this.classPaths.length - 1)) {
+                File temp[] = this.classPaths;
+                this.classPaths = new File[(int) (this.classPathsLength * 1.75)];
+                System.arraycopy(temp, 0, this.classPaths, 0, this.classPathsLength);
+            }
+            this.classPaths[this.classPathsLength++] = new File(url.getFile());
+        }
+    }
+
     public void contextInitialized(ServletContextEvent sce) {
         this.webAppConfig = (WebAppConfiguration) sce.getServletContext();
         this.interrupted = false;
