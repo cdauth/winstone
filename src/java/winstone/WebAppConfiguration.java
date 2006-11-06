@@ -483,19 +483,24 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     for (Iterator i = mappings.iterator(); i.hasNext(); ) {
                         String item = (String) i.next();
                         Mapping mapping = null;
-                        if (item.startsWith("srv:")) {
-                            mapping = Mapping.createFromLink(filterName, item.substring(4));
-                        } else {
-                            mapping = Mapping.createFromURL(filterName, item.substring(4));
+                        try {
+                            if (item.startsWith("srv:")) {
+                                mapping = Mapping.createFromLink(filterName, item.substring(4));
+                            } else {
+                                mapping = Mapping.createFromURL(filterName, item.substring(4));
+                            }
+                            if (onRequest)
+                                lfpRequest.add(mapping);
+                            if (onForward)
+                                lfpForward.add(mapping);
+                            if (onInclude)
+                                lfpInclude.add(mapping);
+                            if (onError)
+                                lfpError.add(mapping);
+                        } catch (WinstoneException err) {
+                            Logger.log(Logger.WARNING, Launcher.RESOURCES, "WebAppConfig.ErrorMapURL",
+                                    err.getMessage());
                         }
-                        if (onRequest)
-                            lfpRequest.add(mapping);
-                        if (onForward)
-                            lfpForward.add(mapping);
-                        if (onInclude)
-                            lfpInclude.add(mapping);
-                        if (onError)
-                            lfpError.add(mapping);
                     }
                 }
 
