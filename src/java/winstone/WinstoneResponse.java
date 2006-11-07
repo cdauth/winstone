@@ -391,7 +391,7 @@ public class WinstoneResponse implements HttpServletResponse {
      * Quotes the necessary strings in a cookie header. The quoting is only
      * applied if the string contains special characters.
      */
-    protected void quote(String value, StringBuffer out) {
+    protected static void quote(String value, StringBuffer out) {
         if (value.startsWith("\"") && value.endsWith("\"")) {
             out.append(value);
         } else {
@@ -411,7 +411,7 @@ public class WinstoneResponse implements HttpServletResponse {
         }
     }
 
-    final String specialCharacters = "()<>@,;:\\\"/[]?={} \t";
+    private static final String specialCharacters = "()<>@,;:\\\"/[]?={} \t";
 
     /**
      * Based on request/response headers and the protocol, determine whether or
