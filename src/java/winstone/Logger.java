@@ -6,15 +6,16 @@
  */
 package winstone;
 
+import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,6 +27,8 @@ import java.util.Map;
  * @version $Id$
  */
 public class Logger {
+    private static final String LINE_SEPARATOR = System.getProperty("line.separator"); 
+    
     public final static String DEFAULT_STREAM = "Winstone";
     public static int MIN = 1;
     public static int ERROR = 2;
@@ -38,11 +41,11 @@ public class Logger {
 
     protected static Boolean semaphore = new Boolean(true);
     protected static boolean initialised = false;
-    protected static Map streams;
-    protected static Collection nullStreams;
+    protected static Writer defaultStream;
+    protected static Map namedStreams;
+//    protected static Collection nullStreams;
     protected static int currentDebugLevel;
     protected final static DateFormat sdfLog = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-//    protected static boolean showThrowingLineNo;
     protected static boolean showThrowingThread;
 
     /**
@@ -50,46 +53,51 @@ public class Logger {
      */
     public static void init(int level) {
         init(level, System.out, false);
-//        init(level, System.out, false, false);
     }
 
     /**
      * Initialises default streams
      */
     public static void init(int level, OutputStream defaultStream, 
-//            boolean showThrowingLineNoArg, 
             boolean showThrowingThreadArg) {
-        currentDebugLevel = level;
-        streams = new Hashtable();
-        nullStreams = new ArrayList();
-        initialised = true;
-        setStream(DEFAULT_STREAM, defaultStream);
-//        showThrowingLineNo = showThrowingLineNoArg;
-        showThrowingThread = showThrowingThreadArg;
+        synchronized (semaphore) {
+            if (!initialised) { // recheck in case we were blocking on another init
+                initialised = false;
+                currentDebugLevel = level;
+                namedStreams = new HashMap();
+//                nullStreams = new ArrayList();
+                setStream(DEFAULT_STREAM, defaultStream);
+                showThrowingThread = showThrowingThreadArg;
+                initialised = true;
+            }
+        }
     }
 
     /**
      * Allocates a stream for redirection to a file etc
      */
     public static void setStream(String name, OutputStream stream) {
-        if (stream == null)
-            nullStreams.add(name);
-        else
-            setStream(name, new PrintWriter(stream));
+        setStream(name, stream != null ? new OutputStreamWriter(stream) : null);
     }
 
     /**
      * Allocates a stream for redirection to a file etc
      */
-    public static void setStream(String name, PrintWriter stream) {
-        // synchronized (semaphore)
-        {
-            if (!initialised)
-                init(INFO);
-            if (stream == null)
-                nullStreams.add(name);
-            else
-                streams.put(name, stream);
+    public static void setStream(String name, Writer stream) {
+        if (name == null) {
+            name = DEFAULT_STREAM;
+        }
+        if (!initialised) {
+            init(INFO);
+        }
+        synchronized (semaphore) {
+            if (name.equals(DEFAULT_STREAM)) {
+                defaultStream = stream;
+            } else if (stream == null) {
+                namedStreams.remove(name);
+            } else {
+                namedStreams.put(name, stream);
+            }
         }
     }
 
@@ -97,36 +105,42 @@ public class Logger {
      * Forces a flush of the contents to file, display, etc
      */
     public static void flush(String name) {
-        // synchronized (semaphore)
-        {
-            if (!initialised)
-                init(INFO);
-            PrintWriter p = (PrintWriter) streams.get(name);
-            if (p != null)
-                p.flush();
+        if (!initialised) {
+            init(INFO);
         }
+
+        Writer stream = getStreamByName(name);
+        if (stream != null) {
+            try {stream.flush();} catch (IOException err) {}
+        }
+    }
+    
+    private static Writer getStreamByName(String streamName) {
+        if ((streamName != null) && streamName.equals(DEFAULT_STREAM)) {
+            // As long as the stream has not been nulled, assign the default if not found
+            synchronized (semaphore) {
+                Writer stream = (Writer) namedStreams.get(streamName);
+                if ((stream == null) && !namedStreams.containsKey(streamName)) {
+                    stream = defaultStream;
+                }
+                return stream;
+            }
+        } else {
+            return defaultStream;
+        }
+        
     }
 
     public static void setCurrentDebugLevel(int level) {
-        if (!initialised)
+        if (!initialised) {
             init(level);
-        else
+        } else synchronized (semaphore) {
             currentDebugLevel = level;
+        }
     }
 
     /**
-     * Writes a log message to the default stream / public static void log(int
-     * level, String message) { log(level, DEFAULT_STREAM, message); }
-     * 
-     * /** Writes a log message to the default stream / public static void
-     * log(int level, String message, Throwable error) { log(level,
-     * DEFAULT_STREAM, message, error); }
-     * 
-     * /** Writes a log message to the default stream / public static void
-     * log(int level, String streamName, String message) { log(level,
-     * streamName, message, null); }
-     * 
-     * /** Writes a log message to the requested stream, and immediately flushes
+     * Writes a log message to the requested stream, and immediately flushes
      * the contents of the stream.
      */
     private static void logInternal(String streamName, String message, Throwable error) {
@@ -135,107 +149,111 @@ public class Logger {
             init(INFO);
         }
         
-        String lineNoText = "";
-//        if (showThrowingLineNo) {
-//            Throwable dummyError = new RuntimeException();
-//            StackTraceElement[] elements = dummyError.getStackTrace();
-//            int elemNumber = Math.min(2, elements.length);
-//            String errorClass = elements[elemNumber].getClassName();
-//            if (errorClass.lastIndexOf('.') != -1) {
-//                errorClass = errorClass.substring(errorClass.lastIndexOf('.') + 1);
-//            }
-//            lineNoText = "[" + errorClass + ":" + elements[elemNumber].getLineNumber() + "] - "; 
-//        }
-        if (showThrowingThread) {
-            lineNoText += "[" + Thread.currentThread().getName() + "] - ";
-        }
-
-        PrintWriter stream = (PrintWriter) streams.get(streamName);
-        boolean nullStream = nullStreams.contains(streamName);
-        if ((stream == null) && !nullStream)
-            stream = (PrintWriter) streams.get(DEFAULT_STREAM);
-
+        Writer stream = getStreamByName(streamName);
         if (stream != null) {
-            StringBuffer fullMessage = new StringBuffer();
+            Writer fullMessage = new StringWriter();
             String date = null;
             synchronized (sdfLog) {
                 date = sdfLog.format(new Date());
             }
-            fullMessage.append("[").append(streamName).append(" ").append(
-                    date).append("] - ").append(lineNoText).append(message);
-            if (error != null) {
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                error.printStackTrace(pw);
-                pw.flush();
-                fullMessage.append('\n').append(sw.toString());
+            try {
+                fullMessage.write("[");
+                fullMessage.write(streamName);
+                fullMessage.write(" ");
+                fullMessage.write(date);
+                fullMessage.write("] - ");
+                if (showThrowingThread) {
+                    fullMessage.write("[");
+                    fullMessage.write(Thread.currentThread().getName());
+                    fullMessage.write("] - ");
+                }
+                fullMessage.write(message);
+                if (error != null) {
+                    fullMessage.write(LINE_SEPARATOR);
+                    PrintWriter pw = new PrintWriter(fullMessage);
+                    error.printStackTrace(pw);
+                    pw.flush();
+                }
+                fullMessage.write(LINE_SEPARATOR);
+                
+                stream.write(fullMessage.toString());
+                stream.flush();
+            } catch (IOException err) {
+                System.err.println(Launcher.RESOURCES.getString("Logger.StreamWriteError", message));
+                err.printStackTrace(System.err);
             }
-            stream.println(fullMessage.toString());
-            stream.flush();
         }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(DEFAULT_STREAM, resources.getString(messageKey), null);
+        }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, Throwable error) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(DEFAULT_STREAM, resources.getString(messageKey), error);
+        }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String param) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(DEFAULT_STREAM, resources.getString(messageKey, param), null);
+        }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String params[]) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(DEFAULT_STREAM, resources.getString(messageKey, params), null);
+        }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String param, Throwable error) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(DEFAULT_STREAM, resources.getString(messageKey, param), error);
+        }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String messageKey, String params[], Throwable error) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(DEFAULT_STREAM, resources.getString(messageKey, params), error);
+        }
     }
 
     public static void log(int level, WinstoneResourceBundle resources,
             String streamName, String messageKey, String params[], Throwable error) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(streamName, resources.getString(messageKey, params), error);
+        }
     }
 
     public static void logDirectMessage(int level, String streamName, String message, 
             Throwable error) {
-        if (currentDebugLevel < level)
+        if (currentDebugLevel < level) {
             return;
-        else
+        } else {
             logInternal(streamName, message, error);
+        }
     }
 }
