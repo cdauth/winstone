@@ -66,9 +66,9 @@ public class Logger {
                 currentDebugLevel = level;
                 namedStreams = new HashMap();
 //                nullStreams = new ArrayList();
+                initialised = true;
                 setStream(DEFAULT_STREAM, defaultStream);
                 showThrowingThread = showThrowingThreadArg;
-                initialised = true;
             }
         }
     }
