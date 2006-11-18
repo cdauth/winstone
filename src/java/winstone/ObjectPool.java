@@ -150,9 +150,9 @@ public class ObjectPool implements Runnable {
         RequestHandlerThread rh = null;
         synchronized (this.requestHandlerSemaphore) {
             // If we have any spare, get it from the pool
-            if (this.unusedRequestHandlerThreads.size() > 0) {
-                rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.get(0);
-                this.unusedRequestHandlerThreads.remove(rh);
+            int unused = this.unusedRequestHandlerThreads.size();
+            if (unused > 0) {
+                rh = (RequestHandlerThread) this.unusedRequestHandlerThreads.remove(unused - 1);
                 this.usedRequestHandlerThreads.add(rh);
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "ObjectPool.UsingRHPoolThread", new String[] {
@@ -232,9 +232,9 @@ public class ObjectPool implements Runnable {
         WinstoneRequest req = null;
         synchronized (this.requestPoolSemaphore) {
             // If we have any spare, get it from the pool
-            if (this.unusedRequestPool.size() > 0) {
-                req = (WinstoneRequest) this.unusedRequestPool.get(0);
-                this.unusedRequestPool.remove(req);
+            int unused = this.unusedRequestPool.size();
+            if (unused > 0) {
+                req = (WinstoneRequest) this.unusedRequestPool.remove(unused - 1);
                 this.usedRequestPool.add(req);
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "ObjectPool.UsingRequestFromPool", ""
@@ -272,9 +272,9 @@ public class ObjectPool implements Runnable {
         WinstoneResponse rsp = null;
         synchronized (this.responsePoolSemaphore) {
             // If we have any spare, get it from the pool
-            if (this.unusedResponsePool.size() > 0) {
-                rsp = (WinstoneResponse) this.unusedResponsePool.get(0);
-                this.unusedResponsePool.remove(rsp);
+            int unused = this.unusedResponsePool.size();
+            if (unused > 0) {
+                rsp = (WinstoneResponse) this.unusedResponsePool.remove(unused - 1);
                 this.usedResponsePool.add(rsp);
                 Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                         "ObjectPool.UsingResponseFromPool", ""
