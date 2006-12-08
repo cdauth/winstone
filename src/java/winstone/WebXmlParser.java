@@ -154,6 +154,8 @@ public class WebXmlParser implements EntityResolver, ErrorHandler {
         {null, "http://www.w3.org/2001/datatypes.dtd", "javax/servlet/resources/datatypes.dtd"},
         {null, "http://java.sun.com/xml/ns/j2ee/j2ee_1_4.xsd", "javax/servlet/resources/j2ee_1_4.xsd"},
         {null, "http://java.sun.com/xml/ns/j2ee/javaee_5.xsd", "javax/servlet/resources/javaee_5.xsd"},
+        {null, "http://java.sun.com/xml/ns/j2ee/jsp_2_0.xsd", "javax/servlet/resources/jsp_2_0.xsd"},
+        {null, "http://java.sun.com/xml/ns/j2ee/jsp_2_1.xsd", "javax/servlet/resources/jsp_2_1.xsd"},
         {null, "http://www.ibm.com/webservices/xsd/j2ee_web_services_client_1_1.xsd", "javax/servlet/resources/j2ee_web_services_client_1_1.xsd"},
         {null, "http://www.ibm.com/webservices/xsd/j2ee_web_services_client_1_2.xsd", "javax/servlet/resources/javaee_web_services_client_1_2.xsd"}
     };
