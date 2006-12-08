@@ -212,7 +212,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                 webRoot, localLoaderClassPathFiles);
         
         // Build switch values
-        boolean useJasper = booleanArg(startupArgs, "useJasper", false);
+        boolean useJasper = booleanArg(startupArgs, "useJasper", true);
         boolean useInvoker = booleanArg(startupArgs, "useInvoker", false);
         boolean useJNDI = booleanArg(startupArgs, "useJNDI", false);
         this.useSavedSessions = useSavedSessions(startupArgs);
@@ -222,10 +222,12 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             try {
                 Class.forName(JSP_SERVLET_CLASS, false, this.loader);
             } catch (Throwable err) {
-                Logger.log(Logger.WARNING, Launcher.RESOURCES, 
-                        "WebAppConfig.JasperNotFound");
-                Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
-                        "WebAppConfig.JasperLoadException", err);
+                if (booleanArg(startupArgs, "useJasper", false)) {
+                    Logger.log(Logger.WARNING, Launcher.RESOURCES, 
+                            "WebAppConfig.JasperNotFound");
+                    Logger.log(Logger.DEBUG, Launcher.RESOURCES, 
+                            "WebAppConfig.JasperLoadException", err);
+                }
                 useJasper = false;
             }
         }
