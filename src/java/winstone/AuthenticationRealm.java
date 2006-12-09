@@ -15,13 +15,13 @@ package winstone;
 public interface AuthenticationRealm {
     /**
      * Authenticate the user - do we know them ? Return a distinct id once we
-     * know them
+     * know them. Used by the BASIC and FORM authentication methods.
      */
     public AuthenticationPrincipal authenticateByUsernamePassword(
             String userName, String password);
 
     /**
-     * Retrieve an authenticated user
+     * Retrieve an authenticated user. Used by the DIGEST and CLIENTCERT authentication methods.
      */
     public AuthenticationPrincipal retrieveUser(String userName);
 }

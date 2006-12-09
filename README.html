@@ -624,11 +624,11 @@ worker.ajp13.type=ajp13
               role list. Passwords are added with <code>--argumentsRealm.passwd.&lt;username&gt;=&lt;password&gt;</code>, 
               and roles are added with <code>--argumentsRealm.roles.&lt;username&gt;=&lt;role1&gt;,&lt;role2&gt;</code></li>
             <li><b>FileRealm:</b> This is the same as the Tomcat <code>tomcat-users.xml</code> file. 
-              Pass in the command line arguments <code>--realmClass=winstone.realm.FileRealm 
+              Pass in the command line arguments <code>--realmClassName=winstone.realm.FileRealm 
               --fileRealm.configFile=&lt;filename&gt;</code>, and it should work exactly the way Tomcat does by default.</li>
             <li><b>Write your own:</b> You just have to extend the <code>winstone.AuthenticationRealm</code> class,
               and override the appropriate methods (as the File and Arguments Realms do), and specify the class name in
-              <code>--realmClass</code>.</li>
+              <code>--realmClassName</code>.</li>
           </ol>
         </li>
       </ul>
