@@ -678,11 +678,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     + "AuthenticationHandler";
             try {
                 // Build the realm
-                Class realmClass = Class.forName(realmClassName);
-                Constructor realmConstr = realmClass
-                        .getConstructor(new Class[] {Set.class, Map.class });
-                this.authenticationRealm = (AuthenticationRealm) realmConstr
-                        .newInstance(new Object[] { rolesAllowed, startupArgs });
+                Class realmClass = Class.forName(realmClassName, true, parentClassLoader);
+                Constructor realmConstr = realmClass.getConstructor(
+                        new Class[] {Set.class, Map.class });
+                this.authenticationRealm = (AuthenticationRealm) realmConstr.newInstance(
+                        new Object[] { rolesAllowed, startupArgs });
 
                 // Build the authentication handler
                 Class authClass = Class.forName(authClassName);
@@ -711,7 +711,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (useJNDI) {
             try {
                 // Build the realm
-                Class jndiMgrClass = Class.forName(jndiMgrClassName, true, this.loader);
+                Class jndiMgrClass = Class.forName(jndiMgrClassName, true, parentClassLoader);
                 Constructor jndiMgrConstr = jndiMgrClass.getConstructor(new Class[] { 
                         Map.class, List.class, ClassLoader.class });
                 this.jndiManager = (JNDIManager) jndiMgrConstr.newInstance(new Object[] { 
@@ -731,7 +731,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (!loggerClassName.equals("")) {
             try {
                 // Build the realm
-                Class loggerClass = Class.forName(loggerClassName, true, this.loader);
+                Class loggerClass = Class.forName(loggerClassName, true, parentClassLoader);
                 Constructor loggerConstr = loggerClass.getConstructor(new Class[] { 
                         WebAppConfiguration.class, Map.class });
                 this.accessLogger = (AccessLogger) loggerConstr.newInstance(new Object[] {
