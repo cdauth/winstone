@@ -753,22 +753,18 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             localWelcomeFiles.add("index.html");
         }
 
-        // Put the name filters after the url filters, then convert to string
-        // arrays
+        // Put the name filters after the url filters, then convert to string arrays
         this.filterPatternsRequest = (Mapping[]) lfpRequest.toArray(new Mapping[0]);
         this.filterPatternsForward = (Mapping[]) lfpForward.toArray(new Mapping[0]);
         this.filterPatternsInclude = (Mapping[]) lfpInclude.toArray(new Mapping[0]);
         this.filterPatternsError = (Mapping[]) lfpError.toArray(new Mapping[0]);
 
         if (this.filterPatternsRequest.length > 0)
-            Arrays.sort(this.filterPatternsRequest,
-                    this.filterPatternsRequest[0]);
+            Arrays.sort(this.filterPatternsRequest, this.filterPatternsRequest[0]);
         if (this.filterPatternsForward.length > 0)
-            Arrays.sort(this.filterPatternsForward,
-                    this.filterPatternsForward[0]);
+            Arrays.sort(this.filterPatternsForward, this.filterPatternsForward[0]);
         if (this.filterPatternsInclude.length > 0)
-            Arrays.sort(this.filterPatternsInclude,
-                    this.filterPatternsInclude[0]);
+            Arrays.sort(this.filterPatternsInclude, this.filterPatternsInclude[0]);
         if (this.filterPatternsError.length > 0)
             Arrays.sort(this.filterPatternsError, this.filterPatternsError[0]);
 
@@ -810,8 +806,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             ServletConfiguration defaultServlet = new ServletConfiguration(
                     this,  this.defaultServletName, DEFAULT_SERVLET_CLASS,
                     staticParams, 0);
-            // commented cause it should be called during startup servlet
-//          defaultServlet.getRequestDispatcher(this.filterInstances); 
             this.servletInstances.put(this.defaultServletName, defaultServlet);
             startupServlets.add(defaultServlet);
         }
@@ -821,8 +815,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             ServletConfiguration errorServlet = new ServletConfiguration(
                     this,  this.errorServletName, ERROR_SERVLET_CLASS,
                     new HashMap(), 0);
-            // commented cause it should be called during startup servlet
-//          errorServlet.getRequestDispatcher(this.filterInstances); 
             this.servletInstances.put(this.errorServletName, errorServlet);
             startupServlets.add(errorServlet);
         }
@@ -830,8 +822,6 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Initialise jasper servlet if requested
         if (useJasper) {
             setAttribute("org.apache.catalina.classloader", this.loader);
-            // Logger.log(Logger.DEBUG, "Setting JSP classpath: " +
-            // this.loader.getClasspath());
             try {
                 StringBuffer cp = new StringBuffer();
                 for (Iterator i = localLoaderClassPathFiles.iterator(); i.hasNext(); ) {
