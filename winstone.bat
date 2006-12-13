@@ -1,18 +1,17 @@
 @echo off
 
-set JAVA_HOME=c:\java\jdk1.4.2
+set JAVA_HOME=c:\java\jdk1.5.0
 set WINSTONE_HOME=d:\rick\winstone
 set CATALINA_HOME=c:\java\tomcat
 set JAVA_OPTS=-Djava.endorsed.dirs=%JAVA_HOME%\jre\lib\ext
 
-set CP=%CP%;%WINSTONE_HOME%\dist\winstone.jar
+set CP=%CP%;%WINSTONE_HOME%\target\winstone-0.9.7-cvs.jar
 set WINSTONE_OPTS=--prefix=/examples 
-set WINSTONE_OPTS=%WINSTONE_OPTS% --webroot=%CATALINA_HOME%\webapps\examples
-set WINSTONE_OPTS=%WINSTONE_OPTS% --debug=7
-set WINSTONE_OPTS=%WINSTONE_OPTS% --commonLibFolder=d:\lib 
+set WINSTONE_OPTS=%WINSTONE_OPTS% --webroot=%CATALINA_HOME%\webapps\jsp-examples
+set WINSTONE_OPTS=%WINSTONE_OPTS% --debug=8
+set WINSTONE_OPTS=%WINSTONE_OPTS% --commonLibFolder=c:\java\commonLibAll
 set WINSTONE_OPTS=%WINSTONE_OPTS% --javaHome=%JAVA_HOME%
 set WINSTONE_OPTS=%WINSTONE_OPTS% --argumentsRealm.passwd.rickk=rickk --argumentsRealm.roles.rickk=test,tomcat
-set WINSTONE_OPTS=%WINSTONE_OPTS% --useJNDI --jndi.resource.mail/Session=javax.mail.Session --jndi.param.mail/Session.mail.smtp.host=smtp.ponbiki.org --jndi.param.mail/Session.mail.smtp.user=rickk@ponbiki.org
 
 @rem ********************************************************************
 @rem            Uncomment for non-1.4 jdks
@@ -37,8 +36,8 @@ set WINSTONE_OPTS=%WINSTONE_OPTS% --useJasper
 @rem ********************************************************************
 set WINSTONE_OPTS=%WINSTONE_OPTS% --useInvoker
 
-set CP=%CP%;c:\java\mail\activation.jar
-set CP=%CP%;c:\java\mail\mail.jar
+set CP=%CP%;c:\java\jars\activation.jar
+set CP=%CP%;c:\java\jars\mail.jar
 
 echo Options: %WINSTONE_OPTS%
 

@@ -81,6 +81,9 @@ public class WinstoneResourceBundle {
         int index = 0;
         int foundAt = input.indexOf(fromMarker, index);
         while (foundAt != -1) {
+            if (toValue == null) {
+                toValue = "(null)";
+            }
             input.replace(foundAt, foundAt + fromMarker.length(), toValue);
             index = foundAt + toValue.length();
             foundAt = input.indexOf(fromMarker, index);

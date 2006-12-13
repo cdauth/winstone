@@ -93,11 +93,11 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
             ServletResponse response, String pathRequested) throws IOException,
             ServletException {
         if (pathRequested.equals(this.loginPage)
-                || pathRequested.equals(this.errorPage))
+                || pathRequested.equals(this.errorPage)) {
             return true;
-        else
-            return super
-                    .processAuthentication(request, response, pathRequested);
+        } else {
+            return super.processAuthentication(request, response, pathRequested);
+        }
     }
 
     /**
@@ -107,32 +107,20 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
             HttpServletResponse response, String pathRequested)
             throws ServletException, IOException {
         // Save the critical details of the request into the session map
-        WinstoneRequest actualRequest = null;
-        if (request instanceof WinstoneRequest)
-            actualRequest = (WinstoneRequest) request;
-        else if (request instanceof HttpServletRequestWrapper) {
-            HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
-            if (wrapper.getRequest() instanceof WinstoneRequest)
-                actualRequest = (WinstoneRequest) wrapper.getRequest();
-            else
-                Logger.log(Logger.WARNING, AUTH_RESOURCES,
-                        "FormAuthenticationHandler.CantSetUser", wrapper
-                                .getRequest().getClass().getName());
-        } else
-            Logger.log(Logger.WARNING, AUTH_RESOURCES,
-                    "FormAuthenticationHandler.CantSetUser", request.getClass()
-                            .getName());
-
-        HttpSession session = actualRequest.getSession(true);
-        session.setAttribute(CACHED_REQUEST, new CachedRequest(actualRequest));
+        ServletRequest unwrapped = request;
+        while (unwrapped instanceof HttpServletRequestWrapper) {
+            unwrapped = ((HttpServletRequestWrapper) unwrapped).getRequest();
+        }
+        HttpSession session = request.getSession(true);
+        session.setAttribute(CACHED_REQUEST, new RetryRequestParams(unwrapped));
 
         // Forward on to the login page
         Logger.log(Logger.FULL_DEBUG, AUTH_RESOURCES,
                 "FormAuthenticationHandler.GoToLoginPage");
-        javax.servlet.RequestDispatcher rd = request
+        javax.servlet.RequestDispatcher rdLogin = request
                 .getRequestDispatcher(this.loginPage);
         setNoCache(response);
-        rd.forward(request, response);
+        rdLogin.forward(request, response);
     }
 
     /**
@@ -152,77 +140,78 @@ public class FormAuthenticationHandler extends BaseAuthenticationHandler {
             AuthenticationPrincipal principal = this.realm
                     .authenticateByUsernamePassword(username, password);
             if (principal == null) {
-                javax.servlet.RequestDispatcher rd = request
+                javax.servlet.RequestDispatcher rdError = request
                         .getRequestDispatcher(this.errorPage);
-                rd.forward(request, response);
+                rdError.forward(request, response);
             }
 
             // Send to stashed request
             else {
                 // Iterate back as far as we can
                 ServletRequest wrapperCheck = request;
-                while (wrapperCheck instanceof HttpServletRequestWrapper)
-                    wrapperCheck = ((HttpServletRequestWrapper) wrapperCheck)
-                            .getRequest();
-
+                while (wrapperCheck instanceof HttpServletRequestWrapper) {
+                    wrapperCheck = ((HttpServletRequestWrapper) wrapperCheck).getRequest();
+                }
+                
                 // Get the stashed request
                 WinstoneRequest actualRequest = null;
                 if (wrapperCheck instanceof WinstoneRequest) {
                     actualRequest = (WinstoneRequest) wrapperCheck;
                     actualRequest.setRemoteUser(principal);
-                } else
+                } else {
                     Logger.log(Logger.WARNING, AUTH_RESOURCES,
                             "FormAuthenticationHandler.CantSetUser",
                             wrapperCheck.getClass().getName());
-
+                }
                 HttpSession session = request.getSession(true);
                 String previousLocation = this.loginPage;
-                CachedRequest cachedRequest = (CachedRequest) session.getAttribute(CACHED_REQUEST);
-                if ((cachedRequest != null)
-                        && (actualRequest != null)) {
+                RetryRequestParams cachedRequest = (RetryRequestParams) 
+                        session.getAttribute(CACHED_REQUEST);
+                if ((cachedRequest != null) && (actualRequest != null)) {
                     // Repopulate this request from the params we saved
-                    cachedRequest.transferContent(actualRequest);
-                    previousLocation = request.getServletPath();
-                    // session.setCachedRequest(null); - commented out so that
-                    // refreshes will work
-                } else
+                    request = new RetryRequestWrapper(request, cachedRequest);
+                    previousLocation = 
+                        (request.getServletPath() == null ? "" : request.getServletPath()) + 
+                        (request.getPathInfo() == null ? "" : request.getPathInfo());
+                } else {
                     Logger.log(Logger.DEBUG, AUTH_RESOURCES,
                             "FormAuthenticationHandler.NoCachedRequest");
+                }
                 
                 // do role check, since we don't know that this user has permission
                 if (doRoleCheck(request, response, previousLocation)) {
                     principal.setAuthType(HttpServletRequest.FORM_AUTH);
                     session.setAttribute(AUTHENTICATED_USER, principal);
-                    javax.servlet.RequestDispatcher rd = request
+                    javax.servlet.RequestDispatcher rdPrevious = request
                             .getRequestDispatcher(previousLocation);
-                    rd.forward(request, response);
+                    rdPrevious.forward(request, response);
                 } else {
-                    javax.servlet.RequestDispatcher rd = request
+                    javax.servlet.RequestDispatcher rdError = request
                             .getRequestDispatcher(this.errorPage);
-                    rd.forward(request, response);
+                    rdError.forward(request, response);
                 }
             }
             return false;
         }
-
-        // If it's not a login, get the session, and look up the auth user
-        // variable
+        // If it's not a login, get the session, and look up the auth user variable
         else {
             WinstoneRequest actualRequest = null;
-            if (request instanceof WinstoneRequest)
+            if (request instanceof WinstoneRequest) {
                 actualRequest = (WinstoneRequest) request;
-            else if (request instanceof HttpServletRequestWrapper) {
+            } else if (request instanceof HttpServletRequestWrapper) { 
                 HttpServletRequestWrapper wrapper = (HttpServletRequestWrapper) request;
-                if (wrapper.getRequest() instanceof WinstoneRequest)
+                if (wrapper.getRequest() instanceof WinstoneRequest) {
                     actualRequest = (WinstoneRequest) wrapper.getRequest();
-                else
+                } else {
                     Logger.log(Logger.WARNING, AUTH_RESOURCES,
                             "FormAuthenticationHandler.CantSetUser", wrapper
                                     .getRequest().getClass().getName());
-            } else
+                }
+            } else {
                 Logger.log(Logger.WARNING, AUTH_RESOURCES,
                         "FormAuthenticationHandler.CantSetUser", request
                                 .getClass().getName());
+            }
 
             HttpSession session = actualRequest.getSession(false);
             if (session != null) {
