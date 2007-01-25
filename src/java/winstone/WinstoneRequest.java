@@ -524,9 +524,10 @@ public class WinstoneRequest implements HttpServletRequest {
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneRequest.ParamLine", "" + workingParameters);
                 }
-                
+                 
                 if (method.equals(METHOD_POST) && (contentType != null)
-                        && contentType.equals(POST_PARAMETERS)) {
+                        && (contentType.equals(POST_PARAMETERS)
+                        || contentType.startsWith(POST_PARAMETERS + ";"))) {
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneRequest.ParsingBodyParameters");
 
