@@ -9,7 +9,6 @@ package winstone.classLoader;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -34,7 +33,7 @@ import winstone.WinstoneResourceBundle;
  * @author <a href="mailto:rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
-public class ReloadingClassLoader extends URLClassLoader implements ServletContextListener, Runnable {
+public class ReloadingClassLoader extends WebappClassLoader implements ServletContextListener, Runnable {
     private static final int RELOAD_SEARCH_SLEEP = 50;
     private static final WinstoneResourceBundle CL_RESOURCES = new WinstoneResourceBundle("winstone.classLoader.LocalStrings");
     private boolean interrupted;

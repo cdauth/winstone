@@ -109,6 +109,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     private static final String DEFAULT_REALM_CLASS = "winstone.realm.ArgumentsRealm";
     private static final String DEFAULT_JNDI_MGR_CLASS = "winstone.jndi.WebAppJNDIManager";
     private static final String RELOADING_CL_CLASS = "winstone.classLoader.ReloadingClassLoader";
+    private static final String WEBAPP_CL_CLASS = "winstone.classLoader.WebappClassLoader";    
     private static final String ERROR_SERVLET_NAME = "winstoneErrorServlet";
     private static final String ERROR_SERVLET_CLASS = "winstone.ErrorServlet";
     
@@ -217,10 +218,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         boolean useJNDI = booleanArg(startupArgs, "useJNDI", false);
         this.useSavedSessions = useSavedSessions(startupArgs);
         
-        // Check jasper is available
+        // Check jasper is available - simple tests
         if (useJasper) {
             try {
-                Class.forName(JSP_SERVLET_CLASS, false, this.loader);
+                Class.forName("javax/servlet/jsp/JspFactory", true, this.loader);
+                Class.forName(JSP_SERVLET_CLASS, true, this.loader);
             } catch (Throwable err) {
                 if (booleanArg(startupArgs, "useJasper", false)) {
                     Logger.log(Logger.WARNING, Launcher.RESOURCES, 
@@ -966,9 +968,9 @@ public class WebAppConfiguration implements ServletContext, Comparator {
 
         URL jarURLs[] = (URL []) urlList.toArray(new URL[0]);
         
-        boolean useReloading = booleanArg(startupArgs, "useServletReloading", false);
-        String preferredClassLoader = stringArg(startupArgs, "preferredClassLoader", "");
-        if (preferredClassLoader.equals("") && useReloading) {
+        String preferredClassLoader = stringArg(startupArgs, "preferredClassLoader", WEBAPP_CL_CLASS);
+        if (booleanArg(startupArgs, "useServletReloading", false) && 
+                stringArg(startupArgs, "preferredClassLoader", "").equals("")) {
             preferredClassLoader = RELOADING_CL_CLASS;
         }
         
@@ -978,11 +980,14 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             try {
                 Class preferredCL = Class.forName(preferredClassLoader, true, parentClassLoader);
                 Constructor reloadConstr = preferredCL.getConstructor(new Class[] { 
-                        (new URL[0]).getClass(), ClassLoader.class});
+                        URL[].class, ClassLoader.class});
                 outputCL = (ClassLoader) reloadConstr.newInstance(new Object[] { 
                         jarURLs, parentClassLoader});
             } catch (Throwable err) {
-                Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.CLError", err);
+                if (!stringArg(startupArgs, "preferredClassLoader", "").equals("") || 
+                        !preferredClassLoader.equals(WEBAPP_CL_CLASS)) {
+                    Logger.log(Logger.ERROR, Launcher.RESOURCES, "WebAppConfig.CLError", err);
+                }
             }
         }
 
