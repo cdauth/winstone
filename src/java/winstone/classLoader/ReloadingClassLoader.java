@@ -34,7 +34,7 @@ import winstone.WinstoneResourceBundle;
  * @version $Id$
  */
 public class ReloadingClassLoader extends WebappClassLoader implements ServletContextListener, Runnable {
-    private static final int RELOAD_SEARCH_SLEEP = 50;
+    private static final int RELOAD_SEARCH_SLEEP = 10;
     private static final WinstoneResourceBundle CL_RESOURCES = new WinstoneResourceBundle("winstone.classLoader.LocalStrings");
     private boolean interrupted;
     private WebAppConfiguration webAppConfig;
@@ -102,13 +102,13 @@ public class ReloadingClassLoader extends WebappClassLoader implements ServletCo
         Set lostClasses = new HashSet();
         while (!interrupted) {
             try {
-                Thread.sleep(RELOAD_SEARCH_SLEEP);
                 String loadedClassesCopy[] = null;
                 synchronized (this) {
                     loadedClassesCopy = (String []) this.loadedClasses.toArray(new String[0]);
                 }
 
                 for (int n = 0; (n < loadedClassesCopy.length) && !interrupted; n++) {
+                    Thread.sleep(RELOAD_SEARCH_SLEEP);
                     String className = transformToFileFormat(loadedClassesCopy[n]);
                     File location = (File) classLocationTable.get(className);
                     Long classDate = null;
