@@ -346,7 +346,7 @@ public class RetryRequestWrapper extends HttpServletRequestWrapper {
                 }
                 
                 if (method.equals(METHOD_POST) && (contentType != null)
-                        && (contentType.equals(POST_PARAMETERS) || !contentType.startsWith(POST_PARAMETERS + ";"))) {
+                        && (contentType.equals(POST_PARAMETERS) || contentType.startsWith(POST_PARAMETERS + ";"))) {
                     // Parse params
                     String paramLine = (this.encoding == null ? new String(this.oldRequest.getBodyContent()) 
                             : new String(this.oldRequest.getBodyContent(), this.encoding));
