@@ -19,6 +19,8 @@ import winstone.WinstoneException;
 /**
  * Models a single incoming ajp13 packet.
  * 
+ * Fixes by Cory Osborn 2007/4/3 - IIS related. Thanks
+ * 
  * @author mailto: <a href="rick_knowles@hotmail.com">Rick Knowles</a>
  * @version $Id$
  */
@@ -82,8 +84,7 @@ public class Ajp13IncomingPacket {
                             + ""));
 
         // Check for terminator
-        if ((packetBytes[packetLength - 2] != (byte) 0)
-                || (packetBytes[packetLength - 1] != (byte) 255))
+        if (packetBytes[packetLength - 1] != (byte) 255)
             throw new WinstoneException(Ajp13Listener.AJP_RESOURCES
                     .getString("Ajp13IncomingPacket.InvalidTerminator"));
 
@@ -94,44 +95,50 @@ public class Ajp13IncomingPacket {
         // Protocol
         int protocolLength = readInteger(position, packetBytes, true);
         position += 2;
-        this.protocol = readString(position, packetBytes, encoding,
-                protocolLength);
-        position += (protocolLength == 0 ? 0 : protocolLength + 1);
+        this.protocol = (protocolLength > -1)
+                ? readString(position, packetBytes, encoding, protocolLength)
+                        : null;
+        position += protocolLength + 1;
         Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
                 "Ajp13IncomingPacket.Protocol", protocol);
 
         // URI
         int uriLength = readInteger(position, packetBytes, true);
         position += 2;
-        this.uri = readString(position, packetBytes, encoding, uriLength);
-        position += (uriLength == 0 ? 0 : uriLength + 1);
+        this.uri = (uriLength > -1)
+                ? readString(position, packetBytes, encoding, uriLength)
+                : null;
+        position += uriLength + 1;
         Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
                 "Ajp13IncomingPacket.URI", uri);
 
         // Remote addr
         int remoteAddrLength = readInteger(position, packetBytes, true);
         position += 2;
-        this.remoteAddr = readString(position, packetBytes, encoding,
-                remoteAddrLength);
-        position += (remoteAddrLength == 0 ? 0 : remoteAddrLength + 1);
+        this.remoteAddr = (remoteAddrLength > -1)
+                ? readString(position, packetBytes, encoding, remoteAddrLength)
+                : null;
+        position += remoteAddrLength + 1;
         Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
                 "Ajp13IncomingPacket.RemoteAddress", remoteAddr);
 
         // Remote host
         int remoteHostLength = readInteger(position, packetBytes, true);
         position += 2;
-        this.remoteHost = readString(position, packetBytes, encoding,
-                remoteHostLength);
-        position += (remoteHostLength == 0 ? 0 : remoteHostLength + 1);
+        this.remoteHost = (remoteHostLength > -1)
+                ? readString(position, packetBytes, encoding, remoteHostLength)
+                : null;    
+        position += remoteHostLength + 1;
         Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
                 "Ajp13IncomingPacket.RemoteHost", remoteHost);
 
         // Server name
         int serverNameLength = readInteger(position, packetBytes, true);
         position += 2;
-        this.serverName = readString(position, packetBytes, encoding,
-                serverNameLength);
-        position += (serverNameLength == 0 ? 0 : serverNameLength + 1);
+        this.serverName = (serverNameLength > -1)
+                ? readString(position, packetBytes, encoding, serverNameLength)
+                : null;
+        position += serverNameLength + 1;
         Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
                 "Ajp13IncomingPacket.ServerName", serverName);
 
@@ -160,8 +167,7 @@ public class Ajp13IncomingPacket {
             else {
                 headerName = readString(position, packetBytes, encoding,
                         headerTypeOrLength);
-                position += (headerTypeOrLength == 0 ? 0
-                        : headerTypeOrLength + 1);
+                position += headerTypeOrLength + 1;
             }
 
             // Header value
@@ -169,9 +175,10 @@ public class Ajp13IncomingPacket {
             position += 2;
             this.headers[n] = headerName
                     + ": "
-                    + readString(position, packetBytes, encoding,
-                            headerValueLength);
-            position += (headerValueLength == 0 ? 0 : headerValueLength + 1);
+                    + ((headerValueLength > -1)
+                        ? readString(position, packetBytes, encoding, headerValueLength)
+                        : "");
+            position += headerValueLength + 1;
             Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
                     "Ajp13IncomingPacket.Header", this.headers[n]);
         }
@@ -182,9 +189,10 @@ public class Ajp13IncomingPacket {
             String attName = decodeAttributeType(packetBytes[position++]);
             int attValueLength = readInteger(position, packetBytes, true);
             position += 2;
-            String attValue = readString(position, packetBytes, encoding,
-                    attValueLength);
-            position += (attValueLength == 0 ? 0 : attValueLength + 1);
+            String attValue = (attValueLength > -1)
+                      ? readString(position, packetBytes, encoding, attValueLength)
+                      : null;
+            position += attValueLength + 1;
 
             this.attributes.put(attName, attValue);
             Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
@@ -247,7 +255,7 @@ public class Ajp13IncomingPacket {
     private int readInteger(int position, byte packet[], boolean forStringLength) {
         if (forStringLength && (packet[position] == (byte) 0xFF)
                 && (packet[position + 1] == (byte) 0xFF))
-            return 0;
+            return -1;
         else
             return ((packet[position] & 0xFF) << 8)
                     + (packet[position + 1] & 0xFF);
