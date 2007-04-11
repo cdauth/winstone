@@ -58,7 +58,12 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
         String authorization = request.getHeader("Authorization");
         if ((authorization != null)
                 && authorization.toLowerCase().startsWith("basic")) {
-            String decoded = decodeBase64String(authorization.substring(5).trim());
+            
+            char[] inBytes = authorization.substring(5).trim().toCharArray();
+            byte[] outBytes = new byte[(int) (inBytes.length * 0.75f)]; // always mod 4 = 0
+            int length = decodeBase64(inBytes, outBytes, 0, inBytes.length, 0);
+
+            String decoded = new String(outBytes, 0, length);
             int delimPos = decoded.indexOf(':');
             if (delimPos != -1) {
                 AuthenticationPrincipal principal = this.realm
@@ -89,63 +94,50 @@ public class BasicAuthenticationHandler extends BaseAuthenticationHandler {
     }
 
     /**
-     * Useful helper method ... base 64 decoding for strings
-     */
-    public String decodeBase64String(String input) {
-        try {
-            char inChars[] = input.toCharArray();
-            byte outBytes[] = new byte[(int) Math
-                    .floor((inChars.length - 1) * 0.75)];
-            int length = input.indexOf('=');
-            if (length == -1) {
-                length = input.length();
-            }
-            decodeBase64(inChars, 0, input.indexOf('='), outBytes, 0);
-            return new String(outBytes, "8859_1");
-        } catch (Throwable err) {
-            return null;
-        }
-    }
-
-    /**
      * Decodes a byte array from base64
      */
-    public static void decodeBase64(char input[], int inOffset, int inLength,
-            byte output[], int outOffset) {
-        if (inLength == 0)
-            return;
-
-        // Decode four bytes
-        int thisPassInBytes = Math.min(inLength, 4);
-        int outBuffer = 0;
-        int thisPassOutBytes = 0;
-        if (thisPassInBytes == 2) {
-            outBuffer = ((B64_DECODE_ARRAY[input[inOffset]] & 0xFF) << 18)
-                    | ((B64_DECODE_ARRAY[input[inOffset + 1]] & 0xFF) << 12);
-            output[outOffset] = (byte) ((outBuffer >> 16) & 0xFF);
-            thisPassOutBytes = 1;
-        } else if (thisPassInBytes == 3) {
-            outBuffer = ((B64_DECODE_ARRAY[input[inOffset]] & 0xFF) << 18)
-                    | ((B64_DECODE_ARRAY[input[inOffset + 1]] & 0xFF) << 12)
-                    | ((B64_DECODE_ARRAY[input[inOffset + 2]] & 0xFF) << 6);
-            output[outOffset] = (byte) ((outBuffer >> 16) & 0xFF);
-            output[outOffset + 1] = (byte) ((outBuffer >> 8) & 0xFF);
-            thisPassOutBytes = 2;
-        } else {
-            outBuffer = ((B64_DECODE_ARRAY[input[inOffset]] & 0xFF) << 18)
-                    | ((B64_DECODE_ARRAY[input[inOffset + 1]] & 0xFF) << 12)
-                    | ((B64_DECODE_ARRAY[input[inOffset + 2]] & 0xFF) << 6)
-                    | ((B64_DECODE_ARRAY[input[inOffset + 3]] & 0xFF));
-            output[outOffset] = (byte) ((outBuffer >> 16) & 0xFF);
-            output[outOffset + 1] = (byte) ((outBuffer >> 8) & 0xFF);
-            output[outOffset + 2] = (byte) (outBuffer & 0xFF);
-            thisPassOutBytes = 3;
+    public static int decodeBase64(char[] input, byte[] output, 
+            int inOffset, int inLength, int outOffset) {
+        if (inLength == 0) {
+            return 0;
         }
-        // Recurse
-        decodeBase64(input, inOffset + thisPassInBytes, inLength
-                - thisPassInBytes, output, outOffset + thisPassOutBytes);
-    }
 
+        int outIndex = outOffset;
+        for (int inIndex = inOffset; inIndex < inLength; ) {
+            // Decode four bytes
+            int thisPassInBytes = Math.min(inLength - inIndex, 4);
+            while ((thisPassInBytes > 1) && 
+                    (input[inIndex + thisPassInBytes - 1] == '=')) {
+                thisPassInBytes--;
+            }
+
+            if (thisPassInBytes == 2) {
+                int outBuffer = ((B64_DECODE_ARRAY[input[inIndex]] & 0xFF) << 18)
+                            | ((B64_DECODE_ARRAY[input[inIndex + 1]] & 0xFF) << 12);
+                output[outIndex] = (byte) ((outBuffer >> 16) & 0xFF);
+                outIndex += 1;
+            } else if (thisPassInBytes == 3) {
+                int outBuffer = ((B64_DECODE_ARRAY[input[inIndex]] & 0xFF) << 18)
+                            | ((B64_DECODE_ARRAY[input[inIndex + 1]] & 0xFF) << 12)
+                            | ((B64_DECODE_ARRAY[input[inIndex + 2]] & 0xFF) << 6);
+                output[outIndex] = (byte) ((outBuffer >> 16) & 0xFF);
+                output[outIndex + 1] = (byte) ((outBuffer >> 8) & 0xFF);
+                outIndex += 2;
+            } else if (thisPassInBytes == 4) {
+                int outBuffer = ((B64_DECODE_ARRAY[input[inIndex]] & 0xFF) << 18)
+                            | ((B64_DECODE_ARRAY[input[inIndex + 1]] & 0xFF) << 12)
+                            | ((B64_DECODE_ARRAY[input[inIndex + 2]] & 0xFF) << 6)
+                            | (B64_DECODE_ARRAY[input[inIndex + 3]] & 0xFF);
+                output[outIndex] = (byte) ((outBuffer >> 16) & 0xFF);
+                output[outIndex + 1] = (byte) ((outBuffer >> 8) & 0xFF);
+                output[outIndex + 2] = (byte) (outBuffer & 0xFF);
+                outIndex += 3;
+            }
+            inIndex += thisPassInBytes;
+        }
+        return outIndex;
+    }
+    
     private static byte B64_DECODE_ARRAY[] = new byte[] { -1, -1, -1, -1, -1,
             -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
             -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
