@@ -1248,7 +1248,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         String exact = (String) this.exactServletMatchMounts.get(path);
         if (exact != null) {
             if (this.servletInstances.get(exact) != null) {
-                servletPath.append(path);
+                servletPath.append(WinstoneRequest.decodeURLToken(path));
                 // pathInfo.append(""); // a hack - empty becomes null later
                 return (ServletConfiguration) this.servletInstances.get(exact);
             }
@@ -1271,7 +1271,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     "WebAppConfig.MatchedNonExistServlet",
                     this.defaultServletName));
 //        pathInfo.append(path);
-        servletPath.append(path);
+        servletPath.append(WinstoneRequest.decodeURLToken(path));
         return (ServletConfiguration) this.servletInstances.get(this.defaultServletName);
     }
 
