@@ -110,4 +110,32 @@ public class HttpConnectorTest extends TestCase {
         winstone.shutdown();
         Thread.sleep(500);
     }
+    
+    /**
+     * Test the keep alive case
+     */
+    public void testWriteAfterServlet() throws IOException,
+            InterruptedException, SAXException {
+        // Initialise container
+        Map args = new HashMap();
+        args.put("webroot", "target/testwebapp");
+        args.put("prefix", "/examples");
+        args.put("httpPort", "10005");
+        args.put("ajp13Port", "-1");
+        args.put("controlPort", "-1");
+        args.put("debug", "8");
+        args.put("logThrowingLineNo", "true");
+        Logger.init(Logger.FULL_DEBUG, System.out, true);
+        Launcher winstone = new Launcher(args);
+
+        // Check for a simple connection
+        WebConversation wc = new WebConversation();
+        WebRequest wreq = new GetMethodWebRequest(
+                "http://localhost:10005/examples/TestWriteAfterServlet");
+        WebResponse wresp1 = wc.getResponse(wreq);
+        Logger.logDirectMessage(Logger.INFO, "log", "Output: " + wresp1.getText(), null);
+        assertTrue(wresp1.getText().endsWith("Hello"));
+        winstone.shutdown();
+        Thread.sleep(500);
+    }
 }

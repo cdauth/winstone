@@ -21,9 +21,13 @@
 			<param-value>true</param-value>
 		</init-param>
 	</filter>
+  <filter>
+		<filter-name>WriteAfterServletFilter</filter-name>
+		<filter-class>winstone.testApplication.filters.WriteAfterServletFilter</filter-class>
+	</filter>
   <filter-mapping>        
-		<filter-name>TimingFilter</filter-name>       
-		<url-pattern>/*</url-pattern>    
+		<filter-name>WriteAfterServletFilter</filter-name>       
+		<url-pattern>/TestWriteAfterServlet</url-pattern>    
 	</filter-mapping>
 	
   <listener>
@@ -95,6 +99,11 @@
 	<servlet-mapping>
 		<servlet-name>UnavailableAtGetServlet</servlet-name>
 		<url-pattern>/UnavailableAtGetServlet</url-pattern>
+	</servlet-mapping>
+  
+	<servlet-mapping>
+		<servlet-name>CountRequestsServlet</servlet-name>
+		<url-pattern>/TestWriteAfterServlet</url-pattern>
 	</servlet-mapping>
 
 	<!-- Test the welcome file processing order -->
