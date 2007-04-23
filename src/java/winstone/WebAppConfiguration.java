@@ -221,7 +221,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Check jasper is available - simple tests
         if (useJasper) {
             try {
-                Class.forName("javax/servlet/jsp/JspFactory", true, this.loader);
+                Class.forName("javax.servlet.jsp.JspFactory", true, parentClassLoader);
                 Class.forName(JSP_SERVLET_CLASS, true, this.loader);
             } catch (Throwable err) {
                 if (booleanArg(startupArgs, "useJasper", false)) {
@@ -966,7 +966,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                     .getString("WebAppConfig.IOException"), err);
         }
 
-        URL jarURLs[] = (URL []) urlList.toArray(new URL[0]);
+        URL jarURLs[] = (URL []) urlList.toArray(new URL[urlList.size()]);
         
         String preferredClassLoader = stringArg(startupArgs, "preferredClassLoader", WEBAPP_CL_CLASS);
         if (booleanArg(startupArgs, "useServletReloading", false) && 

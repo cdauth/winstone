@@ -265,6 +265,7 @@ public class RequestHandlerThread implements Runnable {
 //            rsp.sendUntrappedError(err, req, rd != null ? rd.getName() : null);
         }
         rsp.flushBuffer();
+        rsp.getWinstoneOutputStream().setClosed(true);
         req.discardRequestBody();
     }
 

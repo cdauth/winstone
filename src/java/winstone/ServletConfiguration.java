@@ -175,8 +175,8 @@ public class ServletConfiguration implements javax.servlet.ServletConfig,
             Throwable otherError = null;
             try {
                 Class servletClass = Class.forName(classFile, true, this.webAppConfig.getLoader());
-                this.isSingleThreadModel = Class.forName("javax.servlet.SingleThreadModel").isInstance(this.instance);
                 newInstance = (Servlet) servletClass.newInstance();
+                this.isSingleThreadModel = Class.forName("javax.servlet.SingleThreadModel").isInstance(newInstance);
                 
                 // Initialise with the correct classloader
                 Logger.log(Logger.DEBUG, Launcher.RESOURCES, "ServletConfiguration.init", this.servletName);

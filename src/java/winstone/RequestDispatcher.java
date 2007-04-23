@@ -328,10 +328,14 @@ public class RequestDispatcher implements javax.servlet.RequestDispatcher,
         }
 
         // Make sure the filter chain is exhausted first
+        boolean outsideFilter = (this.matchingFiltersEvaluated == 0);
         if (this.matchingFiltersEvaluated < this.matchingFilters.length) {
             doFilter(request, response);
         } else {
             this.servletConfig.execute(request, response, this.webAppConfig.getContextPath() + this.requestURI);
+        }
+        // Stop any output after the final filter has been executed (e.g. from forwarding servlet)
+        if (outsideFilter) {
             WinstoneResponse rsp = getUnwrappedResponse(response);
             rsp.flushBuffer();
             rsp.getWinstoneOutputStream().setClosed(true);

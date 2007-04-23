@@ -146,16 +146,14 @@ public class Mapping implements java.util.Comparator {
      */
     public boolean match(String inputPattern, StringBuffer servletPath,
             StringBuffer pathInfo) {
-        // Logger.log(Logger.FULL_DEBUG, "Matching input=" + inputPattern + "
-        // me=" + toString());
         switch (this.patternType) {
         case FOLDER_PATTERN:
             if (inputPattern.startsWith(this.urlPattern + '/') || 
                     inputPattern.equals(this.urlPattern)) {
                 if (servletPath != null)
-                    servletPath.append(this.urlPattern);
+                    servletPath.append(WinstoneRequest.decodeURLToken(this.urlPattern));
                 if (pathInfo != null)
-                    pathInfo.append(inputPattern.substring(this.urlPattern.length()));
+                    pathInfo.append(WinstoneRequest.decodeURLToken(inputPattern.substring(this.urlPattern.length())));
                 return true;
             } else
                 return false;
@@ -169,7 +167,7 @@ public class Mapping implements java.util.Comparator {
             if ((this.isPatternFirst && fileName.startsWith(this.urlPattern))
                     || (!this.isPatternFirst && fileName.endsWith(this.urlPattern))) {
                 if (servletPath != null)
-                    servletPath.append(inputPattern);
+                    servletPath.append(WinstoneRequest.decodeURLToken(inputPattern));
                 return true;
             } else
                 return false;
@@ -177,14 +175,14 @@ public class Mapping implements java.util.Comparator {
         case EXACT_PATTERN:
             if (inputPattern.equals(this.urlPattern)) {
                 if (servletPath != null)
-                    servletPath.append(inputPattern);
+                    servletPath.append(WinstoneRequest.decodeURLToken(inputPattern));
                 return true;
             } else
                 return false;
 
         case DEFAULT_SERVLET:
             if (servletPath != null)
-                servletPath.append(inputPattern);
+                servletPath.append(WinstoneRequest.decodeURLToken(inputPattern));
             return true;
 
         default:
