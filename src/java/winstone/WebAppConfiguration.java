@@ -203,6 +203,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     public WebAppConfiguration(HostConfiguration ownerHostConfig, Cluster cluster, String webRoot,
             String prefix, ObjectPool objectPool, Map startupArgs, Node elm,
             ClassLoader parentClassLoader, File parentClassPaths[], String contextName) {
+        if (!prefix.equals("") && !prefix.startsWith("/")) {
+            Logger.log(Logger.WARNING, Launcher.RESOURCES, 
+                    "WebAppConfig.AddingLeadingSlash", prefix);
+            prefix = "/" + prefix;
+        }
         this.ownerHostConfig = ownerHostConfig;
         this.webRoot = webRoot;
         this.prefix = prefix;
