@@ -46,18 +46,15 @@ public class WinstoneResponse implements HttpServletResponse {
     static final String CONTENT_TYPE_HEADER = "Content-Type";
 
     // Response header constants
-    static final String CONTENT_LANGUAGE_HEADER = "Content-Language";
-    static final String KEEP_ALIVE_HEADER = "Connection";
-    static final String ENCODING_HEADER = "Transfer-Encoding";
-    static final String KEEP_ALIVE_OPEN = "Keep-Alive";
-    static final String KEEP_ALIVE_CLOSE = "Close";
-    static final String DATE_HEADER = "Date";
-    static final String SERVER_HEADER = "Server";
-    static final String LOCATION_HEADER = "Location";
-    static final String OUT_COOKIE_HEADER1 = "Set-Cookie";
-    static final String OUT_COOKIE_HEADER2 = "Set-Cookie2";
-    static final String X_POWERED_BY_HEADER = "X-Powered-By";
-    static final String POWERED_BY_WINSTONE = "Servlet/2.4 (Winstone/0.8)";
+    private static final String CONTENT_LANGUAGE_HEADER = "Content-Language";
+    private static final String KEEP_ALIVE_HEADER = "Connection";
+    private static final String KEEP_ALIVE_OPEN = "Keep-Alive";
+    private static final String KEEP_ALIVE_CLOSE = "Close";
+    private static final String DATE_HEADER = "Date";
+    private static final String LOCATION_HEADER = "Location";
+    private static final String OUT_COOKIE_HEADER1 = "Set-Cookie";
+    private static final String X_POWERED_BY_HEADER = "X-Powered-By";
+    private static final String X_POWERED_BY_HEADER_VALUE = Launcher.RESOURCES.getString("PoweredByHeader");
 
     private int statusCode;
     private WinstoneRequest req;
@@ -258,7 +255,7 @@ public class WinstoneResponse implements HttpServletResponse {
             forceHeader(DATE_HEADER, formatHeaderDate(new Date()));
         }
         if (getHeader(X_POWERED_BY_HEADER) == null) {
-            forceHeader(X_POWERED_BY_HEADER, POWERED_BY_WINSTONE);
+            forceHeader(X_POWERED_BY_HEADER, X_POWERED_BY_HEADER_VALUE);
         }
         if (this.locale != null) {
             String lang = this.locale.getLanguage();
