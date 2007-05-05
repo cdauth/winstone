@@ -63,7 +63,7 @@ public class Ajp13OutputStream extends WinstoneOutputStream {
 
     public void commit() throws IOException {
         Logger.log(Logger.FULL_DEBUG, Ajp13Listener.AJP_RESOURCES,
-                "WinstoneOutputStream.CommittedBytes", "" + this.bytesCommitted);
+                "Ajp13OutputStream.CommittedBytes", "" + this.bytesCommitted);
         this.buffer.flush();
 
         // If we haven't written the headers yet, write them out
