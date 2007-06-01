@@ -74,8 +74,9 @@ public class RetryRequestParams implements java.io.Serializable {
             InputStream inData = request.getInputStream();
             this.bodyContent = new byte[this.contentLength];
             int readCount = 0;
-            while (readCount < this.contentLength) {
-                readCount += inData.read(this.bodyContent, readCount, this.contentLength - readCount);
+            int read = 0;
+            while ((read = inData.read(this.bodyContent, readCount, this.contentLength - readCount)) >= 0) {
+                readCount += read;
             }
             inData.close();
         }
