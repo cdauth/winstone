@@ -18,6 +18,7 @@ import java.util.StringTokenizer;
 import winstone.AuthenticationPrincipal;
 import winstone.AuthenticationRealm;
 import winstone.Logger;
+import winstone.WebAppConfiguration;
 import winstone.WinstoneResourceBundle;
 
 /**
@@ -50,18 +51,22 @@ public class ArgumentsRealm implements AuthenticationRealm {
                 String userName = key.substring(PASSWORD_PREFIX.length());
                 String password = (String) args.get(key);
 
-                String roleList = (String) args.get(ROLES_PREFIX + userName);
-                StringTokenizer st = new StringTokenizer(roleList, ",");
-                List rl = new ArrayList();
-                for (; st.hasMoreTokens();) {
-                    String currentRole = st.nextToken();
-                    if (rolesAllowed.contains(currentRole))
-                        rl.add(currentRole);
+                String roleList = WebAppConfiguration.stringArg(args, ROLES_PREFIX + userName, "");
+                if (roleList.equals("")) {
+                    Logger.log(Logger.WARNING, REALM_RESOURCES, "ArgumentsRealm.UndeclaredRoles", userName);
+                } else {
+                    StringTokenizer st = new StringTokenizer(roleList, ",");
+                    List rl = new ArrayList();
+                    for (; st.hasMoreTokens();) {
+                        String currentRole = st.nextToken();
+                        if (rolesAllowed.contains(currentRole))
+                            rl.add(currentRole);
+                    }
+                    Object roleArray[] = rl.toArray();
+                    Arrays.sort(roleArray);
+                    this.roles.put(userName, Arrays.asList(roleArray));
                 }
-                Object roleArray[] = rl.toArray();
-                Arrays.sort(roleArray);
                 this.passwords.put(userName, password);
-                this.roles.put(userName, Arrays.asList(roleArray));
             }
         }
 
