@@ -90,6 +90,7 @@ public class HttpsListener extends HttpListener {
                 : factory.createServerSocket(this.listenPort, BACKLOG_COUNT,
                         InetAddress.getByName(this.listenAddress)));
         ss.setEnableSessionCreation(true);
+        ss.setWantClientAuth(true);
         return ss;
     }
 
