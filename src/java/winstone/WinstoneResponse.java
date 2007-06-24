@@ -726,23 +726,26 @@ public class WinstoneResponse implements HttpServletResponse {
         
         // Build location
         StringBuffer fullLocation = new StringBuffer();
-        if (location.startsWith("http://") || location.startsWith("https://"))
+        if (location.startsWith("http://") || location.startsWith("https://")) {
             fullLocation.append(location);
-        else {
+        } else {
+            if (location.trim().equals(".")) {
+                location = "";
+            }
+            
             fullLocation.append(this.req.getScheme()).append("://");
             fullLocation.append(this.req.getServerName());
-            if (!((this.req.getServerPort() == 80) && this.req.getScheme()
-                    .equals("http"))
-                    && !((this.req.getServerPort() == 443) && this.req
-                            .getScheme().equals("https")))
+            if (!((this.req.getServerPort() == 80) && this.req.getScheme().equals("http"))
+                    && !((this.req.getServerPort() == 443) && this.req.getScheme().equals("https")))
                 fullLocation.append(':').append(this.req.getServerPort());
             if (location.startsWith("/")) {
                 fullLocation.append(location);
             } else {
                 fullLocation.append(this.req.getRequestURI());
-                if (fullLocation.toString().indexOf("?") != -1)
-                    fullLocation.delete(fullLocation.toString().indexOf("?"),
-                            fullLocation.length());
+                int questionPos = fullLocation.toString().indexOf("?"); 
+                if (questionPos != -1) {
+                    fullLocation.delete(questionPos, fullLocation.length());
+                }
                 fullLocation.delete(
                         fullLocation.toString().lastIndexOf("/") + 1,
                         fullLocation.length());
