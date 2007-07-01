@@ -1210,7 +1210,6 @@ public class WinstoneRequest implements HttpServletRequest {
         if (!((getServerPort() == 80) && getScheme().equals("http"))
                 && !((getServerPort() == 443) && getScheme().equals("https")))
             url.append(':').append(getServerPort());
-        url.append(this.webappConfig.getContextPath());
         url.append(getRequestURI()); // need encoded form, so can't use servlet path + path info
         return url;
     }
