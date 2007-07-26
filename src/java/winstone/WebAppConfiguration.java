@@ -360,7 +360,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
                         Node timeoutElm = child.getChildNodes().item(m);
                         if ((timeoutElm.getNodeType() == Node.ELEMENT_NODE)
                                 && (timeoutElm.getNodeName().equals(ELEM_SESSION_TIMEOUT))) {
-                            String timeoutStr = getTextFromNode(child);
+                            String timeoutStr = getTextFromNode(timeoutElm);
                             if (!timeoutStr.equals("")) {
                                 this.sessionTimeout = Integer.valueOf(timeoutStr);
                             }
