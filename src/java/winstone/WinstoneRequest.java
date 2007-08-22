@@ -632,7 +632,7 @@ public class WinstoneRequest implements HttpServletRequest {
         String cookieLine = nextToken(st);
 
         // check cookie version flag
-        if (cookieLine.startsWith("$Version=")) {
+        if ((cookieLine != null) && cookieLine.startsWith("$Version=")) {
             int equalPos = cookieLine.indexOf('=');
             try {
                 version = Integer.parseInt(extractFromQuotes(
