@@ -937,7 +937,8 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             if (classesFolder.exists()) {
                 Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                         "WebAppConfig.WebAppClasses");
-                urlList.add(new URL("file", "", classesFolder.getCanonicalPath() + "/"));
+                String classesFolderURL = classesFolder.getCanonicalFile().toURL().toString(); 
+                urlList.add(new URL(classesFolderURL.endsWith("/") ? classesFolderURL : classesFolderURL + "/"));
                 classPathFileList.add(classesFolder);
             } else {
                 Logger.log(Logger.WARNING, Launcher.RESOURCES,
@@ -950,7 +951,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             if (libFolder.exists()) {
                 File jars[] = libFolder.listFiles();
                 for (int n = 0; n < jars.length; n++) {
-                    String jarName = jars[n].getCanonicalPath().toLowerCase();
+                    String jarName = jars[n].getName().toLowerCase();
                     if (jarName.endsWith(".jar") || jarName.endsWith(".zip")) {
                         Logger.log(Logger.DEBUG, Launcher.RESOURCES,
                                 "WebAppConfig.WebAppLib", jars[n].getName());
