@@ -115,7 +115,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
 
             Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.CommittingOutputStream");
             
-            String statusLine = this.owner.getProtocol() + " " + this.owner.getStatus();
+            int statusCode = this.owner.getStatus();
+            String reason = Launcher.RESOURCES.getString("WinstoneOutputStream.reasonPhrase." + statusCode);
+            String statusLine = this.owner.getProtocol() + " " + statusCode + " " + 
+                    (reason == null ? "No reason" : reason);
             this.outStream.write(statusLine.getBytes("8859_1"));
             this.outStream.write(CR_LF);
             Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
