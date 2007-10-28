@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -493,10 +494,15 @@ public class WinstoneRequest implements HttpServletRequest {
                 if ((this.parsedParameters == null) || 
                         (this.parsedParameters.equals(Boolean.FALSE))) {
                     // read full stream length
-                    InputStream in = getInputStream();
-                    byte buffer[] = new byte[2048];
-                    while (in.read(buffer) != -1)
-                        ;
+                    try {
+                        InputStream in = getInputStream();
+                        byte buffer[] = new byte[2048];
+                        while (in.read(buffer) != -1);
+                    } catch (IllegalStateException err) {
+                        Reader in = getReader();
+                        char buffer[] = new char[2048];
+                        while (in.read(buffer) != -1);
+                    }
                 }
             } catch (IOException err) {
                 Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneResponse.ErrorForceBodyParsing", err);
