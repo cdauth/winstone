@@ -1341,10 +1341,11 @@ public class WebAppConfiguration implements ServletContext, Comparator {
     }
 
     public void invalidateExpiredSessions() {
-        Set allSessions = new HashSet(this.sessions.values());
+        Object allSessions[] = this.sessions.values().toArray();
         int expiredCount = 0;
-        for (Iterator i = allSessions.iterator(); i.hasNext(); ) {
-            WinstoneSession session = (WinstoneSession) i.next();
+        
+        for (int n = 0; n < allSessions.length; n++) {
+            WinstoneSession session = (WinstoneSession) allSessions[n];
             if (!session.isNew() && session.isUnusedByRequests() && session.isExpired()) {
                 session.invalidate();
                 expiredCount++;
