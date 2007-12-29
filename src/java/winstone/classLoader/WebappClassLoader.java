@@ -6,6 +6,7 @@
  */
 package winstone.classLoader;
 
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLStreamHandlerFactory;
@@ -93,5 +94,12 @@ public class WebappClassLoader extends URLClassLoader {
             resolveClass(c);
         }
         return c;
+    }
+
+    public InputStream getResourceAsStream(String name) {
+        if ((name != null) && name.startsWith("/")) {
+            name = name.substring(1);
+        }
+        return super.getResourceAsStream(name);
     }
 }
