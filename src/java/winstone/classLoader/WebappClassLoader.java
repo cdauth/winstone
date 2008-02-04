@@ -43,7 +43,7 @@ public class WebappClassLoader extends URLClassLoader {
         super(urls, parent, factory);
     }
 
-    protected Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
+    protected synchronized Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
         // First, check if the class has already been loaded
         Class c = findLoadedClass(name);
         
