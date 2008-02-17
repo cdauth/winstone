@@ -53,24 +53,38 @@ public class Ajp13IncomingPacket {
             RequestHandlerThread handler) throws IOException {
         // Get the incoming packet flag
         byte headerBuffer[] = new byte[4];
-        int headerBytesRead = in.read(headerBuffer);
+        int headerBytesRead = 0;
+        int thisReadCount = 0;
+        while ((headerBytesRead < 4) && 
+                (thisReadCount = in.read(headerBuffer, headerBytesRead, 
+                        4 - headerBytesRead)) >= 0) {
+            headerBytesRead += thisReadCount;
+        }
+        
         handler.setRequestStartTime();
-        if (headerBytesRead != 4)
+        if (headerBytesRead != 4) {
             throw new WinstoneException(Ajp13Listener.AJP_RESOURCES
                     .getString("Ajp13IncomingPacket.InvalidHeader"));
-        else if ((headerBuffer[0] != 0x12) || (headerBuffer[1] != 0x34))
+        } else if ((headerBuffer[0] != 0x12) || (headerBuffer[1] != 0x34)) {
             throw new WinstoneException(Ajp13Listener.AJP_RESOURCES
                     .getString("Ajp13IncomingPacket.InvalidHeader"));
+        }
 
         // Read in the whole packet
         packetLength = ((headerBuffer[2] & 0xFF) << 8)
                 + (headerBuffer[3] & 0xFF);
         packetBytes = new byte[packetLength];
-        int packetBytesRead = in.read(packetBytes);
+        int packetBytesRead = 0;
+        while ((packetBytesRead < packetLength) && 
+                (thisReadCount = in.read(packetBytes, packetBytesRead, 
+                        packetLength - packetBytesRead)) >= 0) {
+            packetBytesRead += thisReadCount;
+        }
 
-        if (packetBytesRead < packetLength)
+        if (packetBytesRead < packetLength) {
             throw new WinstoneException(Ajp13Listener.AJP_RESOURCES
                     .getString("Ajp13IncomingPacket.ShortPacket"));
+        }
         // Ajp13Listener.packetDump(packetBytes, packetBytesRead);
     }
 
