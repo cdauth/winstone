@@ -31,12 +31,16 @@
         <resources>
             <resource>
                 <directory>src/conf</directory>
+                <includes>
+                    <include>javax/servlet/resources/web-app_2_2.dtd</include>
+                    <include>javax/servlet/resources/web-app_2_3.dtd</include>
+                </includes>
             </resource>
 
             <resource>
                 <directory>src/java</directory>
                 <includes>
-                    <include>**/*.properties</include>
+                    <include>winstone/*.properties</include>
                 </includes>
             </resource>
         </resources>
@@ -53,6 +57,20 @@
         </testResources>
 
         <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>javax/**</include>
+                        <include>winstone/*.*</include>
+                    </includes>
+                    <testExcludes>
+                        <testExclude>winstone/testCase/Base64Test.java</testExclude>
+                        <testExclude>winstone/testCase/NamingTest.java</testExclude>
+                    </testExcludes>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
@@ -84,6 +102,7 @@
                     </includes>
                     <excludes>
                         <exclude>**/*NaughtyTest.java</exclude>
+                        <exclude>winstone/testCase/Base64Test.java</exclude>
                         <exclude>winstone/testCase/load/LoadTest.java</exclude>
                     </excludes>
                 </configuration>
