@@ -34,6 +34,7 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
     protected boolean disregardMode = false;
     protected boolean closed = false;
     protected Stack includeByteStreams;
+    private int contentLengthFromHeader = -1;
     
     /**
      * Constructor
@@ -83,13 +84,11 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         this.closed = closed;
     }
 
-    public void write(int oneChar) throws IOException {
+    public synchronized void write(int oneChar) throws IOException {
         if (this.disregardMode || this.closed) {
             return;
-        }
-        String contentLengthHeader = this.owner.getHeader(WinstoneResponse.CONTENT_LENGTH_HEADER);
-        if ((contentLengthHeader != null) && 
-                (this.bytesCommitted >= Integer.parseInt(contentLengthHeader))) {
+        } else if ((this.contentLengthFromHeader != -1) && 
+                (this.bytesCommitted >= this.contentLengthFromHeader)) {
             return;
         }
 //        System.out.println("Out: " + this.bufferPosition + " char=" + (char)oneChar);
@@ -98,10 +97,42 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         // if (this.headersWritten)
         if (this.bufferPosition >= this.bufferSize) {
             commit();
-        } else if ((contentLengthHeader != null) && 
+        } else if ((this.contentLengthFromHeader != -1) && 
                 ((this.bufferPosition + this.bytesCommitted) 
-                        >= Integer.parseInt(contentLengthHeader))) {
+                        >= this.contentLengthFromHeader)) {
             commit();
+        }
+    }
+
+    public synchronized void write(byte b[], int off, int len) throws IOException {
+        if (b == null) {
+            throw new NullPointerException();
+        } else if ((off < 0) || (off > b.length) || (len < 0) ||
+                ((off + len) > b.length) || ((off + len) < 0)) {
+             throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
+            return;
+        } else if (this.disregardMode || this.closed) {
+            return;
+        } else if ((this.contentLengthFromHeader != -1) && 
+                (this.bytesCommitted >= this.contentLengthFromHeader)) {
+            return;
+        }
+        int actualLength = Math.min(len, this.bufferSize - this.bufferPosition);
+        this.buffer.write(b, off, actualLength);
+        this.bufferPosition += actualLength;
+        // if (this.headersWritten)
+        if (this.bufferPosition >= this.bufferSize) {
+            commit();
+        } else if ((this.contentLengthFromHeader != -1) && 
+                ((this.bufferPosition + this.bytesCommitted) 
+                        >= this.contentLengthFromHeader)) {
+            commit();
+        }
+        
+        // Write the remainder
+        if (actualLength < len) {
+            write(b, off + actualLength, len - actualLength);
         }
     }
 
@@ -112,6 +143,10 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
         if (!this.committed && !this.bodyOnly) {
             this.owner.validateHeaders();
             this.committed = true;
+            String contentLengthHeader = this.owner.getHeader(WinstoneResponse.CONTENT_LENGTH_HEADER);
+            if (contentLengthHeader != null) {
+                this.contentLengthFromHeader = Integer.parseInt(contentLengthHeader);
+            }
 
             Logger.log(Logger.DEBUG, Launcher.RESOURCES, "WinstoneOutputStream.CommittingOutputStream");
             
@@ -152,10 +187,8 @@ public class WinstoneOutputStream extends javax.servlet.ServletOutputStream {
 //        winstone.ajp13.Ajp13Listener.packetDump(content, content.length);
 //        this.buffer.writeTo(this.outStream);
         int commitLength = content.length;
-        String contentLengthHeader = this.owner.getHeader(WinstoneResponse.CONTENT_LENGTH_HEADER);
-        if (contentLengthHeader != null) {
-            commitLength = Math.min(Integer.parseInt(contentLengthHeader)
-                    - this.bytesCommitted, content.length);
+        if (this.contentLengthFromHeader != -1) {
+            commitLength = Math.min(this.contentLengthFromHeader - this.bytesCommitted, content.length);
         }
         if (commitLength > 0) {
             this.outStream.write(content, 0, commitLength);
