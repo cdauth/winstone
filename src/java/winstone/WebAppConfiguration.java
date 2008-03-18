@@ -327,7 +327,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         // Add required context atttributes
         String userName = System.getProperty("user.name", "anyone");
         File tmpDir = new File(new File(new File(new File(System.getProperty("java.io.tmpdir"), 
-                "winstone.tmp"), userName), ownerHostConfig.getHostname()), contextName); 
+                userName), "winstone.tmp"), ownerHostConfig.getHostname()), contextName); 
         tmpDir.mkdirs();
         this.attributes.put("javax.servlet.context.tempdir", tmpDir);
 
