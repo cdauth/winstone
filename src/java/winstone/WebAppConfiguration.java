@@ -803,18 +803,26 @@ public class WebAppConfiguration implements ServletContext, Comparator {
         if (this.errorServletName == null)
             this.errorServletName = ERROR_SERVLET_NAME;
 
-        // If we don't have an instance of the default servlet, mount the inbuilt one
+        // If we don't have an instance of the default servlet, mount the inbuilt one    
+        boolean useDirLists = booleanArg(startupArgs, "directoryListings", true);    
+        Map staticParams = new Hashtable();
+        staticParams.put("webRoot", webRoot);
+        staticParams.put("prefix", this.prefix);
+        staticParams.put("directoryList", "" + useDirLists);
+        
         if (this.servletInstances.get(this.defaultServletName) == null) {
-            boolean useDirLists = booleanArg(startupArgs, "directoryListings", true);
-            
-            Map staticParams = new Hashtable();
-            staticParams.put("webRoot", webRoot);
-            staticParams.put("prefix", this.prefix);
-            staticParams.put("directoryList", "" + useDirLists);
             ServletConfiguration defaultServlet = new ServletConfiguration(
                     this,  this.defaultServletName, DEFAULT_SERVLET_CLASS,
                     staticParams, 0);
             this.servletInstances.put(this.defaultServletName, defaultServlet);
+            startupServlets.add(defaultServlet);
+        }
+        if (booleanArg(startupArgs, "alwaysMountDefaultServlet", true) && 
+                this.servletInstances.get(DEFAULT_SERVLET_NAME) == null) {
+            ServletConfiguration defaultServlet = new ServletConfiguration(
+                    this,  DEFAULT_SERVLET_NAME, DEFAULT_SERVLET_CLASS,
+                    staticParams, 0);
+            this.servletInstances.put(DEFAULT_SERVLET_NAME, defaultServlet);
             startupServlets.add(defaultServlet);
         }
 
