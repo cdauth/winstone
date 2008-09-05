@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 
+import winstone.AuthenticationPrincipal;
 import winstone.HostGroup;
 import winstone.Launcher;
 import winstone.Listener;
@@ -338,6 +339,12 @@ public class Ajp13Listener implements Listener, Runnable {
                 req.setAttribute("javax.servlet.request.ssl_session", headers
                         .getAttributes().get("ssl_session"));
                 req.setIsSecure(true);
+            } else if (attName.equals("remote_user")) {
+                String username = (String) headers.getAttributes().get(attName);
+                String authType = (String) headers.getAttributes().get("auth_type");
+                AuthenticationPrincipal principal = new AuthenticationPrincipal(username, null, null);
+                principal.setAuthType(authType);
+                req.setRemoteUser(principal);
             } else
                 Logger.log(Logger.DEBUG, AJP_RESOURCES,
                         "Ajp13Listener.UnknownAttribute", new String[] {

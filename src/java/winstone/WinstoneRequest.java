@@ -464,24 +464,32 @@ public class WinstoneRequest implements HttpServletRequest {
      * For decoding the URL encoding used on query strings
      */
     public static String decodeURLToken(String in) {
-        StringBuffer workspace = new StringBuffer();
-        for (int n = 0; n < in.length(); n++) {
+        int len = in.length();
+        StringBuffer workspace = new StringBuffer(len);
+        for (int n = 0; n < len; n++) {
             char thisChar = in.charAt(n);
-            if (thisChar == '+')
+            if (thisChar == '+') {
                 workspace.append(' ');
-            else if (thisChar == '%') {
-                String token = in.substring(Math.min(n + 1, in.length()), 
-                        Math.min(n + 3, in.length())); 
+            } else if (thisChar == '%') {
+                String token = "";
+                int inc = 2, beg = 1, end = 3;
+                if ((n + 1 < len) && (in.charAt(n + 1) == 'u')) {
+                    beg = 2;
+                    end = 6;
+                    inc = 5;
+                }
+                token = in.substring(Math.min(n + beg, len), Math.min(n + end, len));
                 try {
-                    int decoded = Integer.parseInt(token, 16);
-                    workspace.append((char) decoded);
-                    n += 2;
+                    workspace.append((char) (Integer.parseInt(token, 16)));
+                    n += inc;
                 } catch (RuntimeException err) {
-                    Logger.log(Logger.WARNING, Launcher.RESOURCES, "WinstoneRequest.InvalidURLTokenChar", token);
+                    Logger.log(Logger.WARNING, Launcher.RESOURCES,
+                            "WinstoneRequest.InvalidURLTokenChar", token);
                     workspace.append(thisChar);
                 }
-            } else
+            } else {
                 workspace.append(thisChar);
+            }
         }
         return workspace.toString();
     }
