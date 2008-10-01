@@ -531,9 +531,9 @@ public class WinstoneRequest implements HttpServletRequest {
             Map workingParameters = new HashMap();
             try {
                 // Parse query string from request
-                if ((method.equals(METHOD_GET) || method.equals(METHOD_HEAD) || 
-                        method.equals(METHOD_POST))
-                        && (this.queryString != null)) {
+//                if ((method.equals(METHOD_GET) || method.equals(METHOD_HEAD) || 
+//                        method.equals(METHOD_POST)) && 
+                if (this.queryString != null) {
                     extractParameters(this.queryString, this.encoding, workingParameters, false);
                     Logger.log(Logger.FULL_DEBUG, Launcher.RESOURCES,
                             "WinstoneRequest.ParamLine", "" + workingParameters);
