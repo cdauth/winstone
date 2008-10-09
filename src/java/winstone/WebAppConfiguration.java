@@ -1743,7 +1743,7 @@ public class WebAppConfiguration implements ServletContext, Comparator {
             if (errIterator.getRootCause() instanceof ServletException) {
                 errIterator = (ServletException) errIterator.getRootCause(); 
             } else {
-                if (summaryMessage == null) {
+                if ((summaryMessage == null) && (errIterator.getCause() != null)) {
                     summaryMessage = errIterator.getRootCause().getMessage();
                 }
                 errIterator = null;
