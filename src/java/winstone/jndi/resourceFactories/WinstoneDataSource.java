@@ -467,4 +467,14 @@ public class WinstoneDataSource implements DataSource, Runnable {
                 "" + this.usedRealConnections.size(), 
                 "" + this.unusedRealConnections.size()});
     }
+
+	public Object unwrap(Class iface) throws SQLException
+	{
+		throw new UnsupportedOperationException("Not supported yet.");
+	}
+
+	public boolean isWrapperFor(Class iface) throws SQLException
+	{
+		throw new UnsupportedOperationException("Not supported yet.");
+	}
 }
