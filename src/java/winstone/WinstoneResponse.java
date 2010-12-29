@@ -448,7 +448,7 @@ public class WinstoneResponse implements HttpServletResponse {
 
     public String getCharacterEncoding() {
         String enc = getCurrentEncoding();
-        return (enc == null ? "ISO-8859-1" : enc);
+        return (enc == null ? "UTF-8" : enc);
     }
 
     public void setCharacterEncoding(String encoding) {
